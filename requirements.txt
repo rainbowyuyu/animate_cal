@@ -1,2 +1,5 @@
 manim
 jupyter
+ultralytics
+supervision
+scikit-learn
