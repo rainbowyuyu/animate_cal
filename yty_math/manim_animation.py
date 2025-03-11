@@ -1,5 +1,5 @@
 import os
-import file_operation as fo
+import yty_math.file_operation as fo
 from yty_manim.matrix_yty import *
 
 color_list = [RED, ORANGE, YELLOW, GREEN, TEAL, BLUE, PURPLE, PINK, DARK_BROWN, GOLD]
@@ -7,8 +7,14 @@ time_control = 0.5
 
 
 class MatrixCreation(Scene):
+    def __init__(self,data_load=None):
+        super().__init__()
+        self.data_load = data_load
     def construct(self):
-        matrix_data = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "cache.txt"))
+        if self.data_load:
+            matrix_data = self.data_load
+        else:
+            matrix_data = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "cache.txt"))
         m = Matrix(matrix_data).set_color(BLACK)
 
         # 获取屏幕的宽度和高度
@@ -31,8 +37,14 @@ class MatrixCreation(Scene):
 
 
 class MatrixDetShow(Scene):
+    def __init__(self,data_load=None):
+        super().__init__()
+        self.data_load = data_load
     def construct(self):
-        mat_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
+        if self.data_load is not None:
+            mat_input = self.data_load
+        else:
+            mat_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
         length = len(mat_input)
         mat_mob = MatrixDet(mat_input)
         mat_mob_det = mat_mob.det_mat()

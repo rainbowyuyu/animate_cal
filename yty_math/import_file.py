@@ -14,9 +14,9 @@ from datetime import datetime
 from scipy.interpolate import UnivariateSpline, CubicSpline
 
 # 自己的库
-import picture_roi
-import yolo_detection
-import dbscan_line
-import get_number
-import file_operation
+import yty_math.picture_roi as picture_roi
+import yty_math.yolo_detection as yolo_detection
+import yty_math.dbscan_line as dbscan_line
+import yty_math.get_number as get_number
+import yty_math.file_operation as file_operation
 
