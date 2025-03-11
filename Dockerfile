@@ -25,9 +25,9 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH="/app:$PYTHONPATH"
 
 # 确保 start.py 拥有执行权限（如果需要）
-RUN chmod +x yty_math/app.py
+RUN chmod +x start.py
 
 RUN export MPLBACKEND=Agg
 
 # 运行应用
-CMD ["python", "yty_math/app.py"]
+CMD ["python", "start.py"]

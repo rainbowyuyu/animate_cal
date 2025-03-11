@@ -83,9 +83,16 @@ class MatrixDetShow(Scene):
 
 
 class MatrixAdditionShow(Scene):
+    def __init__(self,*data_load):
+        super().__init__()
+        self.data_load = data_load
     def construct(self):
-        m1_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
-        m2_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix1_cache.txt"),'numpy')
+        if self.data_load is not None:
+            m1_input = self.data_load[0]
+            m2_input = self.data_load[1]
+        else:
+            m1_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
+            m2_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix1_cache.txt"),'numpy')
         color_add = [RED, BLUE]
 
         t = add_txt.copy().shift(UP * 2)
@@ -144,9 +151,17 @@ color_mul = [RED_A, BLUE_A, RED, BLUE]
 
 
 class MatrixMulShow(Scene):
+    def __init__(self,*data_load):
+        super().__init__()
+        self.data_load = data_load
     def construct(self):
-        mat_a_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
-        mat_b_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix1_cache.txt"),'numpy')
+        if self.data_load is not None:
+            mat_a_input = self.data_load[0]
+            mat_b_input = self.data_load[1]
+        else:
+            mat_a_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
+            mat_b_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix1_cache.txt"),'numpy')
+
         run_time = 0.5
 
         t = times_txt.copy().shift(UP * 2)
