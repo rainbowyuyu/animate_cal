@@ -38,7 +38,13 @@ yty_manim
 - 如果您有latex环境可跳过此步骤
 - 详细下载请参考 https://tug.org/texlive/
 
-2. 配置基础环境
+2.配置ghostscript环境
+- 如果您有ghostscript环境可跳过此步骤
+- 详细下载请参考 https://www.ghostscript.com/
+
+> ⚠ 注意配置第1和2步的环境变量
+
+3. 配置基础环境
 - windows
 ```bash
   cd animate_cal
@@ -50,10 +56,10 @@ yty_manim
   docker -pull fufuqaq/ytytest02
 ```
 
-3. 获取模型文件
+4. 获取模型文件
 - 请联系作者，将文件结构中的models放置于项目的根目录
 
-4. 运行项目
+5. 运行项目
 - 可视化界面
 ```bash
    python yty_math/app.py 
