@@ -1,6 +1,7 @@
 # 手写数学算式可视化演示
 ## rainbow_yu 🐋✨
 
+### 文件结构
 models  
 ├── ultralytics  
 │   ├── train.py  
@@ -30,3 +31,37 @@ yty_manim
 ├── yty_matrix.py  
 ├── manim_animation.py  
 └── manim_result  
+
+### 使用方法
+
+1. 配置latex环境
+- 如果您有latex环境可跳过此步骤
+- 详细下载请参考 https://tug.org/texlive/
+
+2. 配置基础环境
+- windows
+```bash
+  cd animate_cal
+  pip install -r requirements.txt 
+```
+
+- docker
+```bash
+  docker -pull fufuqaq/ytytest02
+```
+
+3. 获取模型文件
+- 请联系作者，将文件结构中的models放置于项目的根目录
+
+4. 运行项目
+- 可视化界面
+```bash
+   cd yty_math
+   python app.py 
+```
+
+- 纯命令行操作
+```bash
+   python start.py --cal_func det
+```
+> 这里cal_func参数提供多个选择 det, add, mul 
