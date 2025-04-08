@@ -56,8 +56,7 @@ yty_manim
 4. 运行项目
 - 可视化界面
 ```bash
-   cd yty_math
-   python app.py 
+   python yty_math/app.py 
 ```
 
 - 纯命令行操作
