@@ -160,7 +160,7 @@ def create_matrix():
     # manim模块
     subprocess.run([
         "manim",
-        r"E:\ipynb\python_design\yty_math\manim_animation.py",
+        file_operation.default_manim_source_code,
         "MatrixCreation",
         "-qh",
         "--transparent",
