@@ -56,10 +56,7 @@ yty_manim
   docker -pull fufuqaq/ytytest02
 ```
 
-4. 获取模型文件
-- 请联系作者，将文件结构中的models放置于项目的根目录
-
-5. 运行项目
+4. 运行项目
 - 可视化界面
 ```bash
    python yty_math/app.py 
