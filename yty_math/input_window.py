@@ -188,11 +188,11 @@ def create_matrix():
             messagebox.showinfo("成功", f"矩阵 '{matrix_name}' 已创建！")
 
             # 将矩阵写入文件
-            file_operation.write_matrix_to_file(file_operation.default_file_path, updated_matrix, matrix_name)
+            file_operation.write_matrix_to_file(file_operation.default_save_path, updated_matrix, matrix_name)
 
             # 定义目标文件的路径和新名称
             new_name = f'\\{matrix_name}.png'
-            destination_path = file_operation.default_file_path + new_name
+            destination_path = file_operation.default_save_path + new_name
 
             # 打开渲染的图像文件
             img = Image.open(file_operation.default_manim_path)

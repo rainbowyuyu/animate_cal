@@ -96,7 +96,7 @@ def add_buttons_to_frame(frame):
     def lock_matrix(button, number):
         # 获取frame1中的选中矩阵的图片
         selected_image_name = image_listbox.get(image_listbox.curselection()) if image_listbox.curselection() else None
-        folder = file_operation.default_file_path
+        folder = file_operation.default_save_path
         selected_image_path = os.path.join(folder, f"{selected_image_name}.png") if selected_image_name else None
         if not selected_image_path or not os.path.exists(selected_image_path):
             return  # 如果没有选择矩阵或矩阵不存在，退出
@@ -109,7 +109,7 @@ def add_buttons_to_frame(frame):
         button.image = img_tk  # 保持引用避免被垃圾回收
 
         matrix_name[number] = os.path.join(folder, f"{selected_image_name}.txt")
-        shutil.copy(matrix_name[number], os.path.join(folder, f"matrix{number}_cache.txt"))
+        shutil.copy(matrix_name[number], os.path.join(file_operation.default_file_path, f"matrix{number}_cache.txt"))
 
     create_buttons()  # 初始化按钮
 
@@ -148,7 +148,7 @@ def add_image_tab(frame):
 
     # 加载图片函数
     def load_images():
-        folder = file_operation.default_file_path
+        folder = file_operation.default_save_path
         if not folder:
             return
 
@@ -167,7 +167,7 @@ def add_image_tab(frame):
             return
         # 使用文件夹路径和选中的文件名拼接路径
         selected_image_name = image_listbox.get(image_listbox.curselection())
-        folder = file_operation.default_file_path
+        folder = file_operation.default_save_path
         selected_image_path = os.path.join(folder, f"{selected_image_name}.png")  # 假设扩展名为 .png
         if not os.path.exists(selected_image_path):  # 检查是否存在其他扩展名
             for ext in ['.jpg', '.jpeg', '.bmp', '.gif']:
