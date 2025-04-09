@@ -3,6 +3,7 @@ import os.path
 from import_file import *
 import calc_window
 import yty_canvas
+import re
 
 # 全局变量存储上次选择的文件路径
 last_path = None
@@ -182,26 +183,36 @@ def create_matrix():
     # 确认按钮
     def confirm_name():
         matrix_name = matrix_name_entry.get().strip()
-        if matrix_name:
-            # 获取更新后的矩阵
-            updated_matrix = fetch_matrix_from_entries()
-            messagebox.showinfo("成功", f"矩阵 '{matrix_name}' 已创建！")
 
-            # 将矩阵写入文件
-            file_operation.write_matrix_to_file(file_operation.default_save_path, updated_matrix, matrix_name)
+        # 正则表达式：以字母或下划线开头，仅包含字母、数字、下划线
+        pattern = r'[a-zA-Z0-9_]*$'
 
-            # 定义目标文件的路径和新名称
-            new_name = f'\\{matrix_name}.png'
-            destination_path = file_operation.default_save_path + new_name
-
-            # 打开渲染的图像文件
-            img = Image.open(file_operation.default_manim_path)
-            # 保存为.png文件
-            img.save(destination_path)
-
-            input_window.destroy()
-        else:
+        if not matrix_name:
             messagebox.showwarning("警告", "矩阵名称不能为空！")
+            return
+        elif not re.match(pattern, matrix_name):
+            messagebox.showwarning("警告", "矩阵名称无效！只能使用字母、数字和下划线。")
+            return
+
+        # 检查是否已存在同名文件
+        destination_path = os.path.join(file_operation.default_save_path, f"{matrix_name}.png")
+        if os.path.exists(destination_path):
+            messagebox.showwarning("警告", f"名称 '{matrix_name}' 已存在，请使用其他名称。")
+            return
+
+        # 获取更新后的矩阵
+        updated_matrix = fetch_matrix_from_entries()
+        messagebox.showinfo("成功", f"矩阵 '{matrix_name}' 已创建！")
+
+        # 将矩阵写入文件
+        file_operation.write_matrix_to_file(file_operation.default_save_path, updated_matrix, matrix_name)
+
+        # 打开渲染的图像文件
+        img = Image.open(file_operation.default_manim_path)
+        # 保存为.png文件
+        img.save(destination_path)
+
+        input_window.destroy()
 
     confirm_button = ttk.Button(input_window, text="确认", command=confirm_name)
     confirm_button.pack(pady=10)
