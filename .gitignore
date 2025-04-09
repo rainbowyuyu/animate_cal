@@ -1,2 +1,10 @@
 /media/
 /yty_math/media/
+yty_manim/__pycache__/__init__.cpython-310.pyc
+yty_manim/__pycache__/matrix_yty.cpython-310.pyc
+yty_manim/__pycache__/squ_tex.cpython-310.pyc
+yty_math/__pycache__/calc_window.cpython-310.pyc
+yty_math/__pycache__/file_operation.cpython-310.pyc
+yty_math/__pycache__/input_window.cpython-310.pyc
+yty_math/__pycache__/manim_animation.cpython-310.pyc
+yty_math/__pycache__/manim_result.cpython-310.pyc
