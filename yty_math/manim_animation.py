@@ -41,7 +41,7 @@ class MatrixDetShow(Scene):
         super().__init__()
         self.data_load = data_load
     def construct(self):
-        if self.data_load is not None:
+        if self.data_load :
             mat_input = self.data_load
         else:
             mat_input = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "matrix0_cache.txt"),'numpy')
@@ -87,7 +87,7 @@ class MatrixAdditionShow(Scene):
         super().__init__()
         self.data_load = data_load
     def construct(self):
-        if self.data_load is not None:
+        if self.data_load :
             m1_input = self.data_load[0]
             m2_input = self.data_load[1]
         else:
@@ -155,7 +155,7 @@ class MatrixMulShow(Scene):
         super().__init__()
         self.data_load = data_load
     def construct(self):
-        if self.data_load is not None:
+        if self.data_load:
             mat_a_input = self.data_load[0]
             mat_b_input = self.data_load[1]
         else:
