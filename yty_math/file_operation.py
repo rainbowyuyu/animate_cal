@@ -1,12 +1,13 @@
 import os
 import numpy as np
+import manim
 
 default_software_path = os.getcwd()
 
 default_file_path = os.path.join(default_software_path, r"math_cache")
 default_manim_source_code = os.path.join(default_software_path, r"manim_animation.py")
 default_manim_result_code = os.path.join(default_software_path, r"manim_result.py")
-default_manim_path = os.path.join(default_software_path, r"media\images\manim_animation\MatrixCreation_ManimCE_v0.18.0.png")
+default_manim_path = os.path.join(default_software_path, rf"media\images\manim_animation\MatrixCreation_ManimCE_v{manim.__version__}.png")
 default_video_path = os.path.join(default_software_path, r"media\videos\manim_animation\1080p60")
 default_result_path = os.path.join(default_software_path, r"media\images\manim_result")
 default_model_path = os.path.join(default_software_path, "..\models")

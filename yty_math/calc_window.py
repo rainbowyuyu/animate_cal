@@ -1,5 +1,6 @@
 from import_file import *
 import input_window
+import manim
 
 # 全局变量初始化
 control_panel_open = None
@@ -278,7 +279,7 @@ def call_calc_window():
                     "--transparent",
                 ], check=True)
 
-                display_new_image(os.path.join(file_operation.default_result_path, "DetResult_ManimCE_v0.18.0.png"))
+                display_new_image(os.path.join(file_operation.default_result_path, f"DetResult_ManimCE_v{manim.__version__}.png"))
 
                 subprocess.run([
                     "manim",
@@ -296,7 +297,7 @@ def call_calc_window():
                     "--transparent",
                 ], check=True)
 
-                display_new_image(os.path.join(file_operation.default_result_path, "AddResult_ManimCE_v0.18.0.png"))
+                display_new_image(os.path.join(file_operation.default_result_path, f"AddResult_ManimCE_v{manim.__version__}.png"))
 
                 subprocess.run([
                     "manim",
@@ -314,7 +315,7 @@ def call_calc_window():
                     "--transparent",
                 ], check=True)
 
-                display_new_image(os.path.join(file_operation.default_result_path, "MulResult_ManimCE_v0.18.0.png"))
+                display_new_image(os.path.join(file_operation.default_result_path, f"MulResult_ManimCE_v{manim.__version__}.png"))
 
                 subprocess.run([
                     "manim",
