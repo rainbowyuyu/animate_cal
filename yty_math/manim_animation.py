@@ -1,6 +1,6 @@
 import os
 import yty_math.file_operation as fo
-from yty_manim.matrix_yty import *
+from yty_math.matrix_yty import *
 
 color_list = [RED, ORANGE, YELLOW, GREEN, TEAL, BLUE, PURPLE, PINK, DARK_BROWN, GOLD]
 time_control = 0.5

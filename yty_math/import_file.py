@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox, Scale, HORIZONTAL, Button
 from PIL import Image, ImageTk, ImageGrab, ImageDraw
-import cv2
+
 import shutil
 import subprocess
 import os

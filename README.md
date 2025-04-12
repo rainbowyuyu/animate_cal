@@ -42,9 +42,13 @@ yty_manim
 - 如果您有ghostscript环境可跳过此步骤
 - 详细下载请参考 https://www.ghostscript.com/
 
-> ⚠ 注意配置第1和2步的环境变量
+3.配置ffmpeg环境
+- 如果您有ffmpeg环境可跳过此步骤
+- 详细下载请参考 https://ffmpeg.org/
 
-3. 配置基础环境
+> ⚠ 注意配置第1,2,3步的环境变量
+
+4. 配置基础环境
 - windows
 ```bash
   cd animate_cal
@@ -56,7 +60,7 @@ yty_manim
   docker -pull fufuqaq/ytytest02
 ```
 
-4. 运行项目
+5. 运行项目
 - 可视化界面
 ```bash
    python yty_math/app.py 
