@@ -1,5 +1,6 @@
-manim
+manim == 0.18.0
+opencv-python
 jupyter
-ultralytics
+ultralytics == 8.3.29
 supervision
 scikit-learn
