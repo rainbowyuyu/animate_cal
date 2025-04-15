@@ -1,4 +1,3 @@
-manim
 opencv-python
 jupyter
 ultralytics
