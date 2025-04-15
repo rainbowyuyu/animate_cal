@@ -4,6 +4,7 @@ from import_file import *
 import calc_window
 import yty_canvas
 import re
+import cv2
 
 # 全局变量存储上次选择的文件路径
 last_path = None

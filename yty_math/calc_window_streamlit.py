@@ -53,10 +53,10 @@ def generate_latex_result():
 
 
 # UI 渲染
-st.title("矩阵计算器（Streamlit版本）")
+st.title("数学算式计算器")
 
 # 图片选择区域
-st.header("选择矩阵图像")
+st.header("选择数学算式图像")
 folder = file_operation.default_save_path
 images = [f for f in os.listdir(folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
 image_names = [os.path.splitext(img)[0] for img in images]
