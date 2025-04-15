@@ -1,4 +1,4 @@
-manim
+# manim
 opencv-python
 jupyter
 ultralytics
