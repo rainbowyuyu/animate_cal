@@ -4,3 +4,4 @@ jupyter
 ultralytics == 8.3.29
 supervision
 scikit-learn
+streamlit
