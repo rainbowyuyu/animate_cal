@@ -1,7 +1,7 @@
-manim == 0.18.0
+manim
 opencv-python
 jupyter
-ultralytics == 8.3.29
+ultralytics
 supervision
 scikit-learn
 streamlit
