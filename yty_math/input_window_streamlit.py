@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import re
 from PIL import Image
-import cv2
 import numpy as np
 from io import BytesIO
 
@@ -75,7 +74,7 @@ def save_matrix_to_file(file_path, matrix_data):
     # 示例保存逻辑（您应该用自己的逻辑替换它）
     # 目前保存一个虚拟的图像
     matrix_data = np.zeros((100, 100, 3), dtype=np.uint8)
-    cv2.imwrite(file_path, matrix_data)
+    # cv2.imwrite(file_path, matrix_data)
 
 
 # 主函数
