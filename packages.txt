@@ -1,2 +1,4 @@
 libgl1
 libcairo2-dev
+libpangocairo-1.0-0
+libpangocairo-1.0-dev
