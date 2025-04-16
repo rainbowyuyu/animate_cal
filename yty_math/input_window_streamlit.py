@@ -4,7 +4,11 @@ import re
 from PIL import Image
 import numpy as np
 from io import BytesIO
-from import_file import *
+
+import picture_roi
+import yolo_detection
+import dbscan_line
+import get_number
 import cv2
 
 # 全局变量：最后上传的图片路径、选定的模型版本、矩阵
