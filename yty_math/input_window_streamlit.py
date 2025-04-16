@@ -4,6 +4,8 @@ import re
 from PIL import Image
 import numpy as np
 from io import BytesIO
+from import_file import *
+import cv2
 
 # 全局变量：最后上传的图片路径、选定的模型版本、矩阵
 last_path = None
@@ -108,21 +110,36 @@ def main():
 
 # 图像处理并显示的函数（示例）
 def process_and_display_image():
-    global last_path, selected_model_version
-    if not last_path:
-        st.warning("没有选择图片。")
-        return
+    global last_path, selected_model_version, matrix
 
-    # 使用PIL读取图片（由于last_path是一个文件类对象，而不是直接的路径）
-    img = Image.open(last_path)
-    img = np.array(img)  # 将PIL图像转换为numpy数组
+    # 文件上传控件
+    uploaded_file = st.file_uploader("选择图片文件", type=["jpg", "png", "jpeg"])
+    if uploaded_file is not None:
+        last_path = uploaded_file.name
 
-    # 根据选择的模型处理图像（此处是占位，您可以在此应用实际的处理逻辑）
-    processed_img = img  # 图像处理的占位符
+        # 使用 OpenCV 读取上传的图片
+        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
+        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
-    # 将处理后的图像转换为PIL格式显示
-    processed_img_pil = Image.fromarray(processed_img)
-    st.image(processed_img_pil, caption="处理后的图片", use_container_width=True)
+        # 使用自定义的图像处理流程
+        img = picture_roi.extract_roi(picture=img, output_mode="cv2")
+        img, msk, detections = yolo_detection.detect_objects(img, yolo_detection.load_model(selected_model_version))
+        img, col, row = dbscan_line.create_line(img, msk)
+        matrix = get_number.organize_detections(get_number.class_name_and_center(detections, img), row, col)
+
+        # 将 OpenCV 图像转换为 PIL 格式
+        img = picture_roi.opencv_to_pillow(img)
+
+        # 显示处理后的图像
+        st.image(img, caption="处理后的图像", use_column_width=True)
+
+        # 显示检测到的矩阵信息
+        st.write("检测结果矩阵：")
+        for r in range(row):
+            st.write(matrix[r] if r < len(matrix) else [])
+
+    else:
+        st.warning("请先上传一张图片。")
 
 
 if __name__ == "__main__":

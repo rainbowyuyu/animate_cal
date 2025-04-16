@@ -19,7 +19,6 @@ def create_frame(parent, title):
     frame = ttk.LabelFrame(parent, text=title, labelanchor="n", style="Custom.TLabelframe")
     frame.pack_propagate(False)
     return frame
-5
 
 # 选择图片并显示
 def select_and_display_image(label, frame):
