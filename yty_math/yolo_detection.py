@@ -2,7 +2,7 @@ from ultralytics import YOLO
 import supervision as sv
 import os
 import numpy as np
-import yty_math.file_operation as file_operation
+import file_operation
 
 # 初始化监督库的注解器
 bounding_box_annotator = sv.BoxAnnotator()
