@@ -116,14 +116,13 @@ def main():
 def process_and_display_image():
     global last_path, selected_model_version, matrix
 
-    # 文件上传控件
-    uploaded_file = st.file_uploader("选择图片文件", type=["jpg", "png", "jpeg"])
-    if uploaded_file is not None:
-        last_path = uploaded_file.name
+    global last_path, selected_model_version
+    if not last_path:
+        st.warning("没有选择图片。")
+        return
 
-        # 使用 OpenCV 读取上传的图片
-        file_bytes = np.asarray(bytearray(uploaded_file.read()), dtype=np.uint8)
-        img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+    else:
+        img = cv2.imdecode(last_path, cv2.IMREAD_COLOR)
 
         # 使用自定义的图像处理流程
         img = picture_roi.extract_roi(picture=img, output_mode="cv2")
