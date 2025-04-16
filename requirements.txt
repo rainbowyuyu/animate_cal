@@ -1,4 +1,3 @@
-manim
 jupyter
 ultralytics
 supervision
