@@ -1,3 +1,4 @@
 libgl1
 libcairo2-dev
 libpangocairo-1.0-0
+imageio[ffmpeg]
