@@ -1,3 +1,4 @@
+manimgl
 jupyter
 ultralytics
 supervision
