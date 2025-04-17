@@ -21,6 +21,7 @@ import manim_animation
 from manim import WHITE
 
 
+
 def select_and_display_image():
     uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png"])
 
@@ -87,6 +88,8 @@ def update_entry_widgets():
     st.session_state.matrix = edited_df.values.tolist()
 
 def create_matrix():
+    config.transparent = True
+
     if "matrix" not in st.session_state:
         st.warning("请先识别并生成矩阵。")
         return
@@ -104,12 +107,11 @@ def create_matrix():
     try:
         # 渲染动画
         from manim_animation import MatrixCreation  # 假设你在这个模块定义了 MatrixCreation 类
-        animation = MatrixCreation(matrix, matrix_color = WHITE)
+        animation = MatrixCreation(matrix)
 
         progress_bar.progress(30, text="创建动画对象...")
         time.sleep(0.5)
 
-        config.transparent = True
         animation.render()
 
         progress_bar.progress(100, text="🎉 渲染完成！")
