@@ -114,5 +114,5 @@ def create_matrix():
         st.error(f"渲染失败：{e}")
         progress_bar.empty()
 
-    st.image(rf"media\images\MatrixCreation_ManimCE_v{manim.__version__}.png", caption="生成的矩阵", use_container_width=True)
+    st.image(file_operation.streamlit_manim_path, caption="生成的矩阵", use_container_width=True)
 
