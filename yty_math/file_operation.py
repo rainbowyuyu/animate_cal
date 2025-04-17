@@ -11,7 +11,7 @@ default_manim_result_code = os.path.join(default_software_path, r"manim_result.p
 default_manim_path = os.path.join(default_software_path, rf"media\images\manim_animation\MatrixCreation_ManimCE_v{manim.__version__}.png")
 default_video_path = os.path.join(default_software_path, r"media\videos\manim_animation\1080p60")
 default_result_path = os.path.join(default_software_path, r"media\images\manim_result")
-default_model_path = os.path.join(default_software_path, "..\models")
+default_model_path = os.path.join(default_software_path, "models")
 
 
 # 写矩阵到文件的函数
