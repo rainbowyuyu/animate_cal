@@ -10,7 +10,6 @@ def draw_canvas(
     canvas_width=600,
     bg_color="#FFFFFF",
 ):
-    st.title("🖌️ 手写画板 - 函数版")
 
     # 初始化 session_state
     if "history" not in st.session_state:

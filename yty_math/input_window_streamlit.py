@@ -3,6 +3,7 @@
 import streamlit as st
 from input_streamlit import *
 from canvas_streamlit import *
+from calc_window_streamlit import *
 import tempfile
 import os
 
@@ -15,7 +16,7 @@ class FinalApp:
         st.sidebar.image("logo.png", use_container_width=True)
         st.sidebar.title("选项")
 
-        action = st.sidebar.radio("选择操作", ["识别算式", "手写输入"])
+        action = st.sidebar.radio("选择操作", ["识别算式", "手写输入", "动画演示"])
 
         if action == "识别算式":
             st.title("识别算式")
@@ -33,6 +34,10 @@ class FinalApp:
             st.title("手写输入")
             self.canvas()
 
+        elif action == "动画演示":
+            st.title("动画演示")
+            self.animate()
+
     def handle_image_selection(self):
         success = select_and_display_image()
         if success:
@@ -47,6 +52,9 @@ class FinalApp:
 
     def canvas(self):
         draw_canvas()
+
+    def animate(self):
+        matrix_calculator_app()
 
 if __name__ == "__main__":
     app = FinalApp()
