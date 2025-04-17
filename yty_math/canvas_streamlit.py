@@ -56,7 +56,7 @@ def draw_canvas(
 
     # 显示当前画布
     if st.session_state.current_image is not None:
-        st.image(st.session_state.current_image, caption="当前画布", use_column_width=True)
+        st.image(st.session_state.current_image, caption="当前画布", use_container_width=True)
 
     # 返回当前图像（可保存或后续使用）
     return st.session_state.current_image
