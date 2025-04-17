@@ -51,7 +51,7 @@ def matrix_calculator_app():
 
     # 图片选择区域
     st.header("选择数学算式图像")
-    folder = file_operation.default_save_path
+    folder = file_operation.streamlit_save_path
     images = [f for f in os.listdir(folder) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
     image_names = [os.path.splitext(img)[0] for img in images]
 
