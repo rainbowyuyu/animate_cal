@@ -107,11 +107,11 @@ def create_matrix():
         progress_bar.progress(30, text="创建动画对象...")
         time.sleep(0.5)
 
-        animation.render()
         config.transparent = True
         config.format = "png"  # 输出 PNG 图片
         config.background_color = None
-        
+        animation.render()
+
         progress_bar.progress(100, text="🎉 渲染完成！")
 
         st.success("Manim 渲染完成 ✅")
