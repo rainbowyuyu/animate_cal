@@ -2,6 +2,7 @@
 
 import streamlit as st
 from input_streamlit import *
+from canvas_streamlit import *
 import tempfile
 import os
 
@@ -30,7 +31,7 @@ class FinalApp:
 
         elif action == "手写输入":
             st.title("手写输入")
-            self.create_matrix()
+            self.canvas()
 
     def handle_image_selection(self):
         success = select_and_display_image()
@@ -44,9 +45,8 @@ class FinalApp:
         st.sidebar.text(f"已选择模型版本: {self.selected_model_version}")
         st.session_state.selected_model_version = self.selected_model_version
 
-    def create_matrix(self):
-        pass
-
+    def canvas(self):
+        draw_canvas()
 
 if __name__ == "__main__":
     app = FinalApp()

@@ -4,3 +4,4 @@ ultralytics
 supervision
 scikit-learn
 streamlit
+streamlit-drawable-canvas
