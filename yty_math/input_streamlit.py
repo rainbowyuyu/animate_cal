@@ -8,6 +8,7 @@ import pandas as pd
 import subprocess
 import time
 import manim
+from manim import config
 
 # 自己的包
 import picture_roi
@@ -107,6 +108,10 @@ def create_matrix():
         time.sleep(0.5)
 
         animation.render()
+        config.transparent = True
+        config.format = "png"  # 输出 PNG 图片
+        config.background_color = None
+        
         progress_bar.progress(100, text="🎉 渲染完成！")
 
         st.success("Manim 渲染完成 ✅")
