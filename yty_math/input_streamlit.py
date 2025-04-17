@@ -18,7 +18,7 @@ import get_number
 import cv2
 import file_operation
 import manim_animation
-from yty_math.manim import WHITE
+from manim import WHITE
 
 
 def select_and_display_image():
