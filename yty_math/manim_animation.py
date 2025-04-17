@@ -7,15 +7,16 @@ time_control = 0.5
 
 
 class MatrixCreation(Scene):
-    def __init__(self,data_load=None):
+    def __init__(self,data_load=None, matrix_color = BLACK):
         super().__init__()
         self.data_load = data_load
+        self.matrix_color = matrix_color
     def construct(self):
         if self.data_load:
             matrix_data = self.data_load
         else:
             matrix_data = fo.read_matrix_from_file(os.path.join(fo.default_file_path, "cache.txt"))
-        m = Matrix(matrix_data).set_color(BLACK)
+        m = Matrix(matrix_data).set_color(self.matrix_color)
 
         # 获取屏幕的宽度和高度
         screen_width = config.frame_width

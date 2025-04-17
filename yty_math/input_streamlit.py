@@ -18,6 +18,8 @@ import get_number
 import cv2
 import file_operation
 import manim_animation
+from yty_math.manim import WHITE
+
 
 def select_and_display_image():
     uploaded_file = st.file_uploader("选择一张图片", type=["jpg", "jpeg", "png"])
@@ -102,14 +104,12 @@ def create_matrix():
     try:
         # 渲染动画
         from manim_animation import MatrixCreation  # 假设你在这个模块定义了 MatrixCreation 类
-        animation = MatrixCreation(matrix)
+        animation = MatrixCreation(matrix, color = WHITE)
 
         progress_bar.progress(30, text="创建动画对象...")
         time.sleep(0.5)
 
         config.transparent = True
-        config.format = "png"  # 输出 PNG 图片
-        config.background_color = None
         animation.render()
 
         progress_bar.progress(100, text="🎉 渲染完成！")
