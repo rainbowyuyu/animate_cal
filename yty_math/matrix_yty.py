@@ -1,5 +1,5 @@
 from manim import *
-from yty_manim.squ_tex import SquTex
+from squ_tex import SquTex
 import math
 
 # 矩阵预设
