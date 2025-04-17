@@ -48,8 +48,6 @@ def matrix_calculator_app():
         latex_img_path = "results/result_latex.png"
         st.session_state.latex_img_path = latex_img_path
 
-    # UI 渲染
-    st.title("数学算式计算器")
 
     # 图片选择区域
     st.header("选择数学算式图像")
