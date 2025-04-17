@@ -104,7 +104,7 @@ def create_matrix():
     try:
         # 渲染动画
         from manim_animation import MatrixCreation  # 假设你在这个模块定义了 MatrixCreation 类
-        animation = MatrixCreation(matrix, color = WHITE)
+        animation = MatrixCreation(matrix, matrix_color = WHITE)
 
         progress_bar.progress(30, text="创建动画对象...")
         time.sleep(0.5)
