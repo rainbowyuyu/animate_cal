@@ -7,6 +7,7 @@ from io import BytesIO
 import pandas as pd
 import subprocess
 import time
+import manim
 
 # 自己的包
 import picture_roi
@@ -113,5 +114,5 @@ def create_matrix():
         st.error(f"渲染失败：{e}")
         progress_bar.empty()
 
-    st.image(file_operation.default_manim_path, caption="生成的矩阵", use_container_width=True)
+    st.image(rf"media\images\MatrixCreation_ManimCE_v{manim.__version__}.png", caption="生成的矩阵", use_container_width=True)
 
