@@ -9,13 +9,13 @@ import subprocess
 import time
 import manim
 from manim import config
+import cv2
 
 # 自己的包
 import picture_roi
 import yolo_detection
 import dbscan_line
 import get_number
-import cv2
 import file_operation
 import manim_animation
 from manim import WHITE
