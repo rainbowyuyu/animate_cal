@@ -73,8 +73,8 @@ def index_streamlit():
             margin-top: 30px;
         }
         .custom-button {
-            font-size: 30px;
-            padding: 12px 32px;
+            font-size: 4vw;  /* 根据页面宽度自动调整字体大小 */
+            padding: 2vw 5vw;  /* 根据页面宽度动态调整按钮的内边距 */
             border-radius: 12px;
             background: linear-gradient(to right, #1c83e1, #2a8ce5);
             color: white;
@@ -83,10 +83,28 @@ def index_streamlit():
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
             transition: all 0.3s ease-in-out;
         }
+        
         .custom-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
+        
+        /* 针对大屏设备调整字体和内边距 */
+        @media screen and (min-width: 1200px) {
+            .custom-button {
+                font-size: 30px;  /* 在大屏幕设备上固定字体大小 */
+                padding: 12px 32px;  /* 固定内边距 */
+            }
+        }
+        
+        /* 针对小屏设备调整字体和内边距 */
+        @media screen and (max-width: 480px) {
+            .custom-button {
+                font-size: 6vw;  /* 在小屏幕设备上增大字体大小 */
+                padding: 4vw 10vw;  /* 动态调整内边距 */
+            }
+        }
+
         .feature-col {
             display: flex;
             flex-direction: column;
@@ -109,27 +127,40 @@ def index_streamlit():
         """
         <style>
         .animated-text {
-            font-size: 120px;  /* 增加字体大小 */
+            font-size: 8vw;  /* 根据页面宽度自动缩放 */
             font-weight: bold;
             text-align: center;
-            background: linear-gradient(to right, #4B8BBE, #306998);  /* 更炫酷的渐变色 */
+            background: linear-gradient(to right, #4B8BBE, #306998);
             -webkit-background-clip: text;
             color: transparent;
-            animation: textAnimation 5s ease-in-out infinite;  /* 延长动画时长 */
+            animation: textAnimation 4s ease-in-out infinite;
         }
 
         @keyframes textAnimation {
             0% {
-                transform: scale(1.5);
+                transform: scale(0.8);
                 opacity: 0.8;
             }
             50% {
-                transform: scale(2);  /* 放大效果 */
+                transform: scale(1);  /* 略微放大 */
                 opacity: 1;
             }
             100% {
-                transform: scale(1.5);
+                transform: scale(0.8);
                 opacity: 0.8;
+            }
+        }
+
+        /* 限制最大字号避免太大 */
+        @media screen and (min-width: 1200px) {
+            .animated-text {
+                font-size: 96px;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .animated-text {
+                font-size: 10vw;  /* 更小屏幕下略大一点 */
             }
         }
         </style>
@@ -138,7 +169,6 @@ def index_streamlit():
         """,
         unsafe_allow_html=True
     )
-
 
     add_empty_lines(2)
 

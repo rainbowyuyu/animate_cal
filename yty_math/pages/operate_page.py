@@ -31,6 +31,7 @@ class FinalApp:
         self.selected_model_version = None
 
     def run(self):
+        st.set_page_config(page_title="智算视界·可视化计算", page_icon="pure_logo.png", layout="centered")
         st.markdown(
             """
             <style>
