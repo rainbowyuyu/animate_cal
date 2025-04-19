@@ -1,4 +1,4 @@
-# streamlit: title=数学可视化运算
+# rainbow_yu pages.可视化计算 🐋✨
 
 import streamlit as st
 from streamlit_drawable_canvas import st_canvas

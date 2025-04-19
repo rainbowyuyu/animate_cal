@@ -142,7 +142,7 @@ def index_streamlit():
                 opacity: 0.8;
             }
             50% {
-                transform: scale(1);  /* 略微放大 */
+                transform: scale(1);
                 opacity: 1;
             }
             100% {
@@ -178,10 +178,10 @@ def index_streamlit():
         st.markdown(
             """
             <div class="button-container">
-                <a href="operate_page" target="_self">
+                <a href="可视化计算" target="_self">
                     <button class="custom-button">快速开始</button>
                 </a>
-                <a href="documents" target="_self">
+                <a href="帮助文档" target="_self">
                     <button class="custom-button">教程文档</button>
                 </a>
             </div>
