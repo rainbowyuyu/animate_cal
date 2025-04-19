@@ -178,10 +178,10 @@ def index_streamlit():
         st.markdown(
             """
             <div class="button-container">
-                <a href="可视化计算" target="_self">
+                <a href="visualize_calculation" target="_self">
                     <button class="custom-button">快速开始</button>
                 </a>
-                <a href="帮助文档" target="_self">
+                <a href="help_document" target="_self">
                     <button class="custom-button">教程文档</button>
                 </a>
             </div>
