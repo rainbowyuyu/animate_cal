@@ -5,3 +5,4 @@ supervision
 scikit-learn
 streamlit
 streamlit-drawable-canvas
+streamlit-extras
