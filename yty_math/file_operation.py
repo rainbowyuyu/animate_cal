@@ -6,7 +6,7 @@ default_software_path = os.getcwd()
 
 default_file_path = os.path.join(default_software_path, r"math_cache")
 default_save_path = os.path.join(default_software_path, r"math_saves")
-streamlit_save_path = os.path.join(default_software_path, r"yty_math/math_saves")
+streamlit_save_path = os.path.join(default_software_path, r"math_saves")
 default_manim_source_code = os.path.join(default_software_path, r"manim_animation.py")
 default_manim_result_code = os.path.join(default_software_path, r"manim_result.py")
 default_manim_path = os.path.join(default_software_path, rf"media\images\manim_animation\MatrixCreation_ManimCE_v{manim.__version__}.png")
