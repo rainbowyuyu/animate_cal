@@ -84,10 +84,10 @@
 .agent-sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1.25rem;
+    padding: 1.25rem 1rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1.25rem;
     transition: opacity 0.2s ease;
 }
 
@@ -142,6 +142,94 @@
 .agent-sidebar-action-btn i {
     color: var(--primary-color);
     width: 16px;
+}
+
+/* 功能与示例 */
+.agent-features-examples-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.12));
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.agent-features-examples-btn:hover,
+.agent-features-examples-btn.active {
+    background: rgba(37, 99, 235, 0.18);
+    border-color: var(--primary-color);
+}
+
+.agent-features-examples-btn i {
+    flex-shrink: 0;
+}
+
+.agent-features-examples-panel {
+    margin-top: 0.25rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--border-color);
+}
+
+.agent-examples-hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.agent-examples-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.agent-examples-group:last-child {
+    margin-bottom: 0;
+}
+
+.agent-examples-group-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.agent-example-chip {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.88rem;
+    text-align: left;
+    color: var(--text-main);
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.agent-example-chip:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: var(--primary-color);
+}
+
+/* 多步执行列表（助手气泡内） */
+.agent-bubble .agent-steps-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+}
+
+.agent-bubble .agent-steps-list li {
+    margin-bottom: 0.25rem;
 }
 
 .agent-main {
@@ -556,10 +644,13 @@
 .agent-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
 }
 
 .agent-message {
@@ -602,13 +693,32 @@
 }
 
 .agent-avatar-bot {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(124, 58, 237, 0.2));
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
     color: var(--primary-color);
+    overflow: hidden;
+}
+
+.agent-avatar-bot .agent-avatar-logo,
+.agent-avatar-bot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 .agent-avatar-user {
     background: var(--bg-input);
     color: var(--text-secondary);
+    overflow: hidden;
+}
+
+.agent-avatar-user .agent-avatar-img,
+.agent-avatar-user img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .agent-bubble {
@@ -691,8 +801,12 @@
 
 .agent-input-bar {
     border-top: 1px solid var(--border-color);
-    padding: 0.75rem 1rem;
+    padding: 1.25rem 1.5rem;
     background: var(--bg-body);
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .agent-image-preview-wrap {
@@ -736,6 +850,22 @@
     gap: 0.5rem;
 }
 
+.agent-prompt-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.agent-input-label {
+    display: block;
+    margin: 0;
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
 .agent-upload-btn {
     flex-shrink: 0;
     width: 40px;
@@ -756,19 +886,43 @@
     border-color: var(--primary-color);
 }
 
-.agent-chat-input {
+/* 需求描述框：聊天式、贴合用户的输入样式 */
+.agent-input-bar .agent-chat-input.tech-input,
+.agent-input-bar .tech-input {
     flex: 1;
-    min-height: 44px;
-    max-height: 120px;
+    min-height: 48px;
+    max-height: 140px;
     margin-bottom: 0 !important;
+    padding: 14px 16px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    color: var(--text-main);
     resize: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.agent-chat-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+.agent-input-bar .agent-chat-input.tech-input::placeholder,
+.agent-input-bar .tech-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.85;
 }
+
+.agent-input-bar .agent-chat-input.tech-input:hover,
+.agent-input-bar .tech-input:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+}
+
+.agent-input-bar .agent-chat-input.tech-input:focus,
+.agent-input-bar .tech-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    background: var(--bg-surface);
+}
+
 
 .agent-send-btn {
     flex-shrink: 0;
@@ -957,9 +1111,16 @@
         font-size: 1rem;
     }
 
+    .agent-input-bar .agent-chat-input.tech-input,
+    .agent-input-bar .tech-input {
+        min-height: 44px;
+        max-height: 120px;
+        padding: 12px 14px;
+    }
+
     .agent-chat-input {
-        min-height: 40px;
-        max-height: 100px;
+        min-height: 44px;
+        max-height: 120px;
         font-size: 0.95rem;
     }
 

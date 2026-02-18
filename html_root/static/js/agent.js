@@ -3,6 +3,7 @@
 import { showSection, toggleAuthModal } from './ui.js';
 import { getCurrentUser } from './auth.js';
 import { getAgentEnterSend } from './settings.js';
+import { getCurrentUserAvatarUrl } from './profile.js';
 
 const SECTION_NAMES = {
     detect: '智能识别',
@@ -12,6 +13,26 @@ const SECTION_NAMES = {
     examples: '教学案例',
     help: '帮助'
 };
+
+/** 获取单步的简短描述，用于多步执行时的列表展示 */
+function getStepLabel(step) {
+    const name = SECTION_NAMES[step.section] || step.section;
+    const parts = [];
+    if (step.section === 'devtools') {
+        if (step.devtool === 'latex') parts.push('填入 LaTeX');
+        else if (step.devtool === 'manim') parts.push('填入 Manim 代码');
+        else if (step.devtool === 'rainbow') parts.push('Rainbow 拓展');
+    }
+    if (step.trigger === 'recognize') parts.push('识别');
+    if (step.trigger === 'generate') parts.push('生成动画');
+    if (step.save_to_formulas) parts.push('保存到我的算式');
+    if (step.section === 'calculate' && step.operation) {
+        const modeNames = { normal: '通用推演', formular: '公式推演', visualization: '可视化' };
+        parts.push(modeNames[step.operation] || step.operation);
+    }
+    const action = parts.length ? `（${parts.join('、')}）` : '';
+    return `打开「${name}」${action}`;
+}
 
 function getPromptEl() {
     return document.getElementById('agent-prompt');
@@ -54,16 +75,20 @@ function sanitizeLatexForMathlive(latex) {
     return s;
 }
 
-/** 追加用户消息到聊天区域 */
+/** 追加用户消息到聊天区域（有头像时使用用户头像） */
 function appendUserMessage(text, imageDataUrl) {
     const el = getMessagesEl();
     if (!el) return;
     const bubbleContent = imageDataUrl
         ? `<p>${escapeHtml(text || '')}</p><div class="agent-msg-img"><img src="${escapeHtml(imageDataUrl)}" alt=""></div>`
         : `<p>${escapeHtml(text || '')}</p>`;
+    const avatarUrl = getCurrentUserAvatarUrl();
+    const avatarHtml = avatarUrl
+        ? `<img src="${escapeHtml(avatarUrl)}" alt="" class="agent-avatar-img">`
+        : '<i class="fa-solid fa-user"></i>';
     const div = document.createElement('div');
     div.className = 'agent-message agent-message-user';
-    div.innerHTML = `<div class="agent-avatar agent-avatar-user"><i class="fa-solid fa-user"></i></div><div class="agent-bubble agent-bubble-user">${bubbleContent}</div>`;
+    div.innerHTML = `<div class="agent-avatar agent-avatar-user">${avatarHtml}</div><div class="agent-bubble agent-bubble-user">${bubbleContent}</div>`;
     el.appendChild(div);
     animateMessageAppear(div.querySelector('.agent-bubble-user'));
     scrollMessagesToBottom();
@@ -86,7 +111,7 @@ function appendAssistantMessage(html, executeData = null) {
         });
     }
     bubble.innerHTML = html;
-    div.innerHTML = `<div class="agent-avatar agent-avatar-bot"><i class="fa-solid fa-wand-magic-sparkles"></i></div>`;
+    div.innerHTML = `<div class="agent-avatar agent-avatar-bot"><img src="assets/智算视界_avatar.svg" alt="智算视界" class="agent-avatar-logo"></div>`;
     div.appendChild(bubble);
     el.appendChild(div);
     animateMessageAppear(bubble);
@@ -96,24 +121,32 @@ function appendAssistantMessage(html, executeData = null) {
 /** 从消息重新执行操作 */
 function reExecuteFromMessage(executeData) {
     if (!executeData) return;
-    
-    // 如果是错误或需要重新请求的情况
+
     if (executeData.isError && executeData.prompt) {
         executeAgentRequest(executeData.prompt, executeData.image_base64 || null);
         return;
     }
-    
-    // 如果是工具调用模式，直接重新应用结果
-    if (executeData.section && executeData.section !== 'chat') {
+
+    const steps = Array.isArray(executeData.steps) && executeData.steps.length > 0 ? executeData.steps : null;
+    const singleSection = executeData.section;
+    const singleReply = executeData.reply;
+
+    if (steps && steps.length > 0) {
+        const isChatOnly = steps.length === 1 && steps[0].section === 'chat' && steps[0].reply;
+        if (isChatOnly) {
+            if (typeof showToast === 'function') showToast('这是对话回复，无需重新执行', 'info');
+            return;
+        }
         applyAgentResult(executeData);
-        if (typeof showToast === 'function') {
-            showToast('已重新执行', 'success');
-        }
-    } else if (executeData.section === 'chat' && executeData.reply) {
-        // 对话模式：重新显示回复（实际上不需要重新执行，但可以添加提示）
-        if (typeof showToast === 'function') {
-            showToast('这是对话回复，无需重新执行', 'info');
-        }
+        if (typeof showToast === 'function') showToast('已重新执行', 'success');
+        return;
+    }
+
+    if (singleSection && singleSection !== 'chat') {
+        applyAgentResult(executeData);
+        if (typeof showToast === 'function') showToast('已重新执行', 'success');
+    } else if (singleSection === 'chat' && singleReply) {
+        if (typeof showToast === 'function') showToast('这是对话回复，无需重新执行', 'info');
     }
 }
 
@@ -145,16 +178,20 @@ function animateMessageAppear(element) {
     });
 }
 
+/** 当前附带的图片（粘贴时部分浏览器无法设置 input.files，用此备份供发送使用） */
+let _attachedFile = null;
+
 /** 显示当前附带的图片预览；返回当前图片 data URL 或 null */
 function updateImagePreview(file) {
     const wrap = getPreviewWrap();
     const img = getPreviewImg();
     const input = getFileInput();
-    if (!wrap || !img || !input) return null;
+    _attachedFile = file || null;
+    if (!wrap || !img) return null;
     if (!file) {
         wrap.style.display = 'none';
         img.src = '';
-        input.value = '';
+        if (input) input.value = '';
         return null;
     }
     const url = URL.createObjectURL(file);
@@ -169,16 +206,21 @@ export function clearAttachedImage() {
     updateImagePreview(null);
 }
 
-/** 根据后端返回的 section/formula/operation/trigger/fill_latex 跳转并执行 */
-function applyAgentResult(data) {
-    const section = data.section || 'calculate';
+/** 延迟 Promise */
+function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+/** 执行单步：跳转并填入/触发（支持 fill_manim_code、save_to_formulas） */
+function applyStepContent(step) {
+    const section = step.section || 'calculate';
     showSection(section);
 
-    if (section === 'devtools' && data.devtool && window.switchDevTool) {
+    if (section === 'devtools' && step.devtool && window.switchDevTool) {
         setTimeout(() => {
-            switchDevTool(data.devtool);
-            const toFill = (data.fill_latex && data.fill_latex.trim()) ? data.fill_latex.trim() : (data.formula && data.formula.trim()) ? data.formula.trim() : '';
-            if (data.devtool === 'latex' && toFill) {
+            switchDevTool(step.devtool);
+            const toFill = (step.fill_latex && step.fill_latex.trim()) ? step.fill_latex.trim() : (step.formula && step.formula.trim()) ? step.formula.trim() : '';
+            if (step.devtool === 'latex' && toFill) {
                 setTimeout(() => {
                     const mf = document.getElementById('dev-latex-mathfield');
                     const source = document.getElementById('dev-latex-source');
@@ -192,6 +234,11 @@ function applyAgentResult(data) {
                     }
                 }, 150);
             }
+            if (step.devtool === 'manim' && step.fill_manim_code && step.fill_manim_code.trim() && typeof window.openManimWorkbenchWithCode === 'function') {
+                setTimeout(() => {
+                    window.openManimWorkbenchWithCode(step.fill_manim_code.trim());
+                }, 200);
+            }
         }, 100);
     }
 
@@ -200,31 +247,66 @@ function applyAgentResult(data) {
             const mf = document.getElementById('math-field-main');
             const code = document.getElementById('latex-code-main');
             const method = document.getElementById('calc-method');
-            if (data.formula) {
-                const sanitized = sanitizeLatexForMathlive(data.formula);
+            if (step.formula) {
+                const sanitized = sanitizeLatexForMathlive(step.formula);
                 if (mf && mf.setValue) mf.setValue(sanitized);
                 if (code) code.value = sanitized;
             }
-            if (method && data.operation) method.value = data.operation || 'normal';
-            if (data.trigger === 'generate' && typeof window.startAnimation === 'function') {
+            if (method && step.operation) method.value = step.operation || 'normal';
+            if (step.trigger === 'generate' && typeof window.startAnimation === 'function') {
                 setTimeout(() => window.startAnimation(), 400);
             }
         }, 200);
     }
 
-    if (section === 'detect' && data.formula) {
+    if (section === 'detect' && step.formula) {
         setTimeout(() => {
             const mathField = document.getElementById('latex-output');
             const codeArea = document.getElementById('latex-code-detect');
             const btnSave = document.getElementById('btn-save-check');
             const btnCalc = document.getElementById('btn-copy-calc');
-            const sanitized = sanitizeLatexForMathlive(data.formula);
+            const sanitized = sanitizeLatexForMathlive(step.formula);
             if (mathField && mathField.setValue) mathField.setValue(sanitized);
             if (codeArea) codeArea.value = sanitized;
             if (btnSave) btnSave.disabled = false;
             if (btnCalc) btnCalc.disabled = false;
         }, 200);
     }
+}
+
+/** 按顺序执行多步（每步：跳转 → 延时 → 填入/触发 → 若 save_to_formulas 则保存到我的算式） */
+async function runStepsSequence(steps) {
+    for (let i = 0; i < steps.length; i++) {
+        const step = steps[i];
+        showSection(step.section);
+        await delay(400);
+        applyStepContent(step);
+        if (step.save_to_formulas && typeof window.saveAndShowFormula === 'function') {
+            await delay(500);
+            window.saveAndShowFormula();
+        }
+        if (i < steps.length - 1) await delay(500);
+    }
+}
+
+/** 根据后端返回的 steps 或单步 data 跳转并执行（兼容旧单步格式） */
+function applyAgentResult(data) {
+    const steps = Array.isArray(data.steps) && data.steps.length > 0 ? data.steps : [data];
+    if (steps.length === 1) {
+        applyStepContent(steps[0]);
+        return;
+    }
+    runStepsSequence(steps);
+}
+
+export function toggleFeaturesExamples() {
+    const panel = document.getElementById('agent-features-examples-panel');
+    const btn = document.getElementById('agent-features-examples-btn');
+    if (!panel || !btn) return;
+    const isHidden = panel.style.display === 'none';
+    panel.style.display = isHidden ? 'block' : 'none';
+    btn.classList.toggle('active', isHidden);
+    btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
 }
 
 export function refreshAgentGate() {
@@ -301,15 +383,16 @@ export function openSidebarMobile() {
 }
 
 /** 清空对话历史 */
-export function clearChat() {
+export async function clearChat() {
     const messagesEl = getMessagesEl();
     if (!messagesEl) return;
-    if (typeof showToast === 'function') {
-        if (!confirm('确定要清空所有对话记录吗？')) return;
+    if (typeof showConfirm === 'function') {
+        const confirmed = await showConfirm('确定要清空所有对话记录吗？', "确认清空");
+        if (!confirmed) return;
     }
     messagesEl.innerHTML = `
         <div class="agent-message agent-message-assistant">
-            <div class="agent-avatar agent-avatar-bot"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+            <div class="agent-avatar agent-avatar-bot"><img src="assets/智算视界_avatar.svg" alt="智算视界" class="agent-avatar-logo"></div>
             <div class="agent-bubble agent-bubble-assistant">
                 <p>你好，我是智能体。你可以用自然语言让我帮你：</p>
                 <ul>
@@ -420,6 +503,21 @@ export function initAgent() {
     }
     refreshAgentGate();
     window.addEventListener('auth-state-change', refreshAgentGate);
+
+    document.addEventListener('click', (e) => {
+        const chip = e.target.closest('.agent-example-chip');
+        if (!chip || !chip.dataset.prompt) return;
+        const promptEl = getPromptEl();
+        if (promptEl) {
+            promptEl.value = chip.dataset.prompt;
+            promptEl.focus();
+        }
+        if (getCurrentUser()) {
+            execute();
+        } else {
+            toggleAuthModal(true);
+        }
+    });
 }
 
 /** 执行智能体请求（可被重新调用） */
@@ -441,47 +539,51 @@ async function executeAgentRequest(prompt, image_base64) {
         const lastBubble = getMessagesEl() && getMessagesEl().querySelector('.agent-message-assistant:last-child .agent-bubble-assistant');
 
         if (data.status === 'success') {
-            if (data.section === 'chat' && data.reply) {
-                // 对话模式：显示回复，不跳转
-                const replyHtml = data.reply.split('\n').map(line => `<p>${escapeHtml(line)}</p>`).join('');
+            const steps = Array.isArray(data.steps) && data.steps.length > 0 ? data.steps : [];
+            const first = steps[0];
+            const isChatOnly = steps.length === 1 && first && first.section === 'chat' && first.reply;
+
+            if (isChatOnly) {
+                const replyHtml = first.reply.split('\n').map(line => `<p>${escapeHtml(line)}</p>`).join('');
                 if (lastBubble) {
                     lastBubble.innerHTML = replyHtml;
-                    // 保存执行数据以便重新执行
                     if (lastBubble.parentElement) {
                         lastBubble.classList.add('agent-bubble-clickable');
                         lastBubble.setAttribute('data-execute', JSON.stringify(data));
                         lastBubble.setAttribute('title', '点击重新执行');
-                        lastBubble.addEventListener('click', () => {
-                            reExecuteFromMessage(data);
-                        });
+                        lastBubble.addEventListener('click', () => { reExecuteFromMessage(data); });
                     }
                     animateMessageAppear(lastBubble);
                 } else {
                     appendAssistantMessage(replyHtml, data);
                 }
             } else {
-                // 工具调用模式
-                const name = SECTION_NAMES[data.section] || data.section;
-                let msg = `已打开「${name}」`;
-                if (data.section === 'calculate' && data.operation) {
-                    const modeNames = { normal: '通用公式推演+可视化', formular: '公式推演', visualization: '可视化演示' };
-                    msg += `，已选择「${modeNames[data.operation] || data.operation}」`;
+                let msgHtml;
+                if (steps.length > 1) {
+                    msgHtml = `<p>已按 <strong>${steps.length}</strong> 步执行：</p><ol class="agent-steps-list">${steps.map((s, i) => `<li>${escapeHtml(getStepLabel(s))}</li>`).join('')}</ol>`;
+                } else {
+                    const s = first || {};
+                    const name = SECTION_NAMES[s.section] || s.section;
+                    let m = `已打开「${name}」`;
+                    if (s.section === 'calculate' && s.operation) {
+                        const modeNames = { normal: '通用公式推演+可视化', formular: '公式推演', visualization: '可视化演示' };
+                        m += `，已选择「${modeNames[s.operation] || s.operation}」`;
+                    }
+                    if (s.trigger === 'generate') m += '，已自动开始生成动画';
+                    else if (s.trigger === 'recognize') m += '，识别结果已填入';
+                    if (s.fill_manim_code) m += '，已填入 Manim 代码';
+                    if (s.save_to_formulas) m += '，已保存到我的算式';
+                    msgHtml = `<p>${escapeHtml(m + '。')}</p>`;
                 }
-                if (data.trigger === 'generate') msg += '，已自动开始生成动画';
-                else if (data.trigger === 'recognize') msg += '，识别结果已填入';
-                msg += '。';
                 if (lastBubble) {
-                    lastBubble.innerHTML = `<p>${escapeHtml(msg)}</p>`;
-                    // 保存执行数据以便重新执行
+                    lastBubble.innerHTML = msgHtml;
                     lastBubble.classList.add('agent-bubble-clickable');
                     lastBubble.setAttribute('data-execute', JSON.stringify(data));
                     lastBubble.setAttribute('title', '点击重新执行');
-                    lastBubble.addEventListener('click', () => {
-                        reExecuteFromMessage(data);
-                    });
+                    lastBubble.addEventListener('click', () => { reExecuteFromMessage(data); });
                     animateMessageAppear(lastBubble);
                 } else {
-                    appendAssistantMessage(`<p>${escapeHtml(msg)}</p>`, data);
+                    appendAssistantMessage(msgHtml, data);
                 }
                 applyAgentResult(data);
             }
@@ -547,7 +649,7 @@ export async function execute() {
     }
 
     let image_base64 = null;
-    const file = fileInput && fileInput.files && fileInput.files[0];
+    const file = (fileInput && fileInput.files && fileInput.files[0]) || _attachedFile;
     if (file) {
         try {
             image_base64 = await fileToBase64(file);

@@ -17,8 +17,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- 第三方库 -->
-    <!-- MathJax (用于静态公式渲染) -->
-    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <!-- MathJax (用于静态公式渲染)。polyfill 已移除：外链易 ERR_CONNECTION_CLOSED，现代浏览器已支持 ES6 -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Driver.js (用于新手引导) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
@@ -35,6 +34,8 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
+    <!-- 占位：main.js 为 type=module 异步加载，此前点击导航不报错 -->
+    <script>window.showSection = window.showSection || function(){}; window.openSettings = window.openSettings || function(){}; window.toggleMobileMenu = window.toggleMobileMenu || function(){};</script>
 
     <!-- 导航栏 -->
     <nav class="navbar">
@@ -62,9 +63,11 @@
 
         <div class="auth-buttons desktop-auth">
             <button class="login-btn" onclick="toggleAuthModal(true)">登录 / 注册</button>
-            <!-- 关键修复：确保这里有 id="username-span" -->
-            <span id="user-display" style="display:none; color:var(--text-main); font-weight:600;">
-                <i class="fa-regular fa-user-circle"></i> <span id="username-span"></span>
+            <!-- 关键修复：确保这里有 id="username-span"；有头像时显示 img 替换图标 -->
+            <span id="user-display" style="display:none; color:var(--text-main); font-weight:600; align-items:center; gap:6px;">
+                <img id="header-user-avatar" class="header-user-avatar" src="" alt="" style="display:none; width:28px; height:28px; border-radius:50%; object-fit:cover; cursor:pointer;" onclick="openSettings('profile')" title="账户与资料">
+                <i class="fa-regular fa-user-circle header-user-icon" id="header-user-icon" style="cursor:pointer;" onclick="openSettings('profile')" title="账户与资料"></i>
+                <span id="username-span"></span>
                 <i class="fa-solid fa-arrow-right-from-bracket" style="cursor:pointer; margin-left:10px; color:var(--text-secondary);" onclick="logout()" title="退出"></i>
             </span>
         </div>
@@ -214,6 +217,33 @@
                             </ul>
                         </div>
                         <div class="agent-sidebar-section">
+                            <button type="button" class="agent-features-examples-btn" id="agent-features-examples-btn" onclick="Agent.toggleFeaturesExamples()">
+                                <i class="fa-solid fa-lightbulb"></i> 功能与示例
+                            </button>
+                            <div id="agent-features-examples-panel" class="agent-features-examples-panel" style="display:none;">
+                                <p class="agent-examples-hint">点击示例将自动填入并执行</p>
+                                <div class="agent-examples-group">
+                                    <span class="agent-examples-group-title">识别与公式</span>
+                                    <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
+                                    <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
+                                </div>
+                                <div class="agent-examples-group">
+                                    <span class="agent-examples-group-title">LaTeX / 编辑器</span>
+                                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
+                                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
+                                </div>
+                                <div class="agent-examples-group">
+                                    <span class="agent-examples-group-title">动画与计算</span>
+                                    <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
+                                    <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
+                                </div>
+                                <div class="agent-examples-group">
+                                    <span class="agent-examples-group-title">开发者工具</span>
+                                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="agent-sidebar-section">
                             <h3 class="agent-sidebar-section-title">快捷操作</h3>
                             <div class="agent-sidebar-actions">
                                 <button type="button" class="agent-sidebar-action-btn" onclick="Agent.clearChat()">
@@ -252,7 +282,7 @@
                         <div class="agent-chat-container">
                             <div id="agent-messages" class="agent-messages">
                                 <div class="agent-message agent-message-assistant">
-                                    <div class="agent-avatar agent-avatar-bot"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                                    <div class="agent-avatar agent-avatar-bot"><img src="assets/智算视界_avatar.svg" alt="智算视界" class="agent-avatar-logo"></div>
                                     <div class="agent-bubble agent-bubble-assistant">
                                         <p>你好，我是智能体。你可以用自然语言让我帮你：</p>
                                         <ul>
@@ -274,7 +304,10 @@
                                         <i class="fa-solid fa-image"></i>
                                     </label>
                                     <input type="file" id="agent-image-upload" accept="image/*" style="display:none;">
-                                    <textarea id="agent-prompt" class="agent-textarea agent-chat-input" placeholder="描述你的需求，例如：&#10;在 LaTeX 编辑器填入 sin(x)=1/2&#10;识别图&#10;把 sin(x)=1/2 做成动画" rows="1"></textarea>
+                                    <div class="agent-prompt-wrap">
+                                        <label for="agent-prompt" class="agent-input-label">说说你想做什么</label>
+                                        <textarea id="agent-prompt" class="agent-textarea agent-chat-input tech-input" placeholder="例如：填入 sin(x)=1/2、识别这张图、把公式做成动画… 支持粘贴图片" rows="1"></textarea>
+                                    </div>
                                     <button type="button" id="agent-submit-btn" class="agent-send-btn" onclick="Agent.execute()" title="发送">
                                         <i class="fa-solid fa-paper-plane"></i>
                                     </button>
@@ -303,11 +336,11 @@
                         <div class="control-group">
                             <label>绘图工具</label>
                             <div class="tools-grid">
-                                <button class="tool-btn active" onclick="setTool('pen')" title="画笔 (B)"><i class="fa-solid fa-pen"></i></button>
-                                <button class="tool-btn" onclick="setTool('eraser')" title="橡皮擦 (E)"><i class="fa-solid fa-eraser"></i></button>
-                                <button class="tool-btn" onclick="undo()" title="撤销 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
-                                <button class="tool-btn" onclick="redo()" title="重做 (Ctrl+Shift+Z)"><i class="fa-solid fa-rotate-right"></i></button>
-                                <button class="tool-btn" onclick="clearCanvas()" title="清空画布 (Ctrl+Shift+C)" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button>
+                                <button class="tool-btn active" onclick="setTool('pen')" data-shortcut="toolPen" title="画笔 (B)"><i class="fa-solid fa-pen"></i></button>
+                                <button class="tool-btn" onclick="setTool('eraser')" data-shortcut="toolEraser" title="橡皮擦 (E)"><i class="fa-solid fa-eraser"></i></button>
+                                <button class="tool-btn" onclick="undo()" data-shortcut="undo" title="撤销 (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                                <button class="tool-btn" onclick="redo()" data-shortcut="redo" title="重做 (Ctrl+Shift+Z)"><i class="fa-solid fa-rotate-right"></i></button>
+                                <button class="tool-btn" onclick="clearCanvas()" data-shortcut="clearCanvas" title="清空画布 (Ctrl+Shift+C)" style="color:#ef4444;"><i class="fa-solid fa-trash"></i></button>
                             </div>
 
                             <button class="tutorial-link shortcut-hint-btn" onclick="openSettings('shortcuts')" title="画板快捷键设置"><i class="fa-solid fa-keyboard"></i> 点击设置快捷键</button>
@@ -551,7 +584,7 @@
                             <i class="fa-solid fa-circle-notch fa-spin calc-render-loading-spinner"></i>
                             <p class="calc-render-loading-text">正在生成与渲染...</p>
                         </div>
-                        <!-- 视频播放器 (初始隐藏) -->
+                        <!-- 单阶段视频 (公式推演/可视化演示) -->
                         <video id="result-video-player" controls style="width: 100%; height: 100%; display: none; outline: none;">
                             <source src="" type="video/mp4">
                             您的浏览器不支持视频标签。
@@ -560,6 +593,33 @@
                             <button type="button" class="action-btn secondary" id="btn-save-to-scripts" onclick="Calculate.saveLastCodeToScripts()" style="font-size:0.85rem; padding:8px 14px;">
                                 <i class="fa-solid fa-bookmark"></i> 保存到动画脚本库
                             </button>
+                        </div>
+                        <!-- 通用模式双阶段：叠层窗口，可切换 (类 Alt+Tab) -->
+                        <div id="calc-dual-videos-wrap" class="calc-stack-wrap" style="display:none;">
+                            <div class="calc-stack-tabs">
+                                <button type="button" class="calc-stack-tab active" data-tab="calc" aria-label="切换到计算">计算</button>
+                                <button type="button" class="calc-stack-tab" data-tab="vis" aria-label="切换到可视化">可视化</button>
+                            </div>
+                            <div class="calc-stack-windows">
+                                <div class="calc-stack-window calc-stack-window-calc active" id="calc-window-calc">
+                                    <div class="calc-window-inner">
+                                        <video id="result-video-player-calc" controls style="display:none; outline:none;"></video>
+                                        <div id="calc-placeholder-calc" class="calc-window-placeholder">等待「计算」渲染…</div>
+                                        <div id="calc-save-calc-wrap" class="calc-window-save" style="display:none;">
+                                            <button type="button" class="action-btn secondary" onclick="Calculate.saveLastCodeToScripts('calc')"><i class="fa-solid fa-bookmark"></i> 保存计算脚本</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="calc-stack-window calc-stack-window-vis" id="calc-window-vis">
+                                    <div class="calc-window-inner">
+                                        <video id="result-video-player-vis" controls style="display:none; outline:none;"></video>
+                                        <div id="calc-placeholder-vis" class="calc-window-placeholder">等待「可视化」渲染…</div>
+                                        <div id="calc-save-vis-wrap" class="calc-window-save" style="display:none;">
+                                            <button type="button" class="action-btn secondary" onclick="Calculate.saveLastCodeToScripts('vis')"><i class="fa-solid fa-bookmark"></i> 保存可视化脚本</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -904,84 +964,192 @@
         </div>
     </div>
 
+    <!-- 修改用户名独立弹窗（与登录/注册同风格） -->
+    <div id="change-username-modal" class="modal auth-style-modal" style="z-index: 2200;">
+        <div class="modal-content">
+            <span class="close-modal auth-style-close" onclick="Profile.closeChangeUsernameModal()" aria-label="关闭">&times;</span>
+            <header class="auth-style-header">
+                <h3 class="auth-title">修改用户名</h3>
+            </header>
+            <div id="change-username-guest" class="auth-body" style="display:none; color: var(--text-secondary);">
+                请先登录后再修改用户名。
+            </div>
+            <div id="change-username-form" class="auth-body" style="display:none;">
+                <p style="margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.9rem;">当前用户名：<strong id="change-un-current" style="color: var(--text-main);"></strong></p>
+                <input type="text" id="change-un-new" class="tech-input" placeholder="新用户名" maxlength="64" autocomplete="username">
+                <input type="password" id="change-un-password" class="tech-input" placeholder="当前密码（用于验证）">
+                <span id="change-un-hint" class="profile-hint" style="display: block; margin-bottom: 0.75rem; min-height: 1.2em;"></span>
+                <button type="button" class="action-btn full-width" onclick="Profile.submitChangeUsernameModal()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码独立弹窗（与登录/注册同风格） -->
+    <div id="change-password-modal" class="modal auth-style-modal" style="z-index: 2200;">
+        <div class="modal-content">
+            <span class="close-modal auth-style-close" onclick="Profile.closeChangePasswordModal()" aria-label="关闭">&times;</span>
+            <header class="auth-style-header">
+                <h3 class="auth-title">修改密码</h3>
+            </header>
+            <div id="change-password-guest" class="auth-body" style="display:none; color: var(--text-secondary);">
+                请先登录后再修改密码。
+            </div>
+            <div id="change-password-form" class="auth-body" style="display:none;">
+                <input type="password" id="change-pw-current" class="tech-input" placeholder="当前密码">
+                <input type="password" id="change-pw-new" class="tech-input" placeholder="新密码（至少6位）">
+                <input type="password" id="change-pw-confirm" class="tech-input" placeholder="再次输入新密码">
+                <span id="change-pw-hint" class="profile-hint" style="display: block; margin-bottom: 0.75rem; min-height: 1.2em;"></span>
+                <button type="button" class="action-btn full-width" onclick="Profile.submitChangePasswordModal()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
     <!-- index.html Settings Modal 部分 -->
 
     <div id="settings-modal" class="modal">
         <div class="modal-content glass-panel settings-modal-content">
             <div class="settings-modal-header">
                 <h3 class="settings-modal-title">系统设置</h3>
+                <span id="settings-welcome" class="settings-welcome" style="display:none;"></span>
                 <span class="close-modal" onclick="closeSettings()">&times;</span>
             </div>
-            <div class="settings-modal-body">
-            <div style="padding: 2rem;">
+            <div class="settings-modal-layout">
+                <!-- 中间区域：左侧导航 + 右侧内容（一行） -->
+                <div class="settings-modal-main">
+                    <nav id="settings-nav" class="settings-nav" aria-label="设置分类">
+                        <a href="javascript:void(0)" class="settings-nav-item active" data-section="settings-appearance">外观与关于</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-profile">账户与资料</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-agent">智能体</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-detect">智能识别与画板</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-shortcuts">画板快捷键</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-calc">动态计算</a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-devtools">开发者工具</a>
+                    </nav>
+                    <div class="settings-modal-body" id="settings-scroll-container">
+                <div class="settings-content-inner">
 
-                <!-- 新增：基本信息 -->
-                <div style="margin-bottom: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary); border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">基本信息</h4>
+                <!-- 外观与基本信息 -->
+                <div id="settings-appearance" class="settings-section" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">外观与关于</h4>
                     <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem;">
-                        <span>当前版本</span>
-                        <span
-                          id="version-display"
-                          onclick="openDoc('update.md', '更新日志')"
-                          title="点击查看更新日志"
-                          style="
-                            font-family: 'JetBrains Mono', monospace;
-                            background: #eff6ff;
-                            color: var(--primary-color);
-                            padding: 2px 8px;
-                            border-radius: 4px;
-                            cursor: pointer;
-                            user-select: none;
-                          ">
-                          Loading...
-                        </span>
-
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 10px;">
-                        <span>开发者</span>
-                        <span
-                            onclick="window.open('https://github.com/rainbowyuyu', '_blank')"
-                            style="
-                                font-family: 'JetBrains Mono', monospace;
-                                background: #eff6ff;
-                                color: var(--primary-color);
-                                padding: 2px 8px;
-                                border-radius: 4px;
-                                cursor: pointer;
-                                user-select: none;
-                            "
-                        >
-                            rainbow_yu
-                        </span>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 10px;">
-                        <span>深色模式</span>
+                        <span>深色 / 浅色模式</span>
                         <button class="nav-btn" onclick="toggleTheme()" title="切换模式">
                             <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
                         </button>
                     </div>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">主题会自动保存，登录后在其他设备也会同步。</p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 12px;">
+                        <span>当前版本</span>
+                        <span id="version-display" onclick="openDoc('update.md', '更新日志')" title="点击查看更新日志" style="font-family: 'JetBrains Mono', monospace; background: var(--bg-surface); color: var(--primary-color); padding: 2px 8px; border-radius: 4px; cursor: pointer; user-select: none;">Loading...</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 10px;">
+                        <span>开发者</span>
+                        <span onclick="window.open('https://github.com/rainbowyuyu', '_blank')" style="font-family: 'JetBrains Mono', monospace; color: var(--primary-color); padding: 2px 8px; border-radius: 4px; cursor: pointer; user-select: none;">rainbow_yu</span>
+                    </div>
                 </div>
 
-                <!-- 智能体：回车发送 / Shift+回车换行 -->
-                <div id="settings-agent" class="settings-agent-panel" style="margin-bottom: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">智能体</h4>
+                <!-- 账户与资料（仅登录后显示） -->
+                <div id="settings-profile" class="settings-section" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">账户与资料</h4>
+                    <div id="settings-profile-guest" class="settings-profile-guest" style="display:none;">
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">登录后可修改头像、昵称、用户名与密码。</p>
+                        <button type="button" class="action-btn" onclick="toggleAuthModal(true)">登录 / 注册</button>
+                    </div>
+                    <div id="settings-profile-content" class="settings-profile-content" style="display:none;">
+                        <div class="profile-row">
+                            <label class="profile-label">头像</label>
+                            <div class="profile-avatar-wrap">
+                                <img id="profile-avatar-img" src="" alt="头像" class="profile-avatar" onerror="this.style.display='none'; document.getElementById('profile-avatar-placeholder').style.display='flex';">
+                                <div id="profile-avatar-placeholder" class="profile-avatar-placeholder" style="display:flex;"><i class="fa-solid fa-user"></i></div>
+                                <label class="action-btn secondary profile-avatar-btn" style="margin-left:12px; margin-bottom:0;"><i class="fa-solid fa-upload"></i> 更换</label>
+                                <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="display:none;">
+                            </div>
+                        </div>
+                        <div class="profile-row">
+                            <label class="profile-label">昵称</label>
+                            <input type="text" id="profile-nickname" class="tech-input" placeholder="选填，用于展示" maxlength="64" style="max-width:240px;">
+                        </div>
+                        <div class="profile-row">
+                            <label class="profile-label">用户名</label>
+                            <span id="profile-username-display" class="profile-username-display"></span>
+                            <button type="button" class="action-btn secondary" onclick="Profile.openChangeUsernameModal()">修改用户名</button>
+                        </div>
+                        <div class="profile-row">
+                            <label class="profile-label">密码</label>
+                            <button type="button" class="action-btn secondary" onclick="Profile.openChangePasswordModal()">修改密码</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 智能体 -->
+                <div id="settings-agent" class="settings-section settings-agent-panel" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">智能体</h4>
                     <label class="settings-agent-option" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:500; color:var(--text-main);">
                         <input type="checkbox" id="agent-enter-send" checked onchange="Settings.setAgentEnterSend(this.checked)">
                         <span>回车发送消息，Shift+回车换行</span>
                     </label>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">关闭后：回车换行，需点击发送按钮或使用 Ctrl+Enter 发送。</p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">关闭后：回车换行，需点击发送或使用 Ctrl+Enter 发送。</p>
                 </div>
 
-                <div id="settings-shortcuts" class="shortcuts-panel" style="margin-bottom: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">快捷键设置（画板）</h4>
+                <!-- 智能识别 / 画板 -->
+                <div id="settings-detect" class="settings-section" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">智能识别与画板</h4>
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">进入识别页时默认</label>
+                        <select id="settings-detect-default-input" class="tech-select" style="width:100%; max-width:240px;" onchange="Settings.setDetectDefaultInput(this.value)">
+                            <option value="draw">手写</option>
+                            <option value="upload">上传图片</option>
+                        </select>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">首次进入【智能识别】时自动选中的输入方式。</p>
+                    </div>
+                </div>
+
+                <div id="settings-shortcuts" class="settings-section shortcuts-panel" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">画板快捷键</h4>
                     <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">点击「修改」后按下要绑定的组合键，类 Photoshop 操作。</p>
                     <div id="shortcuts-list"></div>
                 </div>
 
-                <div style="text-align: right; border-top: 1px solid #eee; padding-top: 1.5rem;">
-                    <button class="action-btn" onclick="resetDefaults()" style="background: #ef4444; border:none; color:white; font-size:0.9rem;">恢复默认设置</button>
-                    <button class="action-btn" onclick="closeSettings()" style="margin-left: 10px;">完成</button>
+                <!-- 动态计算 -->
+                <div id="settings-calc" class="settings-section" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">动态计算</h4>
+                    <div>
+                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">默认演示模式</label>
+                        <select id="settings-calc-default-mode" class="tech-select" style="width:100%; max-width:280px;" onchange="Settings.setCalcDefaultMode(this.value)">
+                            <option value="normal">通用公式推演+可视化 (推荐)</option>
+                            <option value="formular">公式推演</option>
+                            <option value="visualization">可视化演示</option>
+                        </select>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">进入【动态计算】时预选的模式。</p>
+                    </div>
+                </div>
+
+                <!-- 开发者工具 -->
+                <div id="settings-devtools" class="settings-section" style="margin-bottom: 2rem;">
+                    <h4 class="settings-section-title">开发者工具</h4>
+                    <div>
+                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">默认打开标签</label>
+                        <select id="settings-devtools-default-tab" class="tech-select" style="width:100%; max-width:240px;" onchange="Settings.setDevtoolsDefaultTab(this.value)">
+                            <option value="latex">LaTeX 可视化编辑器</option>
+                            <option value="manim">Manim 代码云端渲染工作台</option>
+                            <option value="rainbow">rainbow鱼拓展库</option>
+                        </select>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">进入【开发者工具】时默认显示的标签页。</p>
+                    </div>
+                </div>
+
+                <!-- 占位：避免内容被底部固定栏遮挡 -->
+                <div style="height: 1px;"></div>
+            </div>
+            </div>
+                </div>
+            <!-- 底部固定栏：单独一行，浮动于最底部 -->
+            <div class="settings-modal-footer">
+                <span id="settings-footer-hint" class="settings-footer-hint">设置自动保存，登录后可同步到账号</span>
+                <div class="settings-footer-btns">
+                    <button type="button" class="action-btn settings-btn-reset" onclick="resetDefaults()">恢复默认</button>
+                    <button type="button" class="action-btn settings-btn-save" onclick="Settings.saveSettingsToAccount()">保存</button>
+                    <button type="button" class="action-btn settings-btn-done" onclick="closeSettings()">完成</button>
                 </div>
             </div>
             </div>
@@ -1040,7 +1208,10 @@
             <div style="padding: 2rem;">
                 <div style="margin-bottom: 1.5rem;">
                     <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-main); font-size:0.9rem;">备注描述</label>
-                    <input type="text" id="script-note-input" class="tech-input" placeholder="例如：矩阵动画、公式推演、sin(x) 可视化">
+                    <div id="script-note-input-wrap" class="script-note-input-wrap">
+                        <span id="script-note-prefix" class="script-note-prefix" style="display:none;"></span>
+                        <input type="text" id="script-note-input" class="tech-input script-note-input-inner" placeholder="例如：矩阵动画、公式推演、sin(x) 可视化">
+                    </div>
                     <p style="margin-top:6px; font-size:0.8rem; color:var(--text-secondary);">导入脚本时将显示此备注，便于识别</p>
                 </div>
                 <div style="text-align: right;">
@@ -1061,6 +1232,24 @@
             <div id="selector-list" style="padding: 2rem; overflow-y:auto; flex:1; background:#f8fafc;">
                 <!-- 动态填充 -->
                 <div style="text-align:center;"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义对话框（替换原生 alert/confirm/prompt） -->
+    <div id="custom-dialog-modal" class="modal">
+        <div class="modal-content glass-panel" style="width: 420px;">
+            <span class="close-modal" id="custom-dialog-close" style="cursor:pointer;">&times;</span>
+            <h3 id="custom-dialog-title" style="padding: 1.5rem 2rem 0; color: var(--text-main); margin:0;">提示</h3>
+            <div style="padding: 1.5rem 2rem;">
+                <p id="custom-dialog-message" style="margin:0 0 1rem; color:var(--text-main); line-height:1.5;"></p>
+                <div id="custom-dialog-input-wrap" style="display:none; margin-bottom:1rem;">
+                    <input type="text" id="custom-dialog-input" class="tech-input" style="width:100%; margin-bottom:0;">
+                </div>
+                <div style="text-align: right;">
+                    <button type="button" class="action-btn secondary" id="custom-dialog-cancel" style="margin-right: 10px; display:none;">取消</button>
+                    <button type="button" class="action-btn" id="custom-dialog-confirm">确定</button>
+                </div>
             </div>
         </div>
     </div>

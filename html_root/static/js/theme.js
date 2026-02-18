@@ -27,15 +27,20 @@ export function initTheme() {
     updateThemeIcon();
 }
 
+/** 直接设置主题（供设置模块恢复/同步用） */
+export function setTheme(theme) {
+    const t = theme === 'dark' || theme === 'light' ? theme : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    localStorage.setItem('theme', t);
+    updateThemeIcon();
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: t }));
+    window.dispatchEvent(new CustomEvent('settings-changed'));
+}
+
 export function toggleTheme() {
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme); // 记住用户的选择
-    updateThemeIcon();
-    // 派发主题切换事件，供画板等模块同步更新
-    window.dispatchEvent(new CustomEvent('theme-change', { detail: newTheme }));
+    setTheme(newTheme);
 }
 
 function updateThemeIcon() {

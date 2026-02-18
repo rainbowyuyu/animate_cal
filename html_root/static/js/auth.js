@@ -2,6 +2,7 @@
 
 import { toggleAuthModal, showToast } from './ui.js';
 import * as Formulas from "./formulas.js";
+import * as Settings from "./settings.js";
 
 // 登录、注册各自保存验证码 ID，避免并行刷新时互相覆盖导致第一次总报错
 let currentCaptchaIdLogin = '';
@@ -22,7 +23,12 @@ export async function initAuth() {
         const data = await res.json();
 
         if (data.status === 'success' && data.username) {
-            updateUserDisplay(data.username);
+            const profileRes = await fetch('/api/user/profile', { credentials: 'include' }).then(r => r.json()).catch(() => ({}));
+            const avatarUrl = (profileRes.status === 'success' && profileRes.profile && profileRes.profile.avatar_url) ? profileRes.profile.avatar_url : null;
+            updateUserDisplay(data.username, avatarUrl);
+            if (window.Profile && typeof window.Profile.updateHeaderAvatar === 'function') {
+                window.Profile.updateHeaderAvatar(avatarUrl);
+            }
             // 预加载用户公式
             if (Formulas && Formulas.loadMyFormulas) {
                 Formulas.loadMyFormulas();
@@ -172,10 +178,23 @@ export async function handleLogin() {
 
         if(data.status === 'success') {
             toggleAuthModal(false);
-            updateUserDisplay(data.username);
+            let avatarUrl = null;
+            try {
+                const profileRes = await fetch('/api/user/profile', { credentials: 'include' }).then(r => r.json());
+                if (profileRes.status === 'success' && profileRes.profile && profileRes.profile.avatar_url) {
+                    avatarUrl = profileRes.profile.avatar_url;
+                }
+            } catch (_) {}
+            updateUserDisplay(data.username, avatarUrl);
+            if (window.Profile && typeof window.Profile.updateHeaderAvatar === 'function') {
+                window.Profile.updateHeaderAvatar(avatarUrl);
+            }
 
             if (Formulas && Formulas.loadMyFormulas) {
                 Formulas.loadMyFormulas();
+            }
+            if (Settings && Settings.loadUserSettings) {
+                Settings.loadUserSettings();
             }
             showToast("登录成功！", "success");
         }  else {
@@ -265,32 +284,51 @@ export function getCurrentUser() {
     return name || null;
 }
 
-// --- 辅助：更新 UI 显示用户名 ---
-function updateUserDisplay(username) {
+// --- 辅助：更新 UI 显示用户名与头像 ---
+function updateUserDisplay(username, avatarUrl) {
     // 1. 隐藏导航栏登录按钮
     document.querySelectorAll('.login-btn').forEach(b => b.style.display = 'none');
 
-    // 2. 显示桌面端用户信息
+    // 2. 显示桌面端用户信息（头像有则显示 img，无则显示图标）
     const userDisplay = document.getElementById('user-display');
     const usernameSpan = document.getElementById('username-span');
+    const headerAvatar = document.getElementById('header-user-avatar');
+    const headerIcon = document.getElementById('header-user-icon');
     if (userDisplay && usernameSpan) {
-        userDisplay.style.display = 'inline-block';
+        userDisplay.style.display = 'inline-flex';
         usernameSpan.innerText = username;
+        if (headerAvatar && headerIcon) {
+            if (avatarUrl) {
+                headerAvatar.src = avatarUrl;
+                headerAvatar.style.display = '';
+                headerIcon.style.display = 'none';
+            } else {
+                headerAvatar.removeAttribute('src');
+                headerAvatar.style.display = 'none';
+                headerIcon.style.display = '';
+            }
+        }
     }
 
-    // 3. 更新移动端菜单
+    // 3. 更新移动端菜单（有头像则显示头像）
     const mobileAuthSection = document.querySelector('.mobile-auth-section');
     if (mobileAuthSection) {
+        const avatarHtml = avatarUrl
+            ? `<img src="${avatarUrl.replace(/"/g, '&quot;')}" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover; vertical-align:middle; margin-right:8px;">`
+            : '<i class="fa-regular fa-user-circle" style="margin-right:8px;"></i>';
         mobileAuthSection.innerHTML = `
-            <div style="font-weight:bold; color:var(--text-inverse); margin-bottom:10px; font-size:1.1rem; text-align:center;">
-                <i class="fa-regular fa-user-circle"></i> ${username}
+            <div onclick="openSettings('profile'); toggleMobileMenu();" style="font-weight:bold; color:var(--text-inverse); margin-bottom:10px; font-size:1.1rem; text-align:center; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:8px 0;">
+                ${avatarHtml} ${username}
             </div>
             <button onclick="logout()" style="width:100%; padding:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:var(--text-inverse);">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i> 退出登录
             </button>
         `;
     }
-    window.dispatchEvent(new CustomEvent('auth-state-change', { detail: { username } }));
+    if (window.Profile && typeof window.Profile.updateHeaderAvatar === 'function') {
+        window.Profile.updateHeaderAvatar(avatarUrl || null);
+    }
+    window.dispatchEvent(new CustomEvent('auth-state-change', { detail: { username, avatarUrl } }));
 }
 
 // --- 登出：调用接口清除服务端 session 与 cookie，再刷新 ---

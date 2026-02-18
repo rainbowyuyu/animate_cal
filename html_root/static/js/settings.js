@@ -1,6 +1,11 @@
 // static/js/settings.js
 
-import { toggleModal } from './ui.js';
+import { toggleModal, showToast } from './ui.js';
+import * as Profile from './profile.js';
+
+const SETTINGS_STORAGE_KEY = 'app_settings';
+let saveToServerTimer = null;
+const SAVE_DEBOUNCE_MS = 800;
 
 // 画板快捷键（类 Photoshop），均可自定义
 const DEFAULT_SHORTCUTS = {
@@ -33,6 +38,9 @@ let shortcuts = loadShortcuts();
 let recordingAction = null;
 
 const AGENT_ENTER_SEND_KEY = 'agent_enter_send';
+const DETECT_DEFAULT_INPUT_KEY = 'detect_default_input';
+const CALC_DEFAULT_MODE_KEY = 'calc_default_mode';
+const DEVTOOLS_DEFAULT_TAB_KEY = 'devtools_default_tab';
 
 export function getAgentEnterSend() {
     try {
@@ -44,14 +52,266 @@ export function getAgentEnterSend() {
 export function setAgentEnterSend(value) {
     try {
         localStorage.setItem(AGENT_ENTER_SEND_KEY, value ? 'true' : 'false');
+        persistAfterChange();
     } catch (_) {}
+}
+
+export function getDetectDefaultInput() {
+    const v = localStorage.getItem(DETECT_DEFAULT_INPUT_KEY);
+    return v === 'upload' ? 'upload' : 'draw';
+}
+export function setDetectDefaultInput(value) {
+    localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, value === 'upload' ? 'upload' : 'draw');
+    persistAfterChange();
+}
+
+export function getCalcDefaultMode() {
+    const v = localStorage.getItem(CALC_DEFAULT_MODE_KEY);
+    return v || 'normal';
+}
+export function setCalcDefaultMode(value) {
+    const allowed = ['normal', 'formular', 'visualization'];
+    localStorage.setItem(CALC_DEFAULT_MODE_KEY, allowed.includes(value) ? value : 'normal');
+    persistAfterChange();
+}
+
+export function getDevtoolsDefaultTab() {
+    const v = localStorage.getItem(DEVTOOLS_DEFAULT_TAB_KEY);
+    return v === 'manim' || v === 'rainbow' ? v : 'latex';
+}
+export function setDevtoolsDefaultTab(value) {
+    const allowed = ['latex', 'manim', 'rainbow'];
+    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, allowed.includes(value) ? value : 'latex');
+    persistAfterChange();
+}
+
+/** 从本地组装完整设置（供保存到云端与恢复用） */
+export function getFullSettings() {
+    const theme = localStorage.getItem('theme') || 'light';
+    const agentEnterSend = getAgentEnterSend();
+    const appShortcuts = localStorage.getItem('app_shortcuts');
+    let shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS));
+    try {
+        if (appShortcuts) Object.assign(shortcuts, JSON.parse(appShortcuts));
+    } catch (_) {}
+    const payload = {
+        theme,
+        agent_enter_send: agentEnterSend,
+        shortcuts,
+        detect_default_input: getDetectDefaultInput(),
+        calc_default_mode: getCalcDefaultMode(),
+        devtools_default_tab: getDevtoolsDefaultTab()
+    };
+    try {
+        const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
+        Object.assign(payload, extra);
+    } catch (_) {}
+    return payload;
+}
+
+/** 应用一批设置到页面并写入本地（登录后加载云端用） */
+export function applySettings(obj) {
+    if (!obj || typeof obj !== 'object') return;
+    try {
+        if (obj.theme === 'dark' || obj.theme === 'light') {
+            localStorage.setItem('theme', obj.theme);
+            document.documentElement.setAttribute('data-theme', obj.theme);
+            const icon = document.getElementById('theme-toggle-icon');
+            if (icon) icon.className = obj.theme === 'dark' ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+            window.dispatchEvent(new CustomEvent('theme-change', { detail: obj.theme }));
+        }
+        if (typeof obj.agent_enter_send === 'boolean') {
+            localStorage.setItem(AGENT_ENTER_SEND_KEY, obj.agent_enter_send ? 'true' : 'false');
+            const cb = document.getElementById('agent-enter-send');
+            if (cb) cb.checked = obj.agent_enter_send;
+        }
+        if (obj.shortcuts && typeof obj.shortcuts === 'object') {
+            Object.keys(DEFAULT_SHORTCUTS).forEach(k => {
+                if (obj.shortcuts[k] && typeof obj.shortcuts[k] === 'object') shortcuts[k] = obj.shortcuts[k];
+            });
+            localStorage.setItem('app_shortcuts', JSON.stringify(shortcuts));
+            updateShortcutDisplay();
+        }
+        if (obj.detect_default_input === 'draw' || obj.detect_default_input === 'upload') {
+            localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, obj.detect_default_input);
+            const sel = document.getElementById('settings-detect-default-input');
+            if (sel) sel.value = obj.detect_default_input;
+        }
+        if (['normal', 'formular', 'visualization'].includes(obj.calc_default_mode)) {
+            localStorage.setItem(CALC_DEFAULT_MODE_KEY, obj.calc_default_mode);
+            const sel = document.getElementById('settings-calc-default-mode');
+            if (sel) sel.value = obj.calc_default_mode;
+        }
+        if (['latex', 'manim', 'rainbow'].includes(obj.devtools_default_tab)) {
+            localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, obj.devtools_default_tab);
+            const sel = document.getElementById('settings-devtools-default-tab');
+            if (sel) sel.value = obj.devtools_default_tab;
+        }
+        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, ...rest } = obj;
+        if (Object.keys(rest).length > 0) {
+            const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
+            Object.assign(extra, rest);
+            localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(extra));
+        }
+    } catch (e) {
+        console.warn('applySettings', e);
+    }
+}
+
+/** 延迟上报到云端（已登录时） */
+export function persistAfterChange() {
+    if (saveToServerTimer) clearTimeout(saveToServerTimer);
+    saveToServerTimer = setTimeout(saveSettingsToServer, SAVE_DEBOUNCE_MS);
+}
+
+/** 仅内部/防抖用：上报到云端，返回是否成功 */
+async function saveSettingsToServer() {
+    try {
+        const me = await fetch('/api/user/me').then(r => r.json());
+        if (me.status !== 'success' || !me.username) return false;
+        const settings = getFullSettings();
+        const res = await fetch('/api/user/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ settings }),
+            credentials: 'include'
+        });
+        const data = await res.json();
+        return data.status === 'success';
+    } catch (_) {
+        return false;
+    }
+}
+
+/** 用户点击「保存」：未登录则引导登录，已登录则立即同步到账号 */
+export async function saveSettingsToAccount() {
+    try {
+        const me = await fetch('/api/user/me').then(r => r.json());
+        if (me.status !== 'success' || !me.username) {
+            if (typeof showToast === 'function') showToast('请登录后再保存到账号', 'info');
+            if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
+            return;
+        }
+        const ok = await saveSettingsToServer();
+        if (typeof showToast === 'function') {
+            showToast(ok ? '已保存到账号' : '保存失败，请重试', ok ? 'success' : 'error');
+        }
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('网络错误', 'error');
+    }
+}
+
+/** 登录后调用：拉取云端设置并应用到页面与本地 */
+export async function loadUserSettings() {
+    try {
+        const res = await fetch('/api/user/settings', { credentials: 'include' });
+        const data = await res.json();
+        if (data.status === 'success' && data.settings && typeof data.settings === 'object') {
+            applySettings(data.settings);
+            updateShortcutDisplay();
+            syncAgentEnterSendCheckbox();
+        }
+    } catch (e) {
+        console.warn('loadUserSettings', e);
+    }
+}
+
+function syncDetectDefaultInput() {
+    const sel = document.getElementById('settings-detect-default-input');
+    if (sel) sel.value = getDetectDefaultInput();
+}
+function syncCalcDefaultMode() {
+    const sel = document.getElementById('settings-calc-default-mode');
+    if (sel) sel.value = getCalcDefaultMode();
+}
+function syncDevtoolsDefaultTab() {
+    const sel = document.getElementById('settings-devtools-default-tab');
+    if (sel) sel.value = getDevtoolsDefaultTab();
+}
+
+const SETTINGS_SECTION_IDS = ['settings-appearance', 'settings-profile', 'settings-agent', 'settings-detect', 'settings-shortcuts', 'settings-calc', 'settings-devtools'];
+
+function initSettingsNav() {
+    const container = document.getElementById('settings-scroll-container');
+    const nav = document.getElementById('settings-nav');
+    if (!container || !nav) return;
+
+    nav.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const id = item.getAttribute('data-section');
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setSettingsNavActive(id);
+            }
+        });
+    });
+
+    let ticking = false;
+    container.addEventListener('scroll', () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+            const sections = SETTINGS_SECTION_IDS.map(id => document.getElementById(id)).filter(Boolean);
+            const top = container.scrollTop;
+            const viewMid = top + container.clientHeight / 3;
+            let activeId = SETTINGS_SECTION_IDS[0];
+            for (const el of sections) {
+                if (el.offsetTop <= viewMid) activeId = el.id;
+            }
+            setSettingsNavActive(activeId);
+            ticking = false;
+        });
+    });
+}
+
+function setSettingsNavActive(sectionId) {
+    const nav = document.getElementById('settings-nav');
+    if (!nav) return;
+    nav.querySelectorAll('.settings-nav-item').forEach(item => {
+        item.classList.toggle('active', item.getAttribute('data-section') === sectionId);
+    });
+}
+
+function updateSettingsFooterHint() {
+    const hint = document.getElementById('settings-footer-hint');
+    const welcome = document.getElementById('settings-welcome');
+    if (!hint) return;
+    fetch('/api/user/me', { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'success' && data.username) {
+                hint.textContent = '设置已自动保存并同步到账号';
+                if (welcome) {
+                    welcome.textContent = '欢迎，' + data.username;
+                    welcome.style.display = '';
+                }
+            } else {
+                hint.textContent = '当前仅本地生效，登录后可保存到账号';
+                if (welcome) welcome.style.display = 'none';
+            }
+        })
+        .catch(() => {
+            hint.textContent = '当前仅本地生效，登录后可保存到账号';
+            if (welcome) welcome.style.display = 'none';
+        });
 }
 
 export function initSettings() {
     renderShortcutsList();
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
+    syncDetectDefaultInput();
+    syncCalcDefaultMode();
+    syncDevtoolsDefaultTab();
     loadVersionFromUpdate();
+    initSettingsNav();
+    window.addEventListener('settings-changed', persistAfterChange);
+}
+
+export function onOpenSettings() {
+    updateSettingsFooterHint();
+    if (typeof Profile.loadProfile === 'function') Profile.loadProfile();
 }
 
 function syncAgentEnterSendCheckbox() {
@@ -94,16 +354,20 @@ export function getShortcuts() { return shortcuts; }
 export function openSettings(anchor) {
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
+    syncDetectDefaultInput();
+    syncCalcDefaultMode();
+    syncDevtoolsDefaultTab();
+    onOpenSettings();
     toggleModal('settings-modal', true);
-    if (anchor === 'shortcuts') {
+    const scrollMap = { shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile' };
+    if (scrollMap[anchor]) {
         requestAnimationFrame(() => {
-            const el = document.getElementById('settings-shortcuts');
-            if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        });
-    } else if (anchor === 'agent') {
-        requestAnimationFrame(() => {
-            const el = document.getElementById('settings-agent');
-            if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            const sectionId = scrollMap[anchor];
+            const el = document.getElementById(sectionId);
+            if (el) {
+                el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                setSettingsNavActive(sectionId);
+            }
         });
     }
 }
@@ -126,6 +390,7 @@ function handleRecordKey(e) {
         shortcuts[doneAction] = newConfig;
         localStorage.setItem('app_shortcuts', JSON.stringify(shortcuts));
         updateShortcutDisplay();
+        persistAfterChange();
         const btn = document.getElementById(`btn-record-${doneAction}`);
         if (btn) { btn.classList.remove('recording'); btn.innerText = '修改'; }
         recordingAction = null;
@@ -146,13 +411,33 @@ function updateShortcutDisplay() {
         const cfg = shortcuts[action] || DEFAULT_SHORTCUTS[action];
         if (el && cfg) el.value = formatShortcut(cfg);
     });
+    updatePageShortcutHints();
+}
+
+/** 更新页面中带 data-shortcut 的按钮的 title（小括号内显示当前快捷键） */
+function updatePageShortcutHints() {
+    document.querySelectorAll('[data-shortcut]').forEach(el => {
+        const action = el.getAttribute('data-shortcut');
+        const label = SHORTCUT_LABELS[action];
+        const cfg = shortcuts[action] || DEFAULT_SHORTCUTS[action];
+        if (label && cfg) {
+            el.setAttribute('title', label + ' (' + formatShortcut(cfg) + ')');
+        }
+    });
 }
 export function resetDefaults() {
     shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS));
     localStorage.setItem('app_shortcuts', JSON.stringify(shortcuts));
     setAgentEnterSend(true);
+    localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, 'draw');
+    localStorage.setItem(CALC_DEFAULT_MODE_KEY, 'normal');
+    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, 'latex');
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
+    syncDetectDefaultInput();
+    syncCalcDefaultMode();
+    syncDevtoolsDefaultTab();
+    persistAfterChange();
 }
 export function getShortcutLabels() {
     return SHORTCUT_LABELS;

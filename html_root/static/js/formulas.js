@@ -76,7 +76,7 @@ function initEditListeners() {
 export async function saveCurrentFormula() {
     const user = getCurrentUser();
     if (!user) {
-        alert("请先登录！");
+        if (typeof showAlert === 'function') await showAlert("请先登录！", "提示");
         toggleAuthModal(true);
         return;
     }
@@ -89,20 +89,20 @@ export async function saveCurrentFormula() {
     else if (codeArea) latex = codeArea.value;
 
     if (!latex || latex.includes("等待")) {
-        alert("没有有效公式");
+        if (typeof showAlert === 'function') await showAlert("没有有效公式", "提示");
         return;
     }
 
-    const note = prompt("请输入公式备注：", "我的公式 " + new Date().toLocaleTimeString());
+    const note = typeof showPrompt === 'function' ? await showPrompt("请输入公式备注：", "我的公式 " + new Date().toLocaleTimeString(), "保存公式") : null;
     if (note === null) return;
 
     const result = await performSave(user, latex, note);
     if (result.status === 'success') {
-        alert("保存成功！");
+        if (typeof showToast === 'function') showToast("保存成功！", "success");
         const section = document.getElementById('my-formulas');
         if (section && section.classList.contains('active-section')) loadMyFormulas();
     } else {
-        alert("保存失败: " + result.message);
+        if (typeof showAlert === 'function') await showAlert("保存失败: " + result.message, "错误");
     }
 }
 
@@ -110,7 +110,7 @@ export async function saveCurrentFormula() {
 export async function saveAndShowFormula() {
     const user = getCurrentUser();
     if (!user) {
-        alert("请先登录！");
+        if (typeof showAlert === 'function') await showAlert("请先登录！", "提示");
         toggleAuthModal(true);
         return;
     }
@@ -123,11 +123,11 @@ export async function saveAndShowFormula() {
     else if (codeArea) latex = codeArea.value;
 
     if (!latex || latex.includes("等待")) {
-        alert("请先识别一个有效公式");
+        if (typeof showAlert === 'function') await showAlert("请先识别一个有效公式", "提示");
         return;
     }
 
-    const note = prompt("保存并查看，请输入备注：", "识别结果 " + new Date().toLocaleTimeString());
+    const note = typeof showPrompt === 'function' ? await showPrompt("保存并查看，请输入备注：", "识别结果 " + new Date().toLocaleTimeString(), "保存并查看") : null;
     if (note === null) return;
 
     const result = await performSave(user, latex, note);
@@ -136,7 +136,7 @@ export async function saveAndShowFormula() {
         showSection('my-formulas');
         await loadMyFormulas()
     } else {
-        alert("保存失败: " + result.message);
+        if (typeof showAlert === 'function') await showAlert("保存失败: " + result.message, "错误");
     }
 }
 
@@ -247,12 +247,15 @@ export function useFormula(latexEncoded) {
 
 // 5. 删除公式
 export async function deleteFormula(id) {
-    if (!confirm("确定删除？")) return;
+    const confirmed = typeof showConfirm === 'function' ? await showConfirm("确定删除？", "确认删除") : false;
+    if (!confirmed) return;
     const user = getCurrentUser();
     try {
         await fetch(`/api/formulas/delete?id=${id}&username=${user}`, { method: 'DELETE' });
         loadMyFormulas();
-    } catch(e) { alert("Error"); }
+    } catch(e) {
+        if (typeof showAlert === 'function') await showAlert("删除失败", "错误");
+    }
 }
 
 // --- 6. 新增：编辑相关函数 ---
@@ -300,7 +303,7 @@ export async function submitFormulaEdit() {
     const user = getCurrentUser();
 
     if (!latex || !latex.trim()) {
-        alert("公式不能为空");
+        if (typeof showAlert === 'function') await showAlert("公式不能为空", "提示");
         return;
     }
 
@@ -316,11 +319,11 @@ export async function submitFormulaEdit() {
             closeEditModal();
             loadMyFormulas(); // 刷新列表
         } else {
-            alert("更新失败: " + data.message);
+            if (typeof showAlert === 'function') await showAlert("更新失败: " + data.message, "错误");
         }
     } catch(e) {
         console.error(e);
-        alert("网络错误");
+        if (typeof showAlert === 'function') await showAlert("网络错误", "错误");
     }
 }
 
@@ -445,12 +448,12 @@ class GenScene(Scene):
         } else {
             if (detailView) detailView.style.display = 'none';
             if (listView) listView.style.display = 'block';
-            alert('加载脚本失败');
+            if (typeof showAlert === 'function') await showAlert('加载脚本失败', "错误");
         }
     } catch (e) {
         if (detailView) detailView.style.display = 'none';
         if (listView) listView.style.display = 'block';
-        alert('网络错误');
+        if (typeof showAlert === 'function') await showAlert('网络错误', "错误");
     }
 }
 
@@ -507,7 +510,10 @@ export async function saveScriptFromDetail() {
     if (!user) { toggleAuthModal(true); return; }
     const note = document.getElementById('script-detail-note')?.value?.trim() || '';
     const code = formulasMonacoEditor ? formulasMonacoEditor.getValue() : '';
-    if (!code.trim()) { alert('代码不能为空'); return; }
+    if (!code.trim()) {
+        if (typeof showAlert === 'function') await showAlert('代码不能为空', "提示");
+        return;
+    }
 
     if (currentScriptId === null || currentScriptId === 'new') {
         try {
@@ -523,10 +529,10 @@ export async function saveScriptFromDetail() {
                 currentScriptId = data.id;
                 loadAnimationScripts();
             } else {
-                alert('保存失败: ' + (data.message || ''));
+                if (typeof showAlert === 'function') await showAlert('保存失败: ' + (data.message || ''), "错误");
             }
         } catch (e) {
-            alert('网络错误');
+            if (typeof showAlert === 'function') await showAlert('网络错误', "错误");
         }
         return;
     }
@@ -542,16 +548,19 @@ export async function saveScriptFromDetail() {
             if (typeof showToast === 'function') showToast('更新成功', 'success');
             else alert('更新成功');
         } else {
-            alert('更新失败: ' + (data.message || ''));
+            if (typeof showAlert === 'function') await showAlert('更新失败: ' + (data.message || ''), "错误");
         }
     } catch (e) {
-        alert('网络错误');
+        if (typeof showAlert === 'function') await showAlert('网络错误', "错误");
     }
 }
 
 export async function runScriptFromDetail() {
     const code = formulasMonacoEditor ? formulasMonacoEditor.getValue() : '';
-    if (!code.trim()) { alert('请先输入或加载代码'); return; }
+    if (!code.trim()) {
+        if (typeof showAlert === 'function') await showAlert('请先输入或加载代码', "提示");
+        return;
+    }
     const btn = document.getElementById('btn-run-script');
     const modal = document.getElementById('script-run-modal');
     const video = document.getElementById('script-run-video');
@@ -610,14 +619,15 @@ export async function runScriptFromDetail() {
 }
 
 export async function deleteScript(id) {
-    if (!confirm('确定删除该脚本？')) return;
+    const confirmed = typeof showConfirm === 'function' ? await showConfirm('确定删除该脚本？', "确认删除") : false;
+    if (!confirmed) return;
     const user = getCurrentUser();
     try {
         await fetch(`/api/animation_scripts/delete?id=${id}&username=${encodeURIComponent(user)}`, { method: 'DELETE' });
         loadAnimationScripts();
         if (currentScriptId === id) closeScriptDetail();
     } catch (e) {
-        alert('删除失败');
+        if (typeof showAlert === 'function') await showAlert('删除失败', "错误");
     }
 }
 
@@ -630,7 +640,7 @@ export async function editScriptInWorkbench(scriptId) {
         const data = await res.json();
         if (data.status !== 'success' || !data.data || !data.data.code) {
             if (typeof showToast === 'function') showToast('加载脚本失败', 'error');
-            else alert('加载脚本失败');
+            else { if (typeof showAlert === 'function') await showAlert('加载脚本失败', "错误"); }
             return;
         }
         showSection('devtools');
@@ -641,7 +651,7 @@ export async function editScriptInWorkbench(scriptId) {
         });
     } catch (e) {
         if (typeof showToast === 'function') showToast('网络错误', 'error');
-        else alert('网络错误');
+        else { if (typeof showAlert === 'function') await showAlert('网络错误', "错误"); }
     }
 }
 
@@ -654,7 +664,7 @@ export async function runScriptInWorkbench(scriptId) {
         const data = await res.json();
         if (data.status !== 'success' || !data.data || !data.data.code) {
             if (typeof showToast === 'function') showToast('加载脚本失败', 'error');
-            else alert('加载脚本失败');
+            else { if (typeof showAlert === 'function') await showAlert('加载脚本失败', "错误"); }
             return;
         }
         showSection('devtools');
@@ -665,7 +675,7 @@ export async function runScriptInWorkbench(scriptId) {
         });
     } catch (e) {
         if (typeof showToast === 'function') showToast('网络错误', 'error');
-        else alert('网络错误');
+        else { if (typeof showAlert === 'function') await showAlert('网络错误', "错误"); }
     }
 }
 

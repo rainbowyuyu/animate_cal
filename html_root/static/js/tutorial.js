@@ -16,6 +16,18 @@ const MOCK_MATRIX = String.raw`\begin{bmatrix} 1 & 2 \\ 3 & 4 \end{bmatrix}`;
 // 辅助：延时
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// 辅助：先切换区块，等布局完成后再滚动，确保 Driver.js 能正确高亮
+function goToAndScroll(sectionId, element) {
+    showSection(sectionId);
+    if (element) {
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                element.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+            });
+        });
+    }
+}
+
 // 辅助：检测深色模式
 const isDarkMode = () => document.documentElement.getAttribute('data-theme') === 'dark';
 
@@ -73,8 +85,15 @@ function injectDriverStyles() {
 
 // --- 动画效果函数 ---
 
+// 仅当【智能识别】区块可见时执行（避免教程切到其他页时误触）
+function isDetectSectionVisible() {
+    const section = document.getElementById('detect');
+    return section && section.classList.contains('active-section');
+}
+
 // 1. 模拟画板绘制 (适配深色模式)
 async function simulateDrawing() {
+    if (!isDetectSectionVisible()) return;
     const canvas = document.getElementById('drawing-board');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -148,6 +167,7 @@ async function simulateDrawing() {
 
 // 2. 模拟识别结果填充
 async function simulateRecognitionResult() {
+    if (!isDetectSectionVisible()) return;
     const mathField = document.getElementById('latex-output');
     if (!mathField) return;
 
@@ -193,7 +213,7 @@ export function startTutorial() {
     function runTutorial(driverFn) {
         if (!driverFn) {
             if (typeof showToast === 'function') showToast('引导库未加载，请刷新后重试', 'error');
-            else alert('引导库未加载，请刷新后重试');
+            else if (typeof showAlert === 'function') showAlert('引导库未加载，请刷新后重试', "提示");
             return;
         }
         injectDriverStyles();
@@ -226,22 +246,23 @@ function runDriverTour(driverFn) {
                 element: '.logo',
                 popover: {
                     title: '👋 欢迎使用智算视界',
-                    description: '30秒带您上手：从<b>手写公式</b>到生成<b>动态视频</b>的完整流程。',
+                    description: '本站是<b>数学公式识别 + 动态可视化</b>一体化平台：可<b>手写或上传</b>公式 → 【智能识别】 → 存入【我的算式】 → 在【动态计算】中生成 Manim 动画；也可用【智能体】一句话完成上述流程，或用【开发者工具】直接编辑 LaTeX / Manim。下面用约 30 秒带您走一遍经典路径。',
                     side: "bottom",
                     align: 'start'
-                }
-            },
-            // --- 小贴士：智能体 ---
-            {
-                element: '.nav-links .desktop-nav button:nth-child(2)', // 智能体
-                popover: {
-                    title: '小贴士：智能体',
-                    description: '除了按步骤操作，你也可以使用【智能体】用自然语言一句话完成识别、生成动画等。例如："把 sin(x) = 1/2 做成动画"、"识别这张图并去计算"。',
-                    side: "bottom"
                 },
-                onHighlightStarted: () => showSection('home')
+                onHighlightStarted: (el) => goToAndScroll('home', el)
             },
-            // --- 阶段一：识别 ---
+            // --- 智能体（跳转到智能体页并高亮侧栏入口）---
+            {
+                element: '#agent #agent-features-examples-btn',
+                popover: {
+                    title: '推荐：智能体',
+                    description: '用<b>自然语言</b>说出需求（或<b>上传公式图片</b>），系统会自动跳转并执行：识别、保存、生成动画、打开 LaTeX/Manim 工作台等。支持多步指令，如【识别这张图并保存到我的算式】。可点击此处【功能与示例】查看可用的说法与示例。',
+                    side: "right"
+                },
+                onHighlightStarted: (el) => goToAndScroll('agent', el)
+            },
+            // --- 阶段一：识别（先切区块再滚动，保证 Driver.js 高亮位置正确）---
             {
                 element: '.nav-links .desktop-nav button:nth-child(3)', // 智能识别 tab
                 popover: {
@@ -249,55 +270,61 @@ function runDriverTour(driverFn) {
                     description: '第一步：点击这里进入【智能识别】页面。',
                     side: "bottom"
                 },
-                onHighlightStarted: () => showSection('detect')
+                onHighlightStarted: (el) => goToAndScroll('detect', el)
             },
             {
-                element: '#draw-tools',
+                element: '#detect #draw-tools',
                 popover: {
                     title: '2. 书写数学公式',
                     description: '请在中间的画板区域写下您的公式。支持矩阵、微积分等复杂符号。<br><i>(👀 请看屏幕上的自动书写演示)</i>',
                     side: "right"
                 },
-                onHighlightStarted: async () => {
+                onHighlightStarted: async (el) => {
+                    goToAndScroll('detect', el);
                     switchInputMode('draw');
                     await sleep(500);
                     simulateDrawing();
                 }
             },
             {
-                element: '.tools-panel .action-btn', // 识别按钮
+                element: '#detect .tools-panel .action-btn',
                 popover: {
                     title: '3. 点击识别',
                     description: '写好后，点击【立即识别】按钮，将把笔迹转换为标准数学公式。',
                     side: "right"
-                }
+                },
+                onHighlightStarted: (el) => goToAndScroll('detect', el)
             },
             {
-                element: '.result-panel',
+                element: '#detect .result-panel',
                 popover: {
                     title: '4. 检查与编辑结果',
                     description: '识别结果会显示在这里。<br>👉 <b>技巧：</b>如果个别数字识别有误，直接点击公式即可像在 Word 中一样修改。',
                     side: "top"
                 },
-                onHighlightStarted: () => simulateRecognitionResult()
+                onHighlightStarted: (el) => {
+                    goToAndScroll('detect', el);
+                    simulateRecognitionResult();
+                }
             },
             // --- 阶段二：保存 ---
             {
-                element: '.result-actions .btn-calc-go', // 保存按钮
+                element: '#detect .result-actions .btn-calc-go',
                 popover: {
                     title: '5. 保存公式',
                     description: '确认无误后，点击【保存并查看】。公式将存入您的云端笔记本，无需重复书写。',
                     side: "top"
-                }
+                },
+                onHighlightStarted: (el) => goToAndScroll('detect', el)
             },
             {
-                element: '#formula-list',
+                element: '#my-formulas #formula-list',
                 popover: {
-                    title: '6. 您的算式库',
-                    description: '刚才保存的公式已经出现在这里了。以后您可以随时调用它。',
+                    title: '6. 我的算式',
+                    description: '保存的公式会出现在这里，可随时调用。本页还有【子页】：渲染出的动画可【保存为脚本】，在【我的脚本】中编辑，或到【开发者工具】中继续编辑与渲染。',
                     side: "top"
                 },
-                onHighlightStarted: () => showSection('my-formulas')
+                onHighlightStarted: (el) => goToAndScroll('my-formulas', el)
             },
             // --- 阶段三：计算 ---
             {
@@ -307,31 +334,54 @@ function runDriverTour(driverFn) {
                     description: '现在，让我们把静态公式变成动画。点击进入【动态计算】页面。',
                     side: "bottom"
                 },
-                onHighlightStarted: () => showSection('calculate')
+                onHighlightStarted: (el) => goToAndScroll('calculate', el)
             },
             {
-                element: '.header-actions .btn-import:first-child', // 导入按钮
+                element: '#calculate .header-actions .btn-import:first-child',
                 popover: {
                     title: '8. 一键导入',
-                    description: '不需要重新输入。点击这个【导入图标】，直接选择刚才保存的公式。',
+                    description: '不需要重新输入。点击【导入】图标，直接选择刚才保存的公式。',
                     side: "left"
-                }
+                },
+                onHighlightStarted: (el) => goToAndScroll('calculate', el)
             },
             {
-                element: '#calc-method',
+                element: '#calculate #calc-method',
                 popover: {
                     title: '9. 选择可视化模式',
-                    description: '根据需要选择模式。例如“公式推演”或“可视化演示”，系统会生成不同的解题动画。',
+                    description: '选择【公式推演】或【可视化演示】等模式，系统会生成对应动画。通用计算可视化会<b>分步执行</b>：先计算、再可视化，生成<b>两个视频</b>并带标签，便于保存时区分。',
                     side: "left"
-                }
+                },
+                onHighlightStarted: (el) => goToAndScroll('calculate', el)
             },
             {
-                element: '.calc-sidebar .action-btn.full-width', // 生成按钮
+                element: '#calculate .calc-sidebar .action-btn.full-width',
                 popover: {
                     title: '10. 生成视频',
-                    description: '最后，点击生成按钮。稍等片刻，右侧就会播放 Manim 渲染的高清数学动画！',
+                    description: '点击生成后，右侧会播放 Manim 渲染的数学动画。生成完成后可【保存代码】到【我的算式】中的脚本库，便于在【开发者工具】中继续编辑与渲染。',
                     side: "right"
-                }
+                },
+                onHighlightStarted: (el) => goToAndScroll('calculate', el)
+            },
+            // --- 开发者工具（跳转到工作台并高亮工具箱）---
+            {
+                element: '#devtools .tools-list',
+                popover: {
+                    title: '11. 进阶：开发者工具',
+                    description: '【LaTeX 编辑器】写公式；【Manim 工作台】写 Manim 代码并云端渲染，可导入已保存脚本或 rainbow 拓展库示例；【rainbow鱼拓展库】免安装使用拓展案例。适合想精细控制动画或直接写代码的用户。',
+                    side: "right"
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            // --- 教学案例（跳转到案例页并高亮内容区）---
+            {
+                element: '#examples .section-title',
+                popover: {
+                    title: '12. 教学案例',
+                    description: '观看现成的数学动画示例与教学场景，了解本站能做出的可视化效果。',
+                    side: "bottom"
+                },
+                onHighlightStarted: (el) => goToAndScroll('examples', el)
             }
         ],
         onDestroyed: () => {

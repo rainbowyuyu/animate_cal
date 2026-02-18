@@ -9,6 +9,12 @@ const historyStack = [];
 let historyStep = -1;
 const MAX_HISTORY = 50;
 
+// 画笔光标（小圆圈）与 Alt+右键拖动调笔刷
+let brushCursorEl = null;
+let isResizeGesture = false;
+let resizeStartX = 0;
+let resizeStartVal = 0;
+
 // 手机端防误触：仅当判定为「书写」时才占住触摸，否则允许页面上下滑动
 const TOUCH_COMMIT_DIST = 10;       // 移动超过此像素才做意图判断
 const TOUCH_SCROLL_VERTICAL_RATIO = 1.3; // 垂直位移 / 水平位移 > 此值视为滚动
@@ -40,16 +46,26 @@ export function setupCanvas() {
     });
     observer.observe(parent);
 
-    // 2. 鼠标/触摸事件
-    canvas.addEventListener('mousedown', startDraw);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDraw);
-    canvas.addEventListener('mouseout', stopDraw);
+    // 2. 画笔光标（小圆圈，随画笔大小）
+    const container = canvas.parentElement;
+    if (container) {
+        brushCursorEl = document.createElement('div');
+        brushCursorEl.className = 'brush-cursor';
+        brushCursorEl.setAttribute('aria-hidden', 'true');
+        container.appendChild(brushCursorEl);
+    }
+
+    // 3. 鼠标/触摸事件
+    canvas.addEventListener('mousedown', onCanvasMouseDown);
+    canvas.addEventListener('mousemove', onCanvasMouseMove);
+    canvas.addEventListener('mouseup', onCanvasMouseUp);
+    canvas.addEventListener('mouseout', onCanvasMouseOut);
+    canvas.addEventListener('contextmenu', onCanvasContextMenu);
     canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd);
 
-    // 3. 监听模式切换 (自定义事件)
+    // 4. 监听模式切换 (自定义事件)
     window.addEventListener('mode-change', (e) => {
         const mode = e.detail;
         const dpr = window.devicePixelRatio || 1;
@@ -209,6 +225,84 @@ function getPos(e) {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
+/** 更新画笔光标圆圈的位置与大小，并显示；鼠标离开时由 onCanvasMouseOut 隐藏 */
+function updateBrushCursor(e) {
+    if (!brushCursorEl || !canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    const diameter = Math.max(2, getBrushSize());
+    const radius = diameter / 2;
+    brushCursorEl.style.width = diameter + 'px';
+    brushCursorEl.style.height = diameter + 'px';
+    brushCursorEl.style.left = (e.clientX - rect.left - radius) + 'px';
+    brushCursorEl.style.top = (e.clientY - rect.top - radius) + 'px';
+    brushCursorEl.style.display = 'block';
+    canvas.style.cursor = 'none';
+}
+
+function hideBrushCursor() {
+    if (brushCursorEl) brushCursorEl.style.display = 'none';
+    if (canvas) canvas.style.cursor = '';
+}
+
+/** Alt + 右键按下：开始拖动调整笔刷大小 */
+function startResizeGesture(e) {
+    e.preventDefault();
+    isResizeGesture = true;
+    resizeStartX = e.clientX;
+    const el = document.getElementById('brush-size');
+    resizeStartVal = el ? parseInt(el.value, 10) : 3;
+}
+
+/** Alt + 右键拖动：左滑变小、右滑变大，实时更新滑块与光标 */
+function updateBrushByDrag(e) {
+    const el = document.getElementById('brush-size');
+    if (!el) return;
+    const deltaX = e.clientX - resizeStartX;
+    const step = 2; // 每 2 像素改变 1 档
+    let v = resizeStartVal + Math.round(deltaX / step);
+    v = Math.max(1, Math.min(20, v));
+    el.value = String(v);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function endResizeGesture() {
+    isResizeGesture = false;
+}
+
+function onCanvasContextMenu(e) {
+    if (e.altKey) e.preventDefault();
+}
+
+function onCanvasMouseDown(e) {
+    if (e.button === 2 && e.altKey) {
+        startResizeGesture(e);
+        return;
+    }
+    if (e.button === 0) startDraw(e);
+}
+
+function onCanvasMouseMove(e) {
+    updateBrushCursor(e);
+    if (isResizeGesture) {
+        updateBrushByDrag(e);
+        return;
+    }
+    draw(e);
+}
+
+function onCanvasMouseUp(e) {
+    if (e.button === 2) endResizeGesture();
+    if (e.button === 0) stopDraw();
+}
+
+function onCanvasMouseOut(e) {
+    const parent = canvas && canvas.parentElement;
+    if (e.relatedTarget && parent && parent.contains(e.relatedTarget)) return;
+    stopDraw();
+    endResizeGesture();
+    hideBrushCursor();
+}
+
 function handleTouchStart(e) {
     if (!e.touches.length) return;
     touchStartX = e.touches[0].clientX;
@@ -254,6 +348,10 @@ function handleTouchEnd(e) {
 
 function startDraw(e) {
     isDrawing = true;
+    // 第一笔之前若没有历史状态，先保存当前画布，这样第一笔也能撤回
+    if (historyStack.length === 0) {
+        saveState();
+    }
     const pos = getPos(e);
     points = [pos];
     const brushSize = getBrushSize();

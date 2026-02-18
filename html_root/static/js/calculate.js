@@ -3,12 +3,35 @@ import { loadMyFormulas, normalizeLatex } from './formulas.js';
 import * as Formulas from './formulas.js';
 
 let lastGeneratedCode = '';
+let lastGeneratedCodeCalc = '';
+let lastGeneratedCodeVis = '';
 
 function getCurrentUser() {
     const userDisplay = document.getElementById('user-display');
     const usernameSpan = document.getElementById('username-span');
     if (userDisplay && userDisplay.style.display !== 'none' && usernameSpan) return usernameSpan.innerText;
     return null;
+}
+
+/** 通用模式叠层窗口：点击标签切换前置窗口 (仅绑定一次) */
+function initCalcStackTabs() {
+    const wrap = document.getElementById('calc-dual-videos-wrap');
+    if (!wrap || wrap.dataset.tabsInited === '1') return;
+    wrap.dataset.tabsInited = '1';
+    const tabs = wrap.querySelectorAll('.calc-stack-tab');
+    const windows = wrap.querySelectorAll('.calc-stack-window');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const t = tab.dataset.tab;
+            tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === t));
+            windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-' + t));
+        });
+    });
+    // 默认激活第一个标签（计算）
+    if (tabs.length > 0 && windows.length > 0) {
+        tabs[0].classList.add('active');
+        windows[0].classList.add('active');
+    }
 }
 
 // 初始化计算页面的监听器
@@ -73,7 +96,7 @@ export async function startAnimation() {
     const formula = formulaField ? formulaField.getValue() : "";
 
     if (!formula.trim()) {
-        alert("请输入公式");
+        if (typeof showAlert === 'function') await showAlert("请输入公式", "提示");
         return;
     }
 
@@ -109,6 +132,20 @@ export async function startAnimation() {
     if(placeholder) placeholder.style.display = 'block';
     const saveScriptWrap = document.getElementById('calc-save-script-wrap');
     if(saveScriptWrap) saveScriptWrap.style.display = 'none';
+    const dualWrap = document.getElementById('calc-dual-videos-wrap');
+    if(dualWrap) dualWrap.style.display = 'none';
+    const videoCalc = document.getElementById('result-video-player-calc');
+    const videoVis = document.getElementById('result-video-player-vis');
+    const placeholderCalc = document.getElementById('calc-placeholder-calc');
+    const placeholderVis = document.getElementById('calc-placeholder-vis');
+    const saveCalcWrap = document.getElementById('calc-save-calc-wrap');
+    const saveVisWrap = document.getElementById('calc-save-vis-wrap');
+    if(videoCalc) { videoCalc.pause(); videoCalc.src = ''; videoCalc.style.display = 'none'; }
+    if(videoVis) { videoVis.pause(); videoVis.src = ''; videoVis.style.display = 'none'; }
+    if(placeholderCalc) { placeholderCalc.style.display = 'block'; placeholderCalc.textContent = '等待「计算」渲染…'; }
+    if(placeholderVis) { placeholderVis.style.display = 'block'; placeholderVis.textContent = '等待「可视化」渲染…'; }
+    if(saveCalcWrap) saveCalcWrap.style.display = 'none';
+    if(saveVisWrap) saveVisWrap.style.display = 'none';
     const renderLoading = document.getElementById('calc-render-loading');
     if(renderLoading) renderLoading.style.display = 'flex';
 
@@ -207,14 +244,34 @@ export async function startAnimation() {
                             else if(progBar) progBar.style.background = "#10b981";
                         }
 
-                        if (data.step === 'generating_code') {
-                            addLog("正在构思数学可视化脚本...", "#fbbf24");
+                        if (data.step === 'normal_split') {
+                            addLog(data.message || "通用演示将分两步：先计算推演，再可视化演示", "#a78bfa");
+                            const dualWrap = document.getElementById('calc-dual-videos-wrap');
+                            const placeholder = document.getElementById('video-placeholder-content');
+                            if (dualWrap && placeholder) {
+                                placeholder.style.display = 'none';
+                                dualWrap.style.display = 'flex';
+                                initCalcStackTabs();
+                            }
+                        }
+                        else if (data.step === 'generating_code') {
+                            addLog(data.message || "正在构思数学可视化脚本...", "#fbbf24");
                         }
                         else if (data.step === 'code_generated') {
-                            if (data.code) lastGeneratedCode = data.code;
-                            addLog("脚本生成完毕，代码预览：", "#34d399");
+                            if (data.code) {
+                                if (data.part === 'calc') lastGeneratedCodeCalc = data.code;
+                                else if (data.part === 'vis') lastGeneratedCodeVis = data.code;
+                                else lastGeneratedCode = data.code;
+                            }
+                            addLog(data.message || "脚本生成完毕，代码预览：", "#34d399");
                             if (data.code) {
                                 await streamCodeBlock(data.code);
+                            }
+                            if (data.part && document.getElementById('calc-dual-videos-wrap')) {
+                                document.getElementById('video-placeholder-content').style.display = 'none';
+                                const dw = document.getElementById('calc-dual-videos-wrap');
+                                dw.style.display = 'flex';
+                                if (typeof initCalcStackTabs === 'function') initCalcStackTabs();
                             }
                         }
                         else if (data.step === 'fixing_code') {
@@ -227,18 +284,94 @@ export async function startAnimation() {
                         }
                         else if (data.step === 'complete') {
                             if (renderLoading) renderLoading.style.display = 'none';
-                            addLog("✨ 渲染完成！视频加载中...", "#a78bfa");
-                            setTimeout(() => {
-                                if (placeholder) placeholder.style.display = 'none';
-                                if (videoPlayer) {
-                                    videoPlayer.src = `${data.video_url}?t=${new Date().getTime()}`;
-                                    videoPlayer.style.display = 'block';
-                                    videoPlayer.play();
-                                }
-                                const saveScriptWrap = document.getElementById('calc-save-script-wrap');
-                                if (saveScriptWrap && lastGeneratedCode) saveScriptWrap.style.display = 'block';
-                            }, 500);
-                            return;
+                            addLog((data.message || "✨ 渲染完成！视频加载中..."), "#a78bfa");
+                            const part = data.part;
+                            const url = data.video_url ? `${data.video_url}?t=${new Date().getTime()}` : '';
+                            if (part === 'calc') {
+                                if (data.code) lastGeneratedCodeCalc = data.code;
+                                setTimeout(() => {
+                                    const dualWrap = document.getElementById('calc-dual-videos-wrap');
+                                    const placeholder = document.getElementById('video-placeholder-content');
+                                    if (dualWrap) {
+                                        placeholder.style.display = 'none';
+                                        dualWrap.style.display = 'flex';
+                                        if (typeof initCalcStackTabs === 'function') initCalcStackTabs();
+                                    }
+                                    const windowEl = document.getElementById('calc-window-calc');
+                                    const tabEl = document.querySelector('.calc-stack-tab[data-tab="calc"]');
+                                    const v = document.getElementById('result-video-player-calc');
+                                    const ph = document.getElementById('calc-placeholder-calc');
+                                    const sw = document.getElementById('calc-save-calc-wrap');
+                                    const allTabs = document.querySelectorAll('.calc-stack-tab');
+                                    const allWindows = document.querySelectorAll('.calc-stack-window');
+                                    // 激活计算窗口和标签
+                                    allTabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'calc'));
+                                    allWindows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-calc'));
+                                    if (ph) ph.style.display = 'none';
+                                    if (v) { v.src = url; v.style.display = 'block'; v.play(); }
+                                    if (sw) sw.style.display = 'block';
+                                    // 高亮动画
+                                    if (windowEl) {
+                                        windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                    }
+                                    if (tabEl) {
+                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                    }
+                                    setTimeout(() => {
+                                        if (windowEl) windowEl.style.animation = '';
+                                        if (tabEl) tabEl.style.animation = '';
+                                    }, 1500);
+                                }, 300);
+                            } else if (part === 'vis') {
+                                if (data.code) lastGeneratedCodeVis = data.code;
+                                setTimeout(() => {
+                                    const dualWrap = document.getElementById('calc-dual-videos-wrap');
+                                    if (dualWrap) dualWrap.style.display = 'flex';
+                                    const windowEl = document.getElementById('calc-window-vis');
+                                    const tabEl = document.querySelector('.calc-stack-tab[data-tab="vis"]');
+                                    const v = document.getElementById('result-video-player-vis');
+                                    const ph = document.getElementById('calc-placeholder-vis');
+                                    const sw = document.getElementById('calc-save-vis-wrap');
+                                    const allTabs = document.querySelectorAll('.calc-stack-tab');
+                                    const allWindows = document.querySelectorAll('.calc-stack-window');
+                                    // 激活可视化窗口和标签
+                                    allTabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'vis'));
+                                    allWindows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-vis'));
+                                    if (ph) ph.style.display = 'none';
+                                    if (v) { v.src = url; v.style.display = 'block'; v.play(); }
+                                    if (sw) sw.style.display = 'block';
+                                    // 高亮动画
+                                    if (windowEl) {
+                                        windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                    }
+                                    if (tabEl) {
+                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                    }
+                                    setTimeout(() => {
+                                        if (windowEl) windowEl.style.animation = '';
+                                        if (tabEl) tabEl.style.animation = '';
+                                    }, 1500);
+                                }, 300);
+                            } else {
+                                if (data.code) lastGeneratedCode = data.code;
+                                setTimeout(() => {
+                                    if (placeholder) placeholder.style.display = 'none';
+                                    const videoWrapper = document.getElementById('calc-video-wrapper');
+                                    if (videoPlayer) {
+                                        videoPlayer.src = url;
+                                        videoPlayer.style.display = 'block';
+                                        videoPlayer.play();
+                                        if (videoWrapper) {
+                                            videoWrapper.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                            setTimeout(() => { if (videoWrapper) videoWrapper.style.animation = ''; }, 1500);
+                                        }
+                                    }
+                                    const saveScriptWrap = document.getElementById('calc-save-script-wrap');
+                                    if (saveScriptWrap && lastGeneratedCode) saveScriptWrap.style.display = 'block';
+                                }, 500);
+                                return;
+                            }
+                            // 双阶段时不要 return，继续读流以接收下一阶段 complete
                         }
                         else if (data.step === 'error') {
                             if (renderLoading) renderLoading.style.display = 'none';
@@ -341,22 +474,36 @@ async function loadFormulaSelectorList() {
     }
 }
 
-/** 打开与开发者工具同款的脚本备注弹窗，填写后点保存再执行保存 */
-export function saveLastCodeToScripts() {
+/** 打开与开发者工具同款的脚本备注弹窗，填写后点保存再执行保存。part 可选：'calc' 保存计算脚本，'vis' 保存可视化脚本，不传为单阶段代码。 */
+export function saveLastCodeToScripts(part) {
     const user = getCurrentUser();
     if (!user) {
         showToast('请先登录', 'error');
         toggleAuthModal(true);
         return;
     }
-    if (!lastGeneratedCode.trim()) {
-        showToast('暂无可保存的代码', 'error');
+    const code = part === 'calc' ? lastGeneratedCodeCalc : (part === 'vis' ? lastGeneratedCodeVis : lastGeneratedCode);
+    if (!code || !code.trim()) {
+        showToast(part === 'calc' ? '暂无可保存的计算脚本' : (part === 'vis' ? '暂无可保存的可视化脚本' : '暂无可保存的代码'), 'error');
         return;
     }
     window._scriptNoteModalSource = 'calculate';
+    window._scriptNoteModalPart = part;
+    window._scriptNoteModalCode = code;
     const titleEl = document.getElementById('script-note-modal-title');
     const inputEl = document.getElementById('script-note-input');
-    if (titleEl) titleEl.textContent = '保存到动画脚本库';
+    const prefixEl = document.getElementById('script-note-prefix');
+    const label = part === 'calc' ? '计算' : (part === 'vis' ? '可视化' : '');
+    if (titleEl) titleEl.textContent = label ? `保存「${label}」到动画脚本库` : '保存到动画脚本库';
+    if (prefixEl) {
+        if (label) {
+            prefixEl.textContent = label + ' - ';
+            prefixEl.style.display = 'inline-flex';
+        } else {
+            prefixEl.textContent = '';
+            prefixEl.style.display = 'none';
+        }
+    }
     if (inputEl) {
         inputEl.value = '动态计算 ' + new Date().toLocaleString();
         inputEl.placeholder = '例如：矩阵动画、sin(x) 可视化、公式推演';
@@ -367,13 +514,15 @@ export function saveLastCodeToScripts() {
 /** 由脚本备注弹窗确认后调用，执行实际保存（与开发者工具共用同一弹窗时由 main 挂载的 submitCalcScriptNote 调用） */
 export async function submitSaveScriptNote(note) {
     const user = getCurrentUser();
-    if (!user || !lastGeneratedCode.trim()) return;
+    const code = (window._scriptNoteModalCode && window._scriptNoteModalCode.trim()) ? window._scriptNoteModalCode.trim() : lastGeneratedCode.trim();
+    if (!user || !code) return;
+    if (window._scriptNoteModalCode) window._scriptNoteModalCode = null;
     const noteStr = (note && note.trim()) ? note.trim() : '未命名';
     try {
         const res = await fetch('/api/animation_scripts/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user, note: noteStr, code: lastGeneratedCode })
+            body: JSON.stringify({ username: user, note: noteStr, code })
         });
         const data = await res.json();
         if (data.status === 'success') {

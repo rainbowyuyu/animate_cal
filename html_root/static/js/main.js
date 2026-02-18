@@ -12,6 +12,7 @@ import * as Docs from './docs.js';
 import * as Theme from './theme.js';
 import * as DevTools from './devtools.js';
 import * as Agent from './agent.js';
+import * as Profile from './profile.js';
 import * as MathLiveKeyboard from './mathlive/mathlive-keyboard.js';
 import * as MathLiveMenu from './mathlive/mathlive-menu.js';
 import * as MathLiveLocale from './mathlive/mathlive-locale.js';
@@ -42,6 +43,8 @@ document.addEventListener('DOMContentLoaded', () => {
     Theme.initTheme();
     DevTools.initDevTools();
     Agent.initAgent();
+    Profile.initProfile();
+    window.Profile = Profile;
     MathLiveKeyboard.initMathLiveKeyboard();
     MathLiveMenu.initMathLiveMenuOnce();
     MathLiveLocale.initMathLiveLocale();
@@ -53,8 +56,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMatch(e, s.undo)) { e.preventDefault(); Canvas.undo(); }
         else if (isMatch(e, s.redo)) { e.preventDefault(); Canvas.redo(); }
         else if (isMatch(e, s.clearCanvas)) { e.preventDefault(); Canvas.clearCanvas(); }
-        else if (isMatch(e, s.toolPen)) { e.preventDefault(); window.setTool(window.currentToolType === 'pen' ? 'eraser' : 'pen'); }
-        else if (isMatch(e, s.toolEraser)) { e.preventDefault(); window.setTool(window.currentToolType === 'eraser' ? 'pen' : 'eraser'); }
+        else if (isMatch(e, s.toolPen) || (e.key.toLowerCase() === 'p' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey)) { e.preventDefault(); window.setTool('pen'); }
+        else if (isMatch(e, s.toolEraser)) { e.preventDefault(); window.setTool('eraser'); }
         else if (isMatch(e, s.brushSizeUp)) { e.preventDefault(); Canvas.setBrushSizeDelta(1); }
         else if (isMatch(e, s.brushSizeDown)) { e.preventDefault(); Canvas.setBrushSizeDelta(-1); }
     });
@@ -103,10 +106,23 @@ window.deleteFormula = Formulas.deleteFormula;
 // --- 其他挂载 ---
 window.showSection = (sectionId) => {
     UI.showSection(sectionId);
-    if (sectionId === 'detect') setTimeout(() => Canvas.resizeCanvas(), 50);
+    if (sectionId === 'detect') {
+        setTimeout(() => Canvas.resizeCanvas(), 50);
+        const inputMode = Settings.getDetectDefaultInput();
+        setTimeout(() => window.switchInputMode(inputMode), 60);
+    }
     if (sectionId === 'my-formulas') {
         Formulas.loadMyFormulas();
         Formulas.switchFormulasSubTab('formulas');
+    }
+    if (sectionId === 'calculate') {
+        const mode = Settings.getCalcDefaultMode();
+        const el = document.getElementById('calc-method');
+        if (el && ['normal', 'formular', 'visualization'].includes(mode)) el.value = mode;
+    }
+    if (sectionId === 'devtools') {
+        const tab = Settings.getDevtoolsDefaultTab();
+        if (window.switchDevTool) window.switchDevTool(tab);
     }
     if (sectionId === 'agent' && Agent.refreshAgentGate) Agent.refreshAgentGate();
 };
@@ -194,6 +210,11 @@ window.closeDocsModal = Docs.closeDocsModal;
 window.toggleMobileMenu = UI.toggleMobileMenu;
 window.mobileNavClick = UI.mobileNavClick;
 
+// 挂载自定义对话框（替换原生 alert/confirm/prompt）
+window.showAlert = UI.showAlert;
+window.showConfirm = UI.showConfirm;
+window.showPrompt = UI.showPrompt;
+
 // 挂载切换函数给 HTML 按钮使用
 window.toggleTheme = Theme.toggleTheme;
 
@@ -203,3 +224,4 @@ window.Agent = Agent;
 window.switchDevTool = DevTools.switchDevTool;
 window.runDevManim = DevTools.runDevManim;
 window.copyDevLatex = DevTools.copyDevLatex;
+window.openManimWorkbenchWithCode = DevTools.openManimWorkbenchWithCode;

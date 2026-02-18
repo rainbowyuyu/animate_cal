@@ -199,3 +199,148 @@ function escapeHtml(str) {
     div.textContent = str;
     return div.innerHTML;
 }
+
+/** 自定义 Alert 对话框（替换原生 alert） */
+export function showAlert(message, title = '提示') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-dialog-modal');
+        if (!modal) {
+            console.warn('custom-dialog-modal not found, falling back to native alert');
+            alert(message);
+            resolve();
+            return;
+        }
+        const titleEl = document.getElementById('custom-dialog-title');
+        const messageEl = document.getElementById('custom-dialog-message');
+        const inputWrap = document.getElementById('custom-dialog-input-wrap');
+        const inputEl = document.getElementById('custom-dialog-input');
+        const confirmBtn = document.getElementById('custom-dialog-confirm');
+        const cancelBtn = document.getElementById('custom-dialog-cancel');
+        const closeBtn = document.getElementById('custom-dialog-close');
+        const handleClose = () => {
+            toggleModal('custom-dialog-modal', false);
+            resolve();
+        };
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.style.display = 'block';
+        }
+        if (inputWrap) inputWrap.style.display = 'none';
+        if (confirmBtn) {
+            confirmBtn.textContent = '确定';
+            confirmBtn.onclick = handleClose;
+        }
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        if (closeBtn) {
+            closeBtn.onclick = handleClose;
+            closeBtn.style.display = 'block';
+        }
+        toggleModal('custom-dialog-modal', true);
+    });
+}
+
+/** 自定义 Confirm 对话框（替换原生 confirm） */
+export function showConfirm(message, title = '确认') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-dialog-modal');
+        if (!modal) {
+            const result = confirm(message);
+            resolve(result);
+            return;
+        }
+        const titleEl = document.getElementById('custom-dialog-title');
+        const messageEl = document.getElementById('custom-dialog-message');
+        const inputWrap = document.getElementById('custom-dialog-input-wrap');
+        const inputEl = document.getElementById('custom-dialog-input');
+        const confirmBtn = document.getElementById('custom-dialog-confirm');
+        const cancelBtn = document.getElementById('custom-dialog-cancel');
+        const closeBtn = document.getElementById('custom-dialog-close');
+        const handleCancel = () => {
+            toggleModal('custom-dialog-modal', false);
+            resolve(false);
+        };
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.style.display = 'block';
+        }
+        if (inputWrap) inputWrap.style.display = 'none';
+        if (confirmBtn) {
+            confirmBtn.textContent = '确定';
+            confirmBtn.onclick = () => {
+                toggleModal('custom-dialog-modal', false);
+                resolve(true);
+            };
+        }
+        if (cancelBtn) {
+            cancelBtn.style.display = 'inline-block';
+            cancelBtn.onclick = handleCancel;
+        }
+        if (closeBtn) {
+            closeBtn.onclick = handleCancel;
+            closeBtn.style.display = 'block';
+        }
+        toggleModal('custom-dialog-modal', true);
+    });
+}
+
+/** 自定义 Prompt 对话框（替换原生 prompt） */
+export function showPrompt(message, defaultValue = '', title = '输入') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('custom-dialog-modal');
+        if (!modal) {
+            const result = prompt(message, defaultValue);
+            resolve(result);
+            return;
+        }
+        const titleEl = document.getElementById('custom-dialog-title');
+        const messageEl = document.getElementById('custom-dialog-message');
+        const inputWrap = document.getElementById('custom-dialog-input-wrap');
+        const inputEl = document.getElementById('custom-dialog-input');
+        const confirmBtn = document.getElementById('custom-dialog-confirm');
+        const cancelBtn = document.getElementById('custom-dialog-cancel');
+        const closeBtn = document.getElementById('custom-dialog-close');
+        const handleCancel = () => {
+            toggleModal('custom-dialog-modal', false);
+            resolve(null);
+        };
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) {
+            messageEl.textContent = message;
+            messageEl.style.display = 'block';
+        }
+        if (inputWrap) inputWrap.style.display = 'block';
+        if (inputEl) {
+            inputEl.value = defaultValue;
+            setTimeout(() => {
+                inputEl.focus();
+                inputEl.select();
+            }, 100);
+            const handleEnter = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    confirmBtn.click();
+                }
+            };
+            inputEl.addEventListener('keydown', handleEnter, { once: true });
+        }
+        if (confirmBtn) {
+            confirmBtn.textContent = '确定';
+            confirmBtn.onclick = () => {
+                const value = inputEl ? inputEl.value : '';
+                toggleModal('custom-dialog-modal', false);
+                resolve(value);
+            };
+        }
+        if (cancelBtn) {
+            cancelBtn.style.display = 'inline-block';
+            cancelBtn.onclick = handleCancel;
+        }
+        if (closeBtn) {
+            closeBtn.onclick = handleCancel;
+            closeBtn.style.display = 'block';
+        }
+        toggleModal('custom-dialog-modal', true);
+    });
+}

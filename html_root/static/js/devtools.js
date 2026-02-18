@@ -261,7 +261,7 @@ let isCooldown = false;
 
 export async function runDevManim() {
     if (isCooldown) {
-        alert("请等待冷却时间结束");
+        if (typeof showAlert === 'function') await showAlert("请等待冷却时间结束", "提示");
         return;
     }
     if (!monacoEditor) return;
@@ -590,6 +590,8 @@ export function saveScriptFromWorkbench() {
     window._scriptNoteModalSource = 'devtools';
     const titleEl = document.getElementById('script-note-modal-title');
     const inputEl = document.getElementById('script-note-input');
+    const prefixEl = document.getElementById('script-note-prefix');
+    if (prefixEl) prefixEl.style.display = 'none';
     if (titleEl) titleEl.textContent = workbenchScriptId != null ? '编辑脚本备注' : '脚本备注';
     if (inputEl) {
         inputEl.value = workbenchScriptNote || '未命名';
@@ -607,10 +609,14 @@ export function closeScriptNoteModal() {
 /** 从脚本备注弹窗确认并执行保存（与登录成功一致使用 showToast 提示，不用浏览器默认 alert） */
 export async function confirmScriptNoteAndSave() {
     const inputEl = document.getElementById('script-note-input');
-    const note = (inputEl && inputEl.value && inputEl.value.trim()) ? inputEl.value.trim() : '未命名';
+    const prefixEl = document.getElementById('script-note-prefix');
+    const prefix = (prefixEl && prefixEl.style.display !== 'none' && prefixEl.textContent) ? prefixEl.textContent : '';
+    const inputPart = (inputEl && inputEl.value != null) ? inputEl.value.trim() : '';
+    const note = prefix + (inputPart || '未命名');
     if (window._scriptNoteModalSource === 'calculate') {
         closeScriptNoteModal();
         window._scriptNoteModalSource = null;
+        window._scriptNoteModalPart = null;
         if (typeof window.submitCalcScriptNote === 'function') window.submitCalcScriptNote(note);
         return;
     }

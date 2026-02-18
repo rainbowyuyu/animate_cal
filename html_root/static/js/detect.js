@@ -95,7 +95,7 @@ export async function processRecognition() {
     }
 
     if (!blob) {
-        alert(isDrawMode ? "请先绘制内容" : "请先上传图片");
+        if (typeof showAlert === 'function') await showAlert(isDrawMode ? "请先绘制内容" : "请先上传图片", "提示");
         mathField.setValue(String.raw`\text{等待输入...}`);
         setButtonsState(false); // 保持禁用
         return;
@@ -134,7 +134,7 @@ export async function processRecognition() {
 }
 
 // 导出到计算页面
-export function copyToCalc() {
+export async function copyToCalc() {
     const mathField = document.getElementById('latex-output');
     const codeArea = document.getElementById('latex-code-detect');
 
@@ -166,6 +166,6 @@ export function copyToCalc() {
         }, 100);
 
     } else {
-        alert("请先进行识别或输入有效公式");
+        if (typeof showAlert === 'function') await showAlert("请先进行识别或输入有效公式", "提示");
     }
 }

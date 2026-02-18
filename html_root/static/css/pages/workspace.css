@@ -295,6 +295,22 @@
     background: transparent; /* 关键：允许透视到底下的预览图 */
 }
 
+/* 画笔光标：随画笔大小显示的圆圈，Photoshop 风格 */
+.brush-cursor {
+    position: absolute;
+    pointer-events: none;
+    z-index: 11;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-main);
+    background: transparent;
+    box-sizing: border-box;
+    display: none;
+}
+
+[data-theme="dark"] .brush-cursor {
+    border-color: rgba(226, 232, 240, 0.9);
+}
+
 /* 上传预览图：居中显示，层级较低 */
 #uploaded-preview {
     max-width: 90%;

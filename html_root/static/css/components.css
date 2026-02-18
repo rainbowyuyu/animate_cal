@@ -213,6 +213,11 @@ textarea:focus {
 
 .modal.show { opacity: 1; }
 
+/* 登录/注册弹窗需叠在设置等弹窗之上（从设置里点「保存」未登录时弹出） */
+#auth-modal {
+    z-index: 2100;
+}
+
 .modal-content {
     background: var(--bg-surface); /* 关键适配 */
     width: 450px;
@@ -238,11 +243,12 @@ textarea:focus {
     height: 80vh;
 }
 
-/* 设置 Modal：固定抬头+关闭，仅内容区滚动 */
+/* 设置 Modal：固定抬头 + 左侧导航 + 可滚动内容 + 底部固定栏 */
 #settings-modal .modal-content.settings-modal-content {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    width: 500px;
+    width: 640px;
+    max-width: 95vw;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
@@ -266,12 +272,74 @@ textarea:focus {
     font-size: 1.25rem;
 }
 
-.settings-modal-body {
+.settings-welcome {
+    margin-left: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+/* 整体为上下结构：中间区(导航+内容) + 底部栏 */
+.settings-modal-layout {
     flex: 1;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+/* 中间一行：左侧导航 + 右侧内容 */
+.settings-modal-main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+/* 左侧总览导航 */
+.settings-nav {
+    flex-shrink: 0;
+    width: 160px;
+    padding: 1rem 0.75rem 1rem 1rem;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--bg-body);
+}
+.settings-nav-item {
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.settings-nav-item:hover {
+    background: var(--bg-input);
+    color: var(--text-main);
+}
+.settings-nav-item.active {
+    background: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+}
+
+.settings-modal-body {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding-right: 12px;
     box-sizing: border-box;
+    background: var(--bg-surface);
+}
+.settings-content-inner {
+    padding: 2rem;
+    min-height: min-content;
+    color: var(--text-main);
+    display: block;
 }
 #settings-modal .settings-modal-body {
     scrollbar-width: thin;
@@ -290,6 +358,53 @@ textarea:focus {
 }
 #settings-modal .settings-modal-body::-webkit-scrollbar-thumb:hover {
     background: var(--text-secondary);
+}
+
+.settings-section-title {
+    margin-bottom: 1rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    font-size: 1rem;
+}
+
+/* 底部固定栏：像系统设置一样浮动 */
+.settings-modal-footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    flex-wrap: wrap;
+}
+.settings-footer-hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    flex: 1;
+    min-width: 120px;
+}
+.settings-footer-btns {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.settings-btn-reset {
+    background: #ef4444;
+    border: none;
+    color: #fff;
+    font-size: 0.9rem;
+}
+.settings-btn-save {
+    background: var(--primary-color);
+    border: none;
+    color: #fff;
+    font-size: 0.9rem;
+}
+.settings-btn-done {
+    font-size: 0.9rem;
 }
 
 @media (max-width: 600px) {
@@ -371,6 +486,89 @@ textarea:focus {
 }
 
 .auth-body { padding: 2.5rem 2rem 2rem; }
+
+/* 修改用户名/修改密码等独立弹窗：高级感样式 */
+.auth-style-modal .modal-content {
+    width: 450px;
+    max-width: 92vw;
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--border-color);
+    overflow: hidden;
+}
+[data-theme="dark"] .auth-style-modal .modal-content {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--border-color);
+}
+
+.auth-style-modal .auth-style-header {
+    position: relative;
+    padding: 1.5rem 3.5rem 1.25rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(180deg, var(--bg-surface) 0%, var(--bg-muted, rgba(0,0,0,0.02)) 100%);
+}
+.auth-style-modal .auth-style-header .auth-title {
+    margin: 0;
+    padding: 0;
+    padding-left: 1rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text-main);
+    border-left: 4px solid var(--primary-color);
+    border-radius: 2px;
+    line-height: 1.4;
+}
+.auth-style-modal .auth-style-close {
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1.35rem;
+    font-weight: 300;
+    color: var(--text-secondary);
+    border-radius: 50%;
+    transition: color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+.auth-style-modal .auth-style-close:hover {
+    color: var(--text-main);
+    background: var(--bg-input);
+    transform: scale(1.05);
+}
+
+.auth-style-modal .auth-body {
+    padding: 1.75rem 2rem 2rem;
+}
+.auth-style-modal .auth-body .tech-input {
+    border-radius: 12px;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.auth-style-modal .auth-body .tech-input:focus {
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 59, 130, 246), 0.15);
+    outline: none;
+}
+.auth-style-modal .action-btn.full-width {
+    padding: 0.9rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 12px;
+    letter-spacing: 0.02em;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.auth-style-modal .action-btn.full-width:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+}
+[data-theme="dark"] .auth-style-modal .action-btn.full-width:hover {
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+/* 兼容未包在 header 内的旧标题（如其他处用到 .auth-title） */
+.auth-title {
+    margin: 0 0 1rem;
+    padding: 0 3rem 0 2rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
 
 .captcha-row {
     display: flex;
@@ -595,3 +793,58 @@ textarea:focus {
     box-shadow: var(--shadow-md);
 }
 .toast-info .toast-icon { color: var(--primary-color); }
+
+/* 账户与资料（设置内） */
+.settings-profile-guest,
+.settings-profile-content {
+    margin-top: 0.75rem;
+}
+.profile-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+.profile-row:last-child { margin-bottom: 0; }
+.profile-label {
+    flex: 0 0 5rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+.profile-avatar-wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.profile-avatar,
+.profile-avatar-placeholder {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.profile-avatar-placeholder {
+    background: var(--bg-muted, #e5e7eb);
+    color: var(--text-secondary);
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+.profile-form-wrap {
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+}
+.profile-hint {
+    font-size: 0.875rem;
+    margin-left: 0.25rem;
+}
+.profile-username-display {
+    font-weight: 500;
+    color: var(--text-main);
+}
