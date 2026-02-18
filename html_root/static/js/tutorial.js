@@ -1,7 +1,13 @@
 // static/js/tutorial.js
 import { showSection, switchInputMode } from './ui.js';
 
-const driver = window.driver.js.driver;
+// 兼容 CDN 暴露：官方为 window.driver.js.driver，部分 IIFE 为 window['driver.js'].driver
+function getDriver() {
+    if (typeof window === 'undefined') return null;
+    if (window.driver?.js?.driver) return window.driver.js.driver;
+    if (window['driver.js']?.driver) return window['driver.js'].driver;
+    return null;
+}
 let tutorialInterval = null;
 
 // 模拟数据
@@ -159,13 +165,53 @@ async function simulateRecognitionResult() {
     }
 }
 
+// 动态加载 driver.js（CDN），加载完成后执行 callback
+function loadDriverScript(callback) {
+    const scriptId = 'driver-js-script';
+    const existing = document.getElementById(scriptId);
+    if (existing) {
+        const fn = getDriver();
+        if (fn) callback(fn);
+        else callback(null);
+        return;
+    }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.id = scriptId;
+    script.src = 'https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js';
+    script.onload = () => callback(getDriver());
+    script.onerror = () => callback(null);
+    document.head.appendChild(script);
+}
+
 // --- 教程主逻辑 ---
 
 export function startTutorial() {
-    // 注入样式
-    injectDriverStyles();
+    function runTutorial(driverFn) {
+        if (!driverFn) {
+            if (typeof showToast === 'function') showToast('引导库未加载，请刷新后重试', 'error');
+            else alert('引导库未加载，请刷新后重试');
+            return;
+        }
+        injectDriverStyles();
+        runDriverTour(driverFn);
+    }
 
-    const tour = driver({
+    const driverFn = getDriver();
+    if (driverFn) {
+        runTutorial(driverFn);
+        return;
+    }
+    // 未检测到引导库时尝试动态加载
+    loadDriverScript(runTutorial);
+}
+
+function runDriverTour(driverFn) {
+
+    const tour = driverFn({
         showProgress: true,
         animate: true,
         allowClose: true,

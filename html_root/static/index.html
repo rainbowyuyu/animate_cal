@@ -187,50 +187,99 @@
             </div>
         </section>
 
-        <!-- 2. 智能体 Section：自然语言 + 图片 -> 一键可视化（登录后可用） -->
+        <!-- 2. 智能体 Section：侧边栏 + 主聊天区布局 -->
         <section id="agent" class="section agent-section">
-            <div class="agent-hero">
-                <span class="agent-badge"><i class="fa-solid fa-crown"></i> 会员功能</span>
-                <h2 class="section-title agent-title">智能体</h2>
-                <p class="agent-desc">用自然语言描述你想做的事，智能体会自动调用识别、计算、动画、LaTeX 编辑等能力，一步到位完成复杂任务。</p>
-                <ul class="agent-features-list">
-                    <li><i class="fa-solid fa-check"></i> 一句话生成动画、打开编辑器或识别公式</li>
-                    <li><i class="fa-solid fa-check"></i> 支持上传公式图片，自动识别并跳转计算</li>
-                    <li><i class="fa-solid fa-check"></i> 与本站所有功能无缝联动</li>
-                </ul>
-            </div>
-            <!-- 未登录时显示：引导登录 -->
-            <div id="agent-gate" class="agent-gate">
-                <div class="agent-gate-card">
-                    <div class="agent-gate-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                    <h3 class="agent-gate-title">登录后即可使用智能体</h3>
-                    <p class="agent-gate-desc">智能体为登录用户专属功能，登录后可享受一句话调度识别、计算与动画等全部能力。</p>
-                    <button type="button" class="agent-gate-btn" onclick="toggleAuthModal(true)">
-                        <i class="fa-solid fa-right-to-bracket"></i> 登录 / 注册
-                    </button>
-                </div>
-            </div>
-            <!-- 已登录时显示：工作区 -->
-            <div id="agent-workspace-wrap" class="agent-workspace-wrap" style="display: none;">
-                <div class="agent-workspace">
-                    <div class="agent-input-card">
-                        <label class="agent-label"><i class="fa-solid fa-comment-dots"></i> 描述你的需求</label>
-                        <textarea id="agent-prompt" class="agent-textarea" placeholder="例如：把 sin(x) = 1/2 做成动画&#10;打开 LaTeX 编辑器&#10;识别这张图片里的公式并去计算页生成动画" rows="4"></textarea>
-                        <div class="agent-upload-row">
-                            <label class="agent-upload-label" for="agent-image-upload">
-                                <i class="fa-solid fa-image"></i> 上传公式图片（可选）
-                            </label>
-                            <input type="file" id="agent-image-upload" accept="image/*" style="display:none;">
-                            <span id="agent-file-name" class="agent-file-name"></span>
-                        </div>
-                        <button type="button" id="agent-submit-btn" class="agent-submit-btn" onclick="Agent.execute()">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> 执行
+            <!-- 移动端遮罩层 -->
+            <div id="agent-sidebar-overlay" class="agent-sidebar-overlay" onclick="Agent.closeSidebarMobile()"></div>
+            <div class="agent-layout">
+                <!-- 左侧边栏 -->
+                <aside id="agent-sidebar" class="agent-sidebar">
+                    <div class="agent-sidebar-header">
+                        <button type="button" class="agent-sidebar-toggle" id="agent-sidebar-toggle" onclick="Agent.toggleSidebar()" title="折叠/展开侧边栏">
+                            <i class="fa-solid fa-bars"></i>
                         </button>
+                        <h2 class="agent-sidebar-title">智能体</h2>
                     </div>
-                    <div class="agent-result-card">
-                        <div id="agent-status" class="agent-status">输入描述后点击“执行”，将自动跳转到对应页面并完成任务。</div>
-                        <div id="agent-result-area" class="agent-result-area" style="display: none;">
-                            <p id="agent-result-message" class="agent-result-message"></p>
+                    <div class="agent-sidebar-content">
+                        <div class="agent-sidebar-section">
+                            <span class="agent-badge"><i class="fa-solid fa-crown"></i> 会员功能</span>
+                            <p class="agent-sidebar-desc">用自然语言描述你想做的事，智能体会自动调用识别、计算、动画、LaTeX 编辑等能力，一步到位完成复杂任务。</p>
+                        </div>
+                        <div class="agent-sidebar-section">
+                            <h3 class="agent-sidebar-section-title">功能特性</h3>
+                            <ul class="agent-features-list">
+                                <li><i class="fa-solid fa-check"></i> 一句话生成动画、打开编辑器或识别公式</li>
+                                <li><i class="fa-solid fa-check"></i> 支持上传公式图片，自动识别并跳转计算</li>
+                                <li><i class="fa-solid fa-check"></i> 与本站所有功能无缝联动</li>
+                            </ul>
+                        </div>
+                        <div class="agent-sidebar-section">
+                            <h3 class="agent-sidebar-section-title">快捷操作</h3>
+                            <div class="agent-sidebar-actions">
+                                <button type="button" class="agent-sidebar-action-btn" onclick="Agent.clearChat()">
+                                    <i class="fa-solid fa-trash"></i> 清空对话
+                                </button>
+                                <button type="button" class="agent-sidebar-action-btn" onclick="openSettings('agent')">
+                                    <i class="fa-solid fa-gear"></i> 设置
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+                <!-- 主聊天区 -->
+                <div class="agent-main">
+                    <!-- 未登录时显示：引导登录 -->
+                    <div id="agent-gate" class="agent-gate">
+                        <div class="agent-gate-card">
+                            <div class="agent-gate-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                            <h3 class="agent-gate-title">登录后即可使用智能体</h3>
+                            <p class="agent-gate-desc">智能体为登录用户专属功能，登录后可享受一句话调度识别、计算与动画等全部能力。</p>
+                            <button type="button" class="agent-gate-btn" onclick="toggleAuthModal(true)">
+                                <i class="fa-solid fa-right-to-bracket"></i> 登录 / 注册
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 已登录时显示：聊天式工作区 -->
+                    <div id="agent-workspace-wrap" class="agent-workspace-wrap agent-chat-wrap" style="display: none;">
+                        <!-- 移动端菜单按钮 -->
+                        <button type="button" class="agent-mobile-menu-btn" onclick="Agent.openSidebarMobile()" title="打开侧边栏">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <!-- 桌面端侧边栏打开按钮（侧边栏折叠时显示） -->
+                        <button type="button" class="agent-sidebar-open-btn" id="agent-sidebar-open-btn" onclick="Agent.toggleSidebar()" title="打开侧边栏">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                        <div class="agent-chat-container">
+                            <div id="agent-messages" class="agent-messages">
+                                <div class="agent-message agent-message-assistant">
+                                    <div class="agent-avatar agent-avatar-bot"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                                    <div class="agent-bubble agent-bubble-assistant">
+                                        <p>你好，我是智能体。你可以用自然语言让我帮你：</p>
+                                        <ul>
+                                            <li>把公式做成动画、打开 LaTeX 编辑器并填入内容</li>
+                                            <li>只进行识别、识别图片后去计算页生成动画</li>
+                                            <li>上传或粘贴图片后说「识别这张图」</li>
+                                        </ul>
+                                        <p>直接输入需求，支持粘贴剪贴板图片后发送。</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="agent-input-bar">
+                                <div id="agent-image-preview-wrap" class="agent-image-preview-wrap" style="display:none;">
+                                    <img id="agent-image-preview" alt="预览" class="agent-image-preview">
+                                    <button type="button" class="agent-preview-remove" onclick="Agent.clearAttachedImage()" title="移除图片"><i class="fa-solid fa-times"></i></button>
+                                </div>
+                                <div class="agent-input-row">
+                                    <label class="agent-upload-btn" for="agent-image-upload" title="上传或粘贴图片">
+                                        <i class="fa-solid fa-image"></i>
+                                    </label>
+                                    <input type="file" id="agent-image-upload" accept="image/*" style="display:none;">
+                                    <textarea id="agent-prompt" class="agent-textarea agent-chat-input" placeholder="描述你的需求，例如：&#10;在 LaTeX 编辑器填入 sin(x)=1/2&#10;识别图&#10;把 sin(x)=1/2 做成动画" rows="1"></textarea>
+                                    <button type="button" id="agent-submit-btn" class="agent-send-btn" onclick="Agent.execute()" title="发送">
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -383,7 +432,7 @@
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
                             <h3 style="margin:0; color:var(--text-main);">已保存的 Manim 脚本</h3>
                             <div style="display:flex; gap:10px;">
-                                <button type="button" class="action-btn secondary" onclick="Formulas.openScriptDetail('new')">
+                                <button type="button" class="action-btn secondary" onclick="Formulas.createNewScriptInWorkbench()">
                                     <i class="fa-solid fa-plus"></i> 新建空白脚本
                                 </button>
                                 <button class="action-btn secondary" onclick="Formulas.loadAnimationScripts()">
@@ -625,7 +674,7 @@
                             <div class="ide-editor ide-resize-pane" id="ide-editor-pane" style="flex: 1 1 45%; min-height: 180px;">
                                 <div class="ide-toolbar">
                                     <span><i class="fa-brands fa-python"></i> main.py (Monaco Kernel)</span>
-                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                                         <div class="manim-import-wrap">
                                             <button type="button" class="ide-btn-import" id="btn-manim-import" onclick="DevTools.toggleImportPanel()">
                                                 <i class="fa-solid fa-file-import"></i> 导入
@@ -639,6 +688,9 @@
                                                 <div id="manim-import-rainbow" class="manim-import-list" style="display: none;"></div>
                                             </div>
                                         </div>
+                                        <button type="button" class="ide-btn-save" onclick="DevTools.saveScriptFromWorkbench()" title="保存到动画脚本库">
+                                            <i class="fa-solid fa-floppy-disk"></i> 保存
+                                        </button>
                                         <button id="btn-run-manim" class="ide-btn-run" onclick="runDevManim()">
                                             <i class="fa-solid fa-play"></i> 运行脚本
                                         </button>
@@ -911,6 +963,15 @@
                     </div>
                 </div>
 
+                <!-- 智能体：回车发送 / Shift+回车换行 -->
+                <div id="settings-agent" class="settings-agent-panel" style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 1rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">智能体</h4>
+                    <label class="settings-agent-option" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:500; color:var(--text-main);">
+                        <input type="checkbox" id="agent-enter-send" checked onchange="Settings.setAgentEnterSend(this.checked)">
+                        <span>回车发送消息，Shift+回车换行</span>
+                    </label>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">关闭后：回车换行，需点击发送按钮或使用 Ctrl+Enter 发送。</p>
+                </div>
 
                 <div id="settings-shortcuts" class="shortcuts-panel" style="margin-bottom: 2rem;">
                     <h4 style="margin-bottom: 1rem; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">快捷键设置（画板）</h4>
@@ -966,6 +1027,25 @@
                 <div style="text-align: right;">
                     <button class="action-btn secondary" onclick="closeEditModal()" style="margin-right: 10px;">取消</button>
                     <button class="action-btn" onclick="submitFormulaEdit()">保存修改</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 脚本备注 Modal（与编辑算式窗口同款样式，计算页保存与开发者工具保存共用） -->
+    <div id="script-note-modal" class="modal">
+        <div class="modal-content glass-panel" style="width: 480px;">
+            <span class="close-modal" onclick="DevTools.closeScriptNoteModal()">&times;</span>
+            <h3 id="script-note-modal-title" style="padding: 1.5rem 2rem 0; color: var(--text-main);">脚本备注</h3>
+            <div style="padding: 2rem;">
+                <div style="margin-bottom: 1.5rem;">
+                    <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-main); font-size:0.9rem;">备注描述</label>
+                    <input type="text" id="script-note-input" class="tech-input" placeholder="例如：矩阵动画、公式推演、sin(x) 可视化">
+                    <p style="margin-top:6px; font-size:0.8rem; color:var(--text-secondary);">导入脚本时将显示此备注，便于识别</p>
+                </div>
+                <div style="text-align: right;">
+                    <button class="action-btn secondary" onclick="DevTools.closeScriptNoteModal()" style="margin-right: 10px;">取消</button>
+                    <button class="action-btn" onclick="DevTools.confirmScriptNoteAndSave()">保存</button>
                 </div>
             </div>
         </div>

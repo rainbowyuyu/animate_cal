@@ -9,6 +9,7 @@ import json
 import asyncio
 import sys
 import subprocess  # 引入 subprocess 用于同步调用
+import re
 from fastapi import FastAPI, UploadFile, File, HTTPException, Response, Request, Cookie, Query
 from typing import Optional # 新增
 from fastapi.staticfiles import StaticFiles
@@ -1041,6 +1042,33 @@ def _locate_manim_video(media_dir: str, output_file: str, py_path: str) -> Optio
     return None
 
 
+def sanitize_latex_for_mathlive(latex: str) -> str:
+    """将 LaTeX 规范化为 MathLive 可正确解析的格式（去显示数学环境、代码块、换行等）。"""
+    if not latex or not isinstance(latex, str):
+        return ""
+    s = latex.strip()
+    # JSON/来源可能为 \\，转为单 \ 供 MathLive 解析
+    s = s.replace("\\\\", "\\")
+    # 去掉代码块包裹
+    s = re.sub(r"^```(?:latex)?\s*", "", s)
+    s = re.sub(r"\s*```\s*$", "", s)
+    # 去掉显示数学环境，只保留中间内容
+    s = re.sub(r"^\\\[\s*", "", s)
+    s = re.sub(r"\s*\\\]\s*$", "", s)
+    s = re.sub(r"^\$\$\s*", "", s)
+    s = re.sub(r"\s*\$\$\s*$", "", s)
+    s = re.sub(r"^\\begin\s*\{\s*displaymath\s*\}\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s*\\end\s*\{\s*displaymath\s*\}\s*$", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"^\\begin\s*\{\s*equation\s*\}\s*", "", s, flags=re.IGNORECASE)
+    s = re.sub(r"\s*\\end\s*\{\s*equation\s*\}\s*$", "", s, flags=re.IGNORECASE)
+    # 换行、多余空白归一为空格，避免 MathLive 解析异常
+    s = s.replace("\\n", "\n").replace("\r\n", "\n").replace("\r", "\n")
+    s = re.sub(r"\s+", " ", s)
+    # 去掉控制字符与 null
+    s = "".join(c for c in s if c != "\x00" and (ord(c) >= 32 or c in "\n\t"))
+    return s.strip()
+
+
 @app.post("/api/agent/execute")
 async def agent_execute(data: AgentRequest):
     """智能体：理解用户意图，返回要跳转的页面与预填/触发的动作，由前端调用本站工具完成。"""
@@ -1069,12 +1097,21 @@ async def agent_execute(data: AgentRequest):
 
     prompt_for_llm = (
         "本网站包含以下功能页面：detect=智能识别（手写/上传识别公式）、calculate=动态计算（输入公式生成动画）、"
-        "devtools=开发者工具（含 LaTeX 编辑器、Manim 工作台、Rainbow 拓展库）、my-formulas=我的算式、examples=教学案例、help=帮助。\n\n"
+        "devtools=开发者工具（含 LaTeX 可视化编辑器、LaTeX 源码、Manim 工作台、Rainbow 拓展库）、my-formulas=我的算式、examples=教学案例、help=帮助。\n\n"
         "用户说：" + data.prompt + "\n\n"
         + ("用户上传了图片，识别到的公式为：" + latex_from_image + "。若需用到公式请以此为准。" if latex_from_image else "用户未上传图片，若需公式请从描述中提取 LaTeX。")
-        + '\n\n请只输出一个 JSON，不要其他文字。格式：{"section":"detect|calculate|devtools|my-formulas|examples|help", "devtool":"latex|manim|rainbow"(仅当 section 为 devtools 时), '
-        '"formula":"LaTeX 公式或空", "operation":"formular|visualization|normal"(仅当 section 为 calculate 时), "trigger":"generate|recognize|none"}。'
-        "trigger：用户要立刻生成动画填 generate；仅识别/展示结果填 recognize；只跳转不执行填 none。"
+        + '\n\n【重要】根据用户意图决定行为：'
+        ' (1) 若用户只是提问、打招呼、闲聊（如"你好""什么是质能方程""怎么用"），不需要调用工具，则 section="chat", 且输出 reply 为友好回复（可简短解释、引导使用）。'
+        ' (2) 若用户说"在 LaTeX 编辑器填入 xxx""打开 LaTeX 并填入 xxx""在 latex 代码编辑器填入质能方程"等，则 section=devtools, devtool=latex, fill_latex 为 LaTeX。'
+        '     **常见数学概念转换**：质能方程→E=mc^2→\\E=mc^2；勾股定理→a^2+b^2=c^2→\\a^2+b^2=c^2；欧拉公式→e^{i\\pi}+1=0→\\e^{i\\pi}+1=0；'
+        '     二次方程求根公式→x=\\frac{-b\\pm\\sqrt{b^2-4ac}}{2a}；正弦定理、余弦定理等也需转换为标准 LaTeX。'
+        ' (3) 若用户说"只识别""只进行识别""识别这张图（不跳转）"，则 section=detect, trigger=recognize。'
+        ' (4) 其他需要调用工具：按原规则跳转 calculate/detect/devtools 等并填 formula/operation/trigger。'
+        '\n\n动态计算页有三种演示模式：operation 选 normal|formular|visualization。'
+        '\n\nformula 与 fill_latex 要求：标准内联 LaTeX，不要 \\[ \\]、$$、\\begin{equation}。'
+        '\n\n请只输出一个 JSON，不要其他文字。格式：{"section":"detect|calculate|devtools|my-formulas|examples|help|chat", "devtool":"latex|manim|rainbow"(仅当 section 为 devtools 时), '
+        '"formula":"LaTeX 或空", "fill_latex":"LaTeX 或空"(仅当要在 LaTeX 编辑器中填入内容时), "operation":"formular|visualization|normal", "trigger":"generate|recognize|none", "reply":"回复文本"(仅当 section 为 chat 时)}。'
+        " trigger：立刻生成动画填 generate；仅识别/展示结果填 recognize；只跳转不执行填 none。"
     )
     try:
         completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt_for_llm}])
@@ -1082,26 +1119,36 @@ async def agent_execute(data: AgentRequest):
         if "```" in raw:
             raw = raw.split("```")[1].replace("json", "").strip()
         import re
-        section_match = re.search(r'"section"\s*:\s*"(detect|calculate|devtools|my-formulas|examples|help)"', raw)
+        section_match = re.search(r'"section"\s*:\s*"(detect|calculate|devtools|my-formulas|examples|help|chat)"', raw)
+        reply_match = re.search(r'"reply"\s*:\s*"([^"]*)"', raw)
         devtool_match = re.search(r'"devtool"\s*:\s*"(latex|manim|rainbow)"', raw)
         latex_match = re.search(r'"formula"\s*:\s*"([^"]*)"', raw)
+        fill_latex_match = re.search(r'"fill_latex"\s*:\s*"([^"]*)"', raw)
         op_match = re.search(r'"operation"\s*:\s*"(formular|visualization|normal)"', raw)
         trigger_match = re.search(r'"trigger"\s*:\s*"(generate|recognize|none)"', raw)
-        section = section_match.group(1) if section_match else "calculate"
+        section = section_match.group(1) if section_match else "chat"
+        reply = (reply_match.group(1).replace("\\n", "\n").strip() if reply_match and reply_match.group(1) else "") if section == "chat" else ""
         devtool = devtool_match.group(1) if devtool_match else None
         formula = (latex_match.group(1).replace("\\n", "\n").strip() if latex_match and latex_match.group(1) else (latex_from_image or ""))
-        operation = op_match.group(1) if op_match else "normal"
-        trigger = trigger_match.group(1) if trigger_match else "none"
+        formula = formula.replace("\\\\", "\\")
         if formula and not formula.strip():
             formula = latex_from_image or ""
+        formula = sanitize_latex_for_mathlive(formula)
+        fill_latex = (fill_latex_match.group(1).replace("\\n", "\n").strip() if fill_latex_match and fill_latex_match.group(1) else "") or ""
+        fill_latex = fill_latex.replace("\\\\", "\\")
+        fill_latex = sanitize_latex_for_mathlive(fill_latex) if fill_latex else ""
+        operation = op_match.group(1) if op_match else "normal"
+        trigger = trigger_match.group(1) if trigger_match else "none"
         return {
             "status": "success",
             "section": section,
+            "reply": reply,
             "devtool": devtool,
             "formula": formula,
+            "fill_latex": fill_latex,
             "operation": operation,
             "trigger": trigger,
-            "message": "已为您跳转到对应步骤"
+            "message": "已为您跳转到对应步骤" if section != "chat" else ""
         }
     except Exception as e:
         logger.error(f"Agent LLM parse: {e}")

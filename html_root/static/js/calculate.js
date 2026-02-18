@@ -341,7 +341,8 @@ async function loadFormulaSelectorList() {
     }
 }
 
-export async function saveLastCodeToScripts() {
+/** 打开与开发者工具同款的脚本备注弹窗，填写后点保存再执行保存 */
+export function saveLastCodeToScripts() {
     const user = getCurrentUser();
     if (!user) {
         showToast('请先登录', 'error');
@@ -352,13 +353,27 @@ export async function saveLastCodeToScripts() {
         showToast('暂无可保存的代码', 'error');
         return;
     }
-    const note = prompt('请输入脚本备注（用于在动画脚本库中识别）：', '动态计算 ' + new Date().toLocaleString());
-    if (note === null) return;
+    window._scriptNoteModalSource = 'calculate';
+    const titleEl = document.getElementById('script-note-modal-title');
+    const inputEl = document.getElementById('script-note-input');
+    if (titleEl) titleEl.textContent = '保存到动画脚本库';
+    if (inputEl) {
+        inputEl.value = '动态计算 ' + new Date().toLocaleString();
+        inputEl.placeholder = '例如：矩阵动画、sin(x) 可视化、公式推演';
+    }
+    toggleModal('script-note-modal', true);
+}
+
+/** 由脚本备注弹窗确认后调用，执行实际保存（与开发者工具共用同一弹窗时由 main 挂载的 submitCalcScriptNote 调用） */
+export async function submitSaveScriptNote(note) {
+    const user = getCurrentUser();
+    if (!user || !lastGeneratedCode.trim()) return;
+    const noteStr = (note && note.trim()) ? note.trim() : '未命名';
     try {
         const res = await fetch('/api/animation_scripts/save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: user, note: note.trim() || '未命名', code: lastGeneratedCode })
+            body: JSON.stringify({ username: user, note: noteStr, code: lastGeneratedCode })
         });
         const data = await res.json();
         if (data.status === 'success') {

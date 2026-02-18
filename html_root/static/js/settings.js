@@ -32,10 +32,31 @@ function loadShortcuts() {
 let shortcuts = loadShortcuts();
 let recordingAction = null;
 
+const AGENT_ENTER_SEND_KEY = 'agent_enter_send';
+
+export function getAgentEnterSend() {
+    try {
+        const v = localStorage.getItem(AGENT_ENTER_SEND_KEY);
+        return v === null || v === 'true';
+    } catch (_) { return true; }
+}
+
+export function setAgentEnterSend(value) {
+    try {
+        localStorage.setItem(AGENT_ENTER_SEND_KEY, value ? 'true' : 'false');
+    } catch (_) {}
+}
+
 export function initSettings() {
     renderShortcutsList();
     updateShortcutDisplay();
+    syncAgentEnterSendCheckbox();
     loadVersionFromUpdate();
+}
+
+function syncAgentEnterSendCheckbox() {
+    const cb = document.getElementById('agent-enter-send');
+    if (cb) cb.checked = getAgentEnterSend();
 }
 
 function renderShortcutsList() {
@@ -72,12 +93,17 @@ function renderShortcutsList() {
 export function getShortcuts() { return shortcuts; }
 export function openSettings(anchor) {
     updateShortcutDisplay();
+    syncAgentEnterSendCheckbox();
     toggleModal('settings-modal', true);
     if (anchor === 'shortcuts') {
         requestAnimationFrame(() => {
             const el = document.getElementById('settings-shortcuts');
-            const body = document.querySelector('#settings-modal .settings-modal-body');
-            if (el && body) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+            if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        });
+    } else if (anchor === 'agent') {
+        requestAnimationFrame(() => {
+            const el = document.getElementById('settings-agent');
+            if (el) el.scrollIntoView({ block: 'start', behavior: 'smooth' });
         });
     }
 }
@@ -124,7 +150,9 @@ function updateShortcutDisplay() {
 export function resetDefaults() {
     shortcuts = JSON.parse(JSON.stringify(DEFAULT_SHORTCUTS));
     localStorage.setItem('app_shortcuts', JSON.stringify(shortcuts));
+    setAgentEnterSend(true);
     updateShortcutDisplay();
+    syncAgentEnterSendCheckbox();
 }
 export function getShortcutLabels() {
     return SHORTCUT_LABELS;

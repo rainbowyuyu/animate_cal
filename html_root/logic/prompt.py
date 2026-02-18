@@ -263,6 +263,32 @@ dot = Dot()
 
 ---
 
+### 📐 坐标轴与 π：画图时勿用数值刻度（重要）
+
+当图像涉及**三角函数、弧度、周期**（即 x 或 y 范围与 π 有关）时：
+
+* ❌ **禁止**使用默认数值刻度，否则会显示 3.14, 6.28, 1.57 等小数挤满坐标轴，难以阅读。
+* ✅ **必须**在坐标轴上使用 **π 符号刻度**，而非小数。
+
+**做法：**
+
+1. 创建 Axes 时关闭自动数字，例如：
+   `axes = Axes(x_range=[-2*PI, 2*PI, PI/2], axis_config={{"include_numbers": False}})`
+   或对 `x_axis_config` / `y_axis_config` 设置 `"include_numbers": False`。
+2. 在需要的位置**手动添加 π 的符号标签**（用 MathTex），例如：
+
+```python
+# 示例：x 轴为弧度时，用 π 符号而非 3.14（生成代码时 LaTeX 用 r"..." 与单反斜杠，如 r"\pi"）
+values_x = [(0, "0"), (PI/2, r"\\frac{{\\pi}}{{2}}"), (PI, r"\\pi"), (2*PI, r"2\\pi")]
+for x_val, tex_str in values_x:
+    lab = MathTex(tex_str).scale(0.5).next_to(axes.c2p(x_val, 0), DOWN, buff=0.2)
+    self.add(lab)
+```
+
+* 只添加**必要、稀疏**的刻度（如 0, π/2, π, 3π/2, 2π），避免过密。
+
+---
+
 ## 五、动画行为规范（演示为主）
 
 * 允许的动画：
@@ -424,6 +450,26 @@ def for_vis_prompt(latex_a, latex_b, **kwargs):
 | 面积/积分 | 填充区域 |
 | 数值逼近 | ValueTracker + 实时更新 |
 | 概率/统计 | 柱状图 / 折线图 |
+
+---
+
+### 📐 坐标轴与 π：画图时勿用数值刻度（必须遵守）
+
+当涉及**三角函数、弧度、周期**（x 或 y 与 π 有关）时：
+
+* ❌ **禁止**使用默认数值刻度（会显示 3.14, 6.28 等小数挤在坐标轴上）。
+* ✅ **必须**在坐标轴上使用 **π 符号刻度**：用 MathTex 在对应位置添加如 0, π/2, π, 2π 等符号。
+
+**做法：** Axes 创建时对轴设置 `axis_config={{"include_numbers": False}}`，再手动在关键位置添加刻度标签，例如：
+
+```python
+# x 轴为弧度时，只加 π 符号标签
+for x_val, tex_str in [(0, "0"), (PI/2, r"\\frac{{\\pi}}{{2}}"), (PI, r"\\pi"), (2*PI, r"2\\pi")]:
+    lab = MathTex(tex_str).scale(0.5).next_to(axes.c2p(x_val, 0), DOWN, buff=0.2)
+    self.add(lab)
+```
+
+只添加**稀疏、必要**的刻度，避免过密。
 
 ---
 

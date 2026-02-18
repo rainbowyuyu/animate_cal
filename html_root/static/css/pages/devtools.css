@@ -507,6 +507,24 @@
     background: #475569;
     border-color: #64748b;
 }
+.ide-btn-save {
+    background: var(--primary-color);
+    color: #fff;
+    border: none;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+.ide-btn-save:hover {
+    opacity: 0.9;
+    filter: brightness(1.05);
+}
 .manim-import-wrap {
     position: relative;
     z-index: 1000;
@@ -571,7 +589,13 @@
     background: #334155;
     border-color: #3b82f6;
 }
-.manim-import-list .import-item small {
+.manim-import-list .import-item .import-item-note {
+    display: block;
+    color: var(--text-main, #e2e8f0);
+    font-weight: 500;
+}
+.manim-import-list .import-item small,
+.manim-import-list .import-item .import-item-meta {
     display: block;
     color: #94a3b8;
     font-size: 0.75rem;

@@ -1,9 +1,22 @@
 // static/js/devtools.js
 
 import { RAINBOW_LIB_INFO } from './rainbow_data.js';
+import { toggleModal, showToast } from './ui.js';
 
 // 全局变量保存编辑器实例
 let monacoEditor = null;
+
+/** 工作台当前脚本状态：null 表示新建未保存，数字为已加载脚本 id */
+let workbenchScriptId = null;
+let workbenchScriptNote = '';
+
+/** 仅含框架的 Manim 空白脚本（新建时填入工作台） */
+const MANIM_FRAMEWORK_SCRIPT = `from manim import *
+
+class GenScene(Scene):
+    def construct(self):
+        pass
+`;
 
 // 1. 工具切换逻辑
 export function switchDevTool(tool) {
@@ -322,14 +335,36 @@ export async function runDevManim() {
     }
 }
 
-/** 从外部（如我的算式-动画脚本库）跳转到本工作台并填入代码，可选自动运行 */
+/** 从外部（如我的算式-动画脚本库）跳转到本工作台并填入代码，可选自动运行；支持 scriptId/note 以支持工作台保存 */
 export function openManimWorkbenchWithCode(code, options = {}) {
+    workbenchScriptId = options.scriptId ?? null;
+    workbenchScriptNote = options.note ?? '';
+
     switchDevTool('manim');
     const setCode = () => {
         if (monacoEditor) {
             monacoEditor.setValue(code || '');
             if (options.autoRun) setTimeout(() => runDevManim(), 400);
         }
+    };
+    setTimeout(setCode, 150);
+    const t = setInterval(() => {
+        if (monacoEditor) {
+            setCode();
+            clearInterval(t);
+        }
+    }, 100);
+    setTimeout(() => clearInterval(t), 6000);
+}
+
+/** 新建空白脚本：跳转到云端渲染工作台并填入框架代码（由算式库「新建空白脚本」调用） */
+export function openNewBlankScriptInWorkbench() {
+    workbenchScriptId = null;
+    workbenchScriptNote = '';
+
+    switchDevTool('manim');
+    const setCode = () => {
+        if (monacoEditor) monacoEditor.setValue(MANIM_FRAMEWORK_SCRIPT);
     };
     setTimeout(setCode, 150);
     const t = setInterval(() => {
@@ -511,8 +546,10 @@ function renderImportScripts() {
                 return;
             }
             listEl.innerHTML = data.data.map(s => {
-                const note = (s.note || '未命名').replace(/</g, '&lt;');
-                return `<button type="button" class="import-item" data-id="${s.id}">${note}<small>ID: ${s.id}</small></button>`;
+                const note = (s.note || '未命名').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+                const created = s.created_at ? new Date(s.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
+                const titleAttr = note ? ` title="${note}${created ? ' · ' + created : ''}"` : '';
+                return `<button type="button" class="import-item" data-id="${s.id}"${titleAttr}><span class="import-item-note">${note}</span><small class="import-item-meta">ID: ${s.id}${created ? ' · ' + created : ''}</small></button>`;
             }).join('');
             listEl.querySelectorAll('.import-item').forEach(btn => {
                 btn.addEventListener('click', () => loadScriptIntoEditor(parseInt(btn.dataset.id, 10)));
@@ -531,9 +568,92 @@ function loadScriptIntoEditor(scriptId) {
         .then(data => {
             if (data.status === 'success' && data.data && data.data.code && monacoEditor) {
                 monacoEditor.setValue(data.data.code);
+                workbenchScriptId = scriptId;
+                workbenchScriptNote = (data.data.note || '').trim();
                 document.getElementById('manim-import-panel').style.display = 'none';
             }
         });
+}
+
+/** 打开脚本备注弹窗（与公式编辑窗口同款样式），用户填写后点保存再执行实际保存 */
+export function saveScriptFromWorkbench() {
+    const user = getCurrentUsername();
+    if (!user) {
+        if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
+        return;
+    }
+    const code = monacoEditor ? monacoEditor.getValue() : '';
+    if (!code || !code.trim()) {
+        showToast('代码不能为空', 'error');
+        return;
+    }
+    window._scriptNoteModalSource = 'devtools';
+    const titleEl = document.getElementById('script-note-modal-title');
+    const inputEl = document.getElementById('script-note-input');
+    if (titleEl) titleEl.textContent = workbenchScriptId != null ? '编辑脚本备注' : '脚本备注';
+    if (inputEl) {
+        inputEl.value = workbenchScriptNote || '未命名';
+        inputEl.placeholder = '例如：矩阵动画、公式推演';
+        inputEl.focus();
+    }
+    toggleModal('script-note-modal', true);
+}
+
+/** 关闭脚本备注弹窗 */
+export function closeScriptNoteModal() {
+    toggleModal('script-note-modal', false);
+}
+
+/** 从脚本备注弹窗确认并执行保存（与登录成功一致使用 showToast 提示，不用浏览器默认 alert） */
+export async function confirmScriptNoteAndSave() {
+    const inputEl = document.getElementById('script-note-input');
+    const note = (inputEl && inputEl.value && inputEl.value.trim()) ? inputEl.value.trim() : '未命名';
+    if (window._scriptNoteModalSource === 'calculate') {
+        closeScriptNoteModal();
+        window._scriptNoteModalSource = null;
+        if (typeof window.submitCalcScriptNote === 'function') window.submitCalcScriptNote(note);
+        return;
+    }
+    closeScriptNoteModal();
+
+    const user = getCurrentUsername();
+    if (!user) return;
+    const code = monacoEditor ? monacoEditor.getValue() : '';
+    if (!code || !code.trim()) return;
+
+    try {
+        if (workbenchScriptId != null) {
+            const res = await fetch('/api/animation_scripts/update', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: workbenchScriptId, username: user, note, code })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                workbenchScriptNote = note;
+                showToast('更新成功！', 'success');
+            } else {
+                showToast(data.message || '更新失败', 'error');
+            }
+        } else {
+            const res = await fetch('/api/animation_scripts/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, note, code })
+            });
+            const data = await res.json();
+            if (data.status === 'success' && data.id) {
+                workbenchScriptId = data.id;
+                workbenchScriptNote = note;
+                showToast('保存成功！', 'success');
+                renderImportScripts();
+            } else {
+                showToast(data.message || '保存失败', 'error');
+            }
+        }
+    } catch (e) {
+        showToast('网络错误', 'error');
+    }
 }
 
 function renderImportRainbow() {

@@ -634,7 +634,11 @@ export async function editScriptInWorkbench(scriptId) {
             return;
         }
         showSection('devtools');
-        DevTools.openManimWorkbenchWithCode(data.data.code, { autoRun: false });
+        DevTools.openManimWorkbenchWithCode(data.data.code, {
+            autoRun: false,
+            scriptId: scriptId,
+            note: data.data.note || ''
+        });
     } catch (e) {
         if (typeof showToast === 'function') showToast('网络错误', 'error');
         else alert('网络错误');
@@ -654,9 +658,21 @@ export async function runScriptInWorkbench(scriptId) {
             return;
         }
         showSection('devtools');
-        DevTools.openManimWorkbenchWithCode(data.data.code, { autoRun: true });
+        DevTools.openManimWorkbenchWithCode(data.data.code, {
+            autoRun: true,
+            scriptId: scriptId,
+            note: data.data.note || ''
+        });
     } catch (e) {
         if (typeof showToast === 'function') showToast('网络错误', 'error');
         else alert('网络错误');
     }
+}
+
+/** 算式库「新建空白脚本」：进入云端渲染工作台并填入框架脚本 */
+export function createNewScriptInWorkbench() {
+    const user = getCurrentUser();
+    if (!user) { toggleAuthModal(true); return; }
+    showSection('devtools');
+    DevTools.openNewBlankScriptInWorkbench();
 }

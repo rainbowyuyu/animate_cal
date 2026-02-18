@@ -136,6 +136,7 @@ window.handleLogin = Auth.handleLogin;
 window.handleRegister = Auth.handleRegister;
 window.refreshCaptcha = Auth.refreshCaptcha;
 window.logout = Auth.logout;
+window.Settings = Settings;
 window.openSettings = Settings.openSettings;
 window.closeSettings = () => UI.toggleModal('settings-modal', false);
 window.startRecording = Settings.startRecording;
@@ -149,6 +150,7 @@ window.submitFormulaEdit = Formulas.submitFormulaEdit;
 window.Formulas = Formulas;
 window.Calculate = window.Calculate || {};
 window.Calculate.saveLastCodeToScripts = Calculate.saveLastCodeToScripts;
+window.submitCalcScriptNote = (note) => Calculate.submitSaveScriptNote(note);
 
 
 document.addEventListener('DOMContentLoaded', () => {
