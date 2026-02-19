@@ -76,6 +76,20 @@
     display: flex;
     align-items: center;
 }
+/* 导航栏用户名与登出图标：保证在浅/深色主题下都清晰可见 */
+.header-user-display {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.header-username {
+    color: var(--text-main);
+}
+.header-logout-icon {
+    color: var(--text-secondary);
+}
+.header-logout-icon:hover {
+    color: var(--primary-color);
+}
 
 /* 移动端菜单按钮 */
 .mobile-menu-btn {
@@ -138,6 +152,38 @@
     margin-top: 2rem;
     padding-top: 2rem;
     border-top: 1px solid var(--border-color);
+}
+/* 移动端菜单：用户名与登出按钮配色，保证在浅/深色遮罩下都清晰 */
+.mobile-menu-username {
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 10px;
+    font-size: 1.1rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 8px 0;
+}
+.mobile-menu-username-text {
+    color: var(--text-main);
+}
+.mobile-menu-logout-btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-main);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.mobile-menu-logout-btn:hover {
+    background: var(--bg-surface);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
 }
 
 /* =========================================

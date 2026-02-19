@@ -31,12 +31,35 @@ function getUrlParams() {
   return params;
 }
 
+function initCanvasLockButton() {
+    const btn = document.getElementById('canvas-lock-btn');
+    const icon = document.getElementById('canvas-lock-icon');
+    const label = document.getElementById('canvas-lock-label');
+    if (!btn || !icon || !label) return;
+    function updateButtonState() {
+        const locked = Settings.getCanvasLockMobile();
+        btn.classList.toggle('is-locked', locked);
+        btn.title = locked ? '已锁定：画板区域仅可滑动' : '锁定画板（仅滑动不书写）';
+        icon.className = locked ? 'fa-solid fa-lock canvas-lock-icon' : 'fa-solid fa-lock-open canvas-lock-icon';
+        label.textContent = locked ? '已锁定' : '锁定画板';
+    }
+    updateButtonState();
+    btn.addEventListener('click', () => {
+        const next = !Settings.getCanvasLockMobile();
+        Settings.setCanvasLockMobile(next);
+        updateButtonState();
+        if (window.showToast) window.showToast(next ? '画板已锁定，仅可滑动' : '画板已解锁，可书写', 'success');
+    });
+    window.addEventListener('settings-changed', updateButtonState);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     Canvas.setupCanvas();
     if (typeof window.currentToolType === 'undefined') window.currentToolType = 'pen';
     UI.showSection('home');
     Auth.initAuth();
     Settings.initSettings();
+    initCanvasLockButton();
     Detect.initDetectListeners();
     Tutorial.checkAutoPlay();
     Examples.loadExamples(); // 加载案例

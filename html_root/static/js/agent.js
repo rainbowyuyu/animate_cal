@@ -300,13 +300,21 @@ function applyAgentResult(data) {
 }
 
 export function toggleFeaturesExamples() {
-    const panel = document.getElementById('agent-features-examples-panel');
+    const modal = document.getElementById('agent-examples-modal');
     const btn = document.getElementById('agent-features-examples-btn');
-    if (!panel || !btn) return;
-    const isHidden = panel.style.display === 'none';
-    panel.style.display = isHidden ? 'block' : 'none';
-    btn.classList.toggle('active', isHidden);
-    btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    if (!modal) return;
+    const isHidden = modal.classList.contains('show') === false;
+    if (isHidden) {
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('show'));
+    } else {
+        modal.classList.remove('show');
+        setTimeout(() => { modal.style.display = 'none'; }, 300);
+    }
+    if (btn) {
+        btn.classList.toggle('active', isHidden);
+        btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    }
 }
 
 export function refreshAgentGate() {
@@ -512,10 +520,13 @@ export function initAgent() {
             promptEl.value = chip.dataset.prompt;
             promptEl.focus();
         }
+        const inModal = chip.closest('#agent-examples-modal');
         if (getCurrentUser()) {
             execute();
+            if (inModal) toggleFeaturesExamples();
         } else {
             toggleAuthModal(true);
+            if (inModal) toggleFeaturesExamples();
         }
     });
 }

@@ -91,6 +91,22 @@ async def generate_animation(data: CalcModel):
 @router.post("/animate/stream")
 async def generate_animation_stream(data: CalcModel):
     async def event_generator():
+        # 所有模式都最先生成并返回解题步骤（文字结果），再执行计算/可视化
+        try:
+            text_prompt = (
+                f"用户输入的数学表达式或题目为：{data.matrixA}\n\n"
+                "请给出该题目的解题步骤：包括化简、计算过程与结论，分条简要输出。不要输出任何代码，只输出文字解题步骤。"
+            )
+            text_completion = client.chat.completions.create(
+                model="qwen-plus",
+                messages=[{"role": "user", "content": text_prompt}],
+            )
+            text_result = (text_completion.choices[0].message.content or "").strip()
+            if text_result:
+                yield f"data: {json.dumps({'step': 'text_result', 'content': text_result})}\n\n"
+        except Exception as e:
+            logger.warning(f"Text result fallback: {e}")
+
         if data.operation == "normal":
             yield f"data: {json.dumps({'step': 'normal_split', 'message': '通用演示将分两步：先计算推演，再可视化演示', 'progress': 5})}\n\n"
             for (phase_name, part, op_desc) in [("计算", "calc", "公式推演"), ("可视化", "vis", "可视化演示")]:

@@ -310,17 +310,17 @@ function updateUserDisplay(username, avatarUrl) {
         }
     }
 
-    // 3. 更新移动端菜单（有头像则显示头像）
+    // 3. 更新移动端菜单（有头像则显示头像）；用户名与登出按钮使用 --text-main 保证在浅/深色遮罩下都清晰可见
     const mobileAuthSection = document.querySelector('.mobile-auth-section');
     if (mobileAuthSection) {
         const avatarHtml = avatarUrl
             ? `<img src="${avatarUrl.replace(/"/g, '&quot;')}" alt="" style="width:32px; height:32px; border-radius:50%; object-fit:cover; vertical-align:middle; margin-right:8px;">`
             : '<i class="fa-regular fa-user-circle" style="margin-right:8px;"></i>';
         mobileAuthSection.innerHTML = `
-            <div onclick="openSettings('profile'); toggleMobileMenu();" style="font-weight:bold; color:var(--text-inverse); margin-bottom:10px; font-size:1.1rem; text-align:center; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:8px 0;">
-                ${avatarHtml} ${username}
+            <div class="mobile-menu-username" onclick="openSettings('profile'); toggleMobileMenu();">
+                ${avatarHtml} <span class="mobile-menu-username-text">${username}</span>
             </div>
-            <button onclick="logout()" style="width:100%; padding:10px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:var(--text-inverse);">
+            <button class="mobile-menu-logout-btn" onclick="logout()">
                 <i class="fa-solid fa-arrow-right-from-bracket"></i> 退出登录
             </button>
         `;

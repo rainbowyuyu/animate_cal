@@ -41,6 +41,8 @@ const AGENT_ENTER_SEND_KEY = 'agent_enter_send';
 const DETECT_DEFAULT_INPUT_KEY = 'detect_default_input';
 const CALC_DEFAULT_MODE_KEY = 'calc_default_mode';
 const DEVTOOLS_DEFAULT_TAB_KEY = 'devtools_default_tab';
+/** 手机版锁定画板：开启后画板区域仅可滑动不可书写 */
+export const CANVAS_LOCK_MOBILE_KEY = 'canvas_lock_mobile';
 
 export function getAgentEnterSend() {
     try {
@@ -85,6 +87,18 @@ export function setDevtoolsDefaultTab(value) {
     persistAfterChange();
 }
 
+export function getCanvasLockMobile() {
+    try {
+        return localStorage.getItem(CANVAS_LOCK_MOBILE_KEY) === 'true';
+    } catch (_) { return false; }
+}
+export function setCanvasLockMobile(value) {
+    try {
+        localStorage.setItem(CANVAS_LOCK_MOBILE_KEY, value ? 'true' : 'false');
+        persistAfterChange();
+    } catch (_) {}
+}
+
 /** 从本地组装完整设置（供保存到云端与恢复用） */
 export function getFullSettings() {
     const theme = localStorage.getItem('theme') || 'light';
@@ -100,7 +114,8 @@ export function getFullSettings() {
         shortcuts,
         detect_default_input: getDetectDefaultInput(),
         calc_default_mode: getCalcDefaultMode(),
-        devtools_default_tab: getDevtoolsDefaultTab()
+        devtools_default_tab: getDevtoolsDefaultTab(),
+        canvas_lock_mobile: getCanvasLockMobile()
     };
     try {
         const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
@@ -147,7 +162,12 @@ export function applySettings(obj) {
             const sel = document.getElementById('settings-devtools-default-tab');
             if (sel) sel.value = obj.devtools_default_tab;
         }
-        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, ...rest } = obj;
+        if (typeof obj.canvas_lock_mobile === 'boolean') {
+            localStorage.setItem(CANVAS_LOCK_MOBILE_KEY, obj.canvas_lock_mobile ? 'true' : 'false');
+            const cb = document.getElementById('settings-canvas-lock-mobile');
+            if (cb) cb.checked = obj.canvas_lock_mobile;
+        }
+        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, canvas_lock_mobile, ...rest } = obj;
         if (Object.keys(rest).length > 0) {
             const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
             Object.assign(extra, rest);
@@ -228,6 +248,10 @@ function syncDevtoolsDefaultTab() {
     const sel = document.getElementById('settings-devtools-default-tab');
     if (sel) sel.value = getDevtoolsDefaultTab();
 }
+function syncCanvasLockMobileCheckbox() {
+    const cb = document.getElementById('settings-canvas-lock-mobile');
+    if (cb) cb.checked = getCanvasLockMobile();
+}
 
 const SETTINGS_SECTION_IDS = ['settings-appearance', 'settings-profile', 'settings-agent', 'settings-detect', 'settings-shortcuts', 'settings-calc', 'settings-devtools'];
 
@@ -304,6 +328,7 @@ export function initSettings() {
     syncDetectDefaultInput();
     syncCalcDefaultMode();
     syncDevtoolsDefaultTab();
+    syncCanvasLockMobileCheckbox();
     loadVersionFromUpdate();
     initSettingsNav();
     window.addEventListener('settings-changed', persistAfterChange);
@@ -432,11 +457,13 @@ export function resetDefaults() {
     localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, 'draw');
     localStorage.setItem(CALC_DEFAULT_MODE_KEY, 'normal');
     localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, 'latex');
+    setCanvasLockMobile(false);
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
     syncDetectDefaultInput();
     syncCalcDefaultMode();
     syncDevtoolsDefaultTab();
+    syncCanvasLockMobileCheckbox();
     persistAfterChange();
 }
 export function getShortcutLabels() {

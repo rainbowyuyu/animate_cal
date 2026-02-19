@@ -16,11 +16,19 @@ let resizeStartX = 0;
 let resizeStartVal = 0;
 
 // 手机端防误触：仅当判定为「书写」时才占住触摸，否则允许页面上下滑动
+// 设置中「锁定画板（手机版）」开启时，触摸仅滚动、不绘制
 const TOUCH_COMMIT_DIST = 10;       // 移动超过此像素才做意图判断
 const TOUCH_SCROLL_VERTICAL_RATIO = 1.3; // 垂直位移 / 水平位移 > 此值视为滚动
+const CANVAS_LOCK_MOBILE_KEY = 'canvas_lock_mobile';
 let touchStartX = 0;
 let touchStartY = 0;
 let touchCommittedToDraw = false;
+
+function isCanvasLockedForTouch() {
+    try {
+        return localStorage.getItem(CANVAS_LOCK_MOBILE_KEY) === 'true';
+    } catch (_) { return false; }
+}
 
 // 深色模式下画板与笔/橡皮颜色与主题一致，避免颜色错误
 function isDarkTheme() {
@@ -313,6 +321,8 @@ function handleTouchStart(e) {
 
 function handleTouchMove(e) {
     if (!e.touches.length) return;
+    // 锁定画板（手机版）：不拦截触摸，仅允许页面滑动
+    if (isCanvasLockedForTouch()) return;
     const touch = e.touches[0];
     const x = touch.clientX;
     const y = touch.clientY;

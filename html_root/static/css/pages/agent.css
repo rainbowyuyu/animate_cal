@@ -97,6 +97,20 @@
     gap: 0.75rem;
 }
 
+.agent-section-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.35rem;
+}
+.agent-section-badge i {
+    font-size: 0.85rem;
+}
 .agent-sidebar-section-title {
     margin: 0;
     font-size: 0.9rem;
@@ -169,6 +183,45 @@
 
 .agent-features-examples-btn i {
     flex-shrink: 0;
+}
+
+/* 功能与示例：独立扩展窗体（弹窗） */
+.agent-examples-modal .modal-content.agent-examples-modal-content {
+    width: 90%;
+    max-width: 520px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.agent-examples-modal-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.agent-examples-modal-title {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+.agent-examples-modal-title i {
+    margin-right: 6px;
+    color: var(--primary-color);
+}
+.agent-examples-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+}
+.agent-examples-modal-body .agent-examples-group {
+    margin-bottom: 1.25rem;
+}
+.agent-examples-modal-body .agent-examples-group:last-child {
+    margin-bottom: 0;
 }
 
 .agent-features-examples-panel {

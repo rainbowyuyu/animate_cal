@@ -64,11 +64,11 @@
         <div class="auth-buttons desktop-auth">
             <button class="login-btn" onclick="toggleAuthModal(true)">登录 / 注册</button>
             <!-- 关键修复：确保这里有 id="username-span"；有头像时显示 img 替换图标 -->
-            <span id="user-display" style="display:none; color:var(--text-main); font-weight:600; align-items:center; gap:6px;">
+            <span id="user-display" class="header-user-display" style="display:none; align-items:center; gap:6px;">
                 <img id="header-user-avatar" class="header-user-avatar" src="" alt="" style="display:none; width:28px; height:28px; border-radius:50%; object-fit:cover; cursor:pointer;" onclick="openSettings('profile')" title="账户与资料">
                 <i class="fa-regular fa-user-circle header-user-icon" id="header-user-icon" style="cursor:pointer;" onclick="openSettings('profile')" title="账户与资料"></i>
-                <span id="username-span"></span>
-                <i class="fa-solid fa-arrow-right-from-bracket" style="cursor:pointer; margin-left:10px; color:var(--text-secondary);" onclick="logout()" title="退出"></i>
+                <span id="username-span" class="header-username"></span>
+                <i class="fa-solid fa-arrow-right-from-bracket header-logout-icon" style="cursor:pointer; margin-left:10px;" onclick="logout()" title="退出"></i>
             </span>
         </div>
     </nav>
@@ -208,7 +208,8 @@
                             <span class="agent-badge"><i class="fa-solid fa-crown"></i> 会员功能</span>
                             <p class="agent-sidebar-desc">用自然语言描述你想做的事，智能体会自动调用识别、计算、动画、LaTeX 编辑等能力，一步到位完成复杂任务。</p>
                         </div>
-                        <div class="agent-sidebar-section">
+                        <div class="agent-sidebar-section agent-section-features">
+                            <span class="agent-section-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> 功能</span>
                             <h3 class="agent-sidebar-section-title">功能特性</h3>
                             <ul class="agent-features-list">
                                 <li><i class="fa-solid fa-check"></i> 一句话生成动画、打开编辑器或识别公式</li>
@@ -216,32 +217,11 @@
                                 <li><i class="fa-solid fa-check"></i> 与本站所有功能无缝联动</li>
                             </ul>
                         </div>
-                        <div class="agent-sidebar-section">
+                        <div class="agent-sidebar-section agent-section-examples">
+                            <span class="agent-section-badge"><i class="fa-solid fa-lightbulb"></i> 示例</span>
                             <button type="button" class="agent-features-examples-btn" id="agent-features-examples-btn" onclick="Agent.toggleFeaturesExamples()">
-                                <i class="fa-solid fa-lightbulb"></i> 功能与示例
+                                <i class="fa-solid fa-up-right-from-square"></i> 打开功能与示例
                             </button>
-                            <div id="agent-features-examples-panel" class="agent-features-examples-panel" style="display:none;">
-                                <p class="agent-examples-hint">点击示例将自动填入并执行</p>
-                                <div class="agent-examples-group">
-                                    <span class="agent-examples-group-title">识别与公式</span>
-                                    <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
-                                    <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
-                                </div>
-                                <div class="agent-examples-group">
-                                    <span class="agent-examples-group-title">LaTeX / 编辑器</span>
-                                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
-                                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
-                                </div>
-                                <div class="agent-examples-group">
-                                    <span class="agent-examples-group-title">动画与计算</span>
-                                    <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
-                                    <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
-                                </div>
-                                <div class="agent-examples-group">
-                                    <span class="agent-examples-group-title">开发者工具</span>
-                                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
-                                </div>
-                            </div>
                         </div>
                         <div class="agent-sidebar-section">
                             <h3 class="agent-sidebar-section-title">快捷操作</h3>
@@ -383,6 +363,11 @@
                             <!-- 确保预览图在这里，且默认隐藏 -->
                             <img id="uploaded-preview" src="" alt="预览" style="display:none;">
                         </div>
+                        <!-- 手机版锁定画板按钮：锁定后仅可滑动不可书写 -->
+                        <button type="button" id="canvas-lock-btn" class="canvas-lock-btn" title="锁定画板（仅滑动不书写）" aria-label="锁定画板">
+                            <i class="fa-solid fa-lock-open canvas-lock-icon" id="canvas-lock-icon"></i>
+                            <span class="canvas-lock-label" id="canvas-lock-label">锁定画板</span>
+                        </button>
                         <!-- 提示浮层 -->
                         <div class="canvas-hint" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; pointer-events: none;">
                             <i class="fa-solid fa-info-circle"></i> 在此区域绘制公式
@@ -541,8 +526,8 @@
 
                         <!-- MathLive 可视化编辑 -->
                         <div class="math-field-container main-input">
-                            <math-field id="math-field-main" virtual-keyboard-mode="manual" placeholder="在此输入公式，例如 \sin(x) = \frac{1}{2}">
-                                \sin(x) = \frac{1}{2}
+                            <math-field id="math-field-main" virtual-keyboard-mode="manual" placeholder="例如 \int_0^{\frac{\pi}{2}}\frac{\sin x}{1+x^2}\,dx&lt;\int_0^{\frac{\pi}{2}}\frac{\cos x}{1+x^2}\,dx">
+                                \int_{0}^{\frac{\pi}{2}} \frac{\sin x}{1 + x^{2}} \, dx < \int_{0}^{\frac{\pi}{2}} \frac{\cos x}{1 + x^{2}} \, dx
                             </math-field>
                         </div>
 
@@ -551,7 +536,7 @@
                             <summary>
                                 <span><i class="fa-solid fa-code"></i> 编辑 LaTeX 源码</span>
                             </summary>
-                            <textarea id="latex-code-main" placeholder="\int_{0}^{1} ..."></textarea>
+                            <textarea id="latex-code-main" placeholder="\int_0^{\frac{\pi}{2}}\frac{\sin x}{1+x^2}\,dx<\int_0^{\frac{\pi}{2}}\frac{\cos x}{1+x^2}\,dx"></textarea>
                         </details>
                     </div>
 
@@ -571,40 +556,97 @@
                         <!-- JS 注入 -->
                     </div>
 
-                    <!-- 2. 上半部分：视频播放区 -->
-                    <div id="calc-video-wrapper" style="flex: 3; background: #000; position: relative; display: flex; align-items: center; justify-content: center; border-bottom: 1px solid #334155; min-height: 300px;">
-                        <!-- 默认占位符 -->
-                        <div id="video-placeholder-content" style="text-align: center; color: #64748b;">
+                    <!-- 2. 上半部分：视频播放区（背景与右侧区统一深色） -->
+                    <div id="calc-video-wrapper" class="calc-video-wrapper-bg" style="flex: 3; position: relative; display: flex; flex-direction: column; border-bottom: 1px solid #334155; min-height: 300px; overflow: hidden;">
+                        <!-- 默认占位符（初始状态） -->
+                        <div id="video-placeholder-content" style="text-align: center; color: #64748b; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;">
                             <i class="fa-solid fa-cube" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
                             <p style="font-weight: 500;">等待指令...</p>
                             <span style="font-size:0.85rem; opacity:0.6;">配置左侧参数后点击生成</span>
                         </div>
-                        <!-- 渲染中加载层：请求期间一直转，避免用户以为卡住 -->
+                        <!-- 单阶段模式双窗口：解题步骤 | 视频（同级标签，与通用模式一致） -->
+                        <div id="calc-single-wrap" class="calc-stack-wrap" style="display:none;">
+                            <div class="calc-stack-tabs">
+                                <button type="button" class="calc-stack-tab" data-tab="steps" aria-label="解题步骤">解题步骤</button>
+                                <button type="button" class="calc-stack-tab active" data-tab="video" aria-label="视频">视频</button>
+                            </div>
+                            <div class="calc-stack-windows">
+                                <div class="calc-stack-window calc-stack-window-steps" id="calc-window-steps-single">
+                                    <div class="calc-window-inner calc-steps-window-inner">
+                                        <div id="calc-steps-content-single" class="calc-steps-content markdown-body calc-steps-waiting">
+                                            <span>等待解题步骤</span>
+                                            <span class="loading-dots">
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="calc-stack-window calc-stack-window-video active" id="calc-window-video-single">
+                                    <div class="calc-window-inner">
+                                        <div id="calc-window-loading-single" class="calc-window-loading" style="display:none;" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-notch fa-spin calc-window-loading-spinner"></i>
+                                            <p class="calc-window-loading-text">正在渲染</p>
+                                        </div>
+                                        <video id="result-video-player" controls style="display:none; outline:none;"></video>
+                                        <div id="calc-placeholder-single" class="calc-window-placeholder">
+                                            <span>等待渲染</span>
+                                            <span class="loading-dots">
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                            </span>
+                                        </div>
+                                        <div id="calc-save-script-wrap" class="calc-window-save" style="display:none;">
+                                            <button type="button" class="action-btn secondary" id="btn-save-to-scripts" onclick="Calculate.saveLastCodeToScripts()" style="font-size:0.85rem; padding:8px 14px;">
+                                                <i class="fa-solid fa-bookmark"></i> 保存到动画脚本库
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 渲染中加载层（单阶段模式初始加载时显示，显示后会被单阶段窗口替代） -->
                         <div id="calc-render-loading" class="calc-render-loading" style="display: none;">
                             <i class="fa-solid fa-circle-notch fa-spin calc-render-loading-spinner"></i>
                             <p class="calc-render-loading-text">正在生成与渲染...</p>
                         </div>
-                        <!-- 单阶段视频 (公式推演/可视化演示) -->
-                        <video id="result-video-player" controls style="width: 100%; height: 100%; display: none; outline: none;">
-                            <source src="" type="video/mp4">
-                            您的浏览器不支持视频标签。
-                        </video>
-                        <div id="calc-save-script-wrap" style="display:none; position:absolute; bottom:12px; right:12px;">
-                            <button type="button" class="action-btn secondary" id="btn-save-to-scripts" onclick="Calculate.saveLastCodeToScripts()" style="font-size:0.85rem; padding:8px 14px;">
-                                <i class="fa-solid fa-bookmark"></i> 保存到动画脚本库
-                            </button>
-                        </div>
-                        <!-- 通用模式双阶段：叠层窗口，可切换 (类 Alt+Tab) -->
+                        <!-- 通用模式三窗口：解题步骤 | 计算 | 可视化（同级标签） -->
                         <div id="calc-dual-videos-wrap" class="calc-stack-wrap" style="display:none;">
                             <div class="calc-stack-tabs">
-                                <button type="button" class="calc-stack-tab active" data-tab="calc" aria-label="切换到计算">计算</button>
-                                <button type="button" class="calc-stack-tab" data-tab="vis" aria-label="切换到可视化">可视化</button>
+                                <button type="button" class="calc-stack-tab" data-tab="steps" aria-label="解题步骤">解题步骤</button>
+                                <button type="button" class="calc-stack-tab active" data-tab="calc" aria-label="计算">计算</button>
+                                <button type="button" class="calc-stack-tab" data-tab="vis" aria-label="可视化">可视化</button>
                             </div>
                             <div class="calc-stack-windows">
+                                <div class="calc-stack-window calc-stack-window-steps" id="calc-window-steps">
+                                    <div class="calc-window-inner calc-steps-window-inner">
+                                        <div id="calc-steps-content" class="calc-steps-content markdown-body calc-steps-waiting">
+                                            <span>等待解题步骤</span>
+                                            <span class="loading-dots">
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="calc-stack-window calc-stack-window-calc active" id="calc-window-calc">
                                     <div class="calc-window-inner">
+                                        <div id="calc-window-loading-calc" class="calc-window-loading" style="display:none;" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-notch fa-spin calc-window-loading-spinner"></i>
+                                            <p class="calc-window-loading-text">正在计算</p>
+                                        </div>
                                         <video id="result-video-player-calc" controls style="display:none; outline:none;"></video>
-                                        <div id="calc-placeholder-calc" class="calc-window-placeholder">等待「计算」渲染…</div>
+                                        <div id="calc-placeholder-calc" class="calc-window-placeholder">
+                                            <span>等待「计算」渲染</span>
+                                            <span class="loading-dots">
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                            </span>
+                                        </div>
                                         <div id="calc-save-calc-wrap" class="calc-window-save" style="display:none;">
                                             <button type="button" class="action-btn secondary" onclick="Calculate.saveLastCodeToScripts('calc')"><i class="fa-solid fa-bookmark"></i> 保存计算脚本</button>
                                         </div>
@@ -612,8 +654,19 @@
                                 </div>
                                 <div class="calc-stack-window calc-stack-window-vis" id="calc-window-vis">
                                     <div class="calc-window-inner">
+                                        <div id="calc-window-loading-vis" class="calc-window-loading" style="display:none;" aria-hidden="true">
+                                            <i class="fa-solid fa-circle-notch fa-spin calc-window-loading-spinner"></i>
+                                            <p class="calc-window-loading-text">正在可视化</p>
+                                        </div>
                                         <video id="result-video-player-vis" controls style="display:none; outline:none;"></video>
-                                        <div id="calc-placeholder-vis" class="calc-window-placeholder">等待「可视化」渲染…</div>
+                                        <div id="calc-placeholder-vis" class="calc-window-placeholder">
+                                            <span>等待「可视化」渲染</span>
+                                            <span class="loading-dots">
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                                <span class="dot">.</span>
+                                            </span>
+                                        </div>
                                         <div id="calc-save-vis-wrap" class="calc-window-save" style="display:none;">
                                             <button type="button" class="action-btn secondary" onclick="Calculate.saveLastCodeToScripts('vis')"><i class="fa-solid fa-bookmark"></i> 保存可视化脚本</button>
                                         </div>
@@ -1017,13 +1070,13 @@
                 <!-- 中间区域：左侧导航 + 右侧内容（一行） -->
                 <div class="settings-modal-main">
                     <nav id="settings-nav" class="settings-nav" aria-label="设置分类">
-                        <a href="javascript:void(0)" class="settings-nav-item active" data-section="settings-appearance">外观与关于</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-profile">账户与资料</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-agent">智能体</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-detect">智能识别与画板</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-shortcuts">画板快捷键</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-calc">动态计算</a>
-                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-devtools">开发者工具</a>
+                        <a href="javascript:void(0)" class="settings-nav-item active" data-section="settings-appearance"><span class="settings-nav-text">外观与关于</span><span class="settings-nav-short">外观</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-profile"><span class="settings-nav-text">账户与资料</span><span class="settings-nav-short">账户</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-agent"><span class="settings-nav-text">智能体</span><span class="settings-nav-short">智能体</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-detect"><span class="settings-nav-text">智能识别与画板</span><span class="settings-nav-short">画板</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-shortcuts"><span class="settings-nav-text">画板快捷键</span><span class="settings-nav-short">快捷键</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-calc"><span class="settings-nav-text">动态计算</span><span class="settings-nav-short">计算</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-devtools"><span class="settings-nav-text">开发者工具</span><span class="settings-nav-short">开发</span></a>
                     </nav>
                     <div class="settings-modal-body" id="settings-scroll-container">
                 <div class="settings-content-inner">
@@ -1102,6 +1155,13 @@
                         </select>
                         <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">首次进入【智能识别】时自动选中的输入方式。</p>
                     </div>
+                    <div class="settings-canvas-lock-row" style="margin-bottom: 1rem;">
+                        <label class="settings-canvas-lock-label" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; color:var(--text-main);">
+                            <input type="checkbox" id="settings-canvas-lock-mobile" onchange="Settings.setCanvasLockMobile(this.checked)">
+                            锁定画板（手机版）
+                        </label>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">开启后，在手机端画板区域仅可上下滑动，不可书写；关闭后恢复原有防误触逻辑。</p>
+                    </div>
                 </div>
 
                 <div id="settings-shortcuts" class="settings-section shortcuts-panel" style="margin-bottom: 2rem;">
@@ -1152,6 +1212,44 @@
                     <button type="button" class="action-btn settings-btn-done" onclick="closeSettings()">完成</button>
                 </div>
             </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能体：功能与示例 独立扩展窗体 -->
+    <div id="agent-examples-modal" class="modal agent-examples-modal">
+        <div class="modal-content glass-panel agent-examples-modal-content">
+            <div class="agent-examples-modal-header">
+                <h3 class="agent-examples-modal-title"><i class="fa-solid fa-lightbulb"></i> 功能与示例</h3>
+                <span class="close-modal" onclick="Agent.toggleFeaturesExamples()">&times;</span>
+            </div>
+            <div class="agent-examples-modal-body">
+                <p class="agent-examples-hint">点击示例将自动填入并执行</p>
+                <div class="agent-examples-group">
+                    <span class="agent-examples-group-title">识别与公式</span>
+                    <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
+                    <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
+                </div>
+                <div class="agent-examples-group">
+                    <span class="agent-examples-group-title">LaTeX / 编辑器</span>
+                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
+                </div>
+                <div class="agent-examples-group">
+                    <span class="agent-examples-group-title">动画与计算</span>
+                    <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
+                    <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
+                </div>
+                <div class="agent-examples-group">
+                    <span class="agent-examples-group-title">组合示例</span>
+                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并去计算页生成动画">识别图片 → 去计算页生成动画</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入勾股定理 a^2+b^2=c^2 并去动态计算页做可视化">填入勾股定理并做可视化</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入，然后告诉我完成了">打开工作台并填入 Manim 示例</button>
+                </div>
+                <div class="agent-examples-group">
+                    <span class="agent-examples-group-title">开发者工具</span>
+                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
+                </div>
             </div>
         </div>
     </div>

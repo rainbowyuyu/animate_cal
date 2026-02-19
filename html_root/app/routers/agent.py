@@ -65,7 +65,8 @@ async def agent_execute(data: AgentRequest):
         "devtools=开发者工具（含 LaTeX 可视化编辑器、LaTeX 源码、Manim 工作台/云端渲染、Rainbow 拓展库）、my-formulas=我的算式、examples=教学案例、help=帮助。\n\n"
         "用户说：" + data.prompt + "\n\n"
         + ("用户上传了图片，识别到的公式为：" + latex_from_image + "。若需用到公式请以此为准。" if latex_from_image else "用户未上传图片，若需公式请从描述中提取 LaTeX。")
-        + '\n\n【重要】根据用户意图决定行为：'
+        + '\n\n【解析要求】当用户给出题目、算式或图片时，请先将题目解析为可编辑的 LaTeX 或可渲染的 Manim 算式（可拆解为步骤），在 formula、fill_latex 或 fill_manim_code 中体现该解析结果；若有拆解说明可放在 reply 中简要写出。'
+        '\n\n【重要】根据用户意图决定行为：'
         ' (1) 若用户只是提问、打招呼、闲聊，则 section="chat", 输出 reply 为友好回复。'
         ' (2) 若用户说"在 LaTeX 编辑器填入 xxx""打开 LaTeX 并填入质能方程"等，则 section=devtools, devtool=latex, fill_latex 为 LaTeX。'
         '     **常见数学概念转换**：质能方程→E=mc^2；勾股定理→a^2+b^2=c^2；欧拉公式→e^{i\\pi}+1=0 等，转为标准内联 LaTeX。'

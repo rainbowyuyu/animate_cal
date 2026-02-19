@@ -5,6 +5,11 @@ import * as Formulas from './formulas.js';
 let lastGeneratedCode = '';
 let lastGeneratedCodeCalc = '';
 let lastGeneratedCodeVis = '';
+// 解题步骤流式输出累积内容
+let accumulatedStepsContent = {
+    unified: '',  // 通用模式的解题步骤
+    single: ''   // 单阶段模式的解题步骤
+};
 
 function getCurrentUser() {
     const userDisplay = document.getElementById('user-display');
@@ -13,7 +18,7 @@ function getCurrentUser() {
     return null;
 }
 
-/** 通用模式叠层窗口：点击标签切换前置窗口 (仅绑定一次) */
+/** 通用模式叠层窗口：解题步骤 | 计算 | 可视化，点击标签切换 (仅绑定一次) */
 function initCalcStackTabs() {
     const wrap = document.getElementById('calc-dual-videos-wrap');
     if (!wrap || wrap.dataset.tabsInited === '1') return;
@@ -27,11 +32,32 @@ function initCalcStackTabs() {
             windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-' + t));
         });
     });
-    // 默认激活第一个标签（计算）
-    if (tabs.length > 0 && windows.length > 0) {
-        tabs[0].classList.add('active');
-        windows[0].classList.add('active');
-    }
+    const stepsContent = document.getElementById('calc-steps-content');
+    const hasSteps = stepsContent && !stepsContent.classList.contains('calc-steps-waiting') && stepsContent.innerHTML.trim() && !stepsContent.innerHTML.includes('等待解题步骤');
+    const defaultTab = hasSteps ? 'steps' : 'calc';
+    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === defaultTab));
+    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-' + defaultTab));
+}
+
+/** 单阶段模式叠层窗口：解题步骤 | 视频，点击标签切换 (仅绑定一次) */
+function initSingleStackTabs() {
+    const wrap = document.getElementById('calc-single-wrap');
+    if (!wrap || wrap.dataset.tabsInited === '1') return;
+    wrap.dataset.tabsInited = '1';
+    const tabs = wrap.querySelectorAll('.calc-stack-tab');
+    const windows = wrap.querySelectorAll('.calc-stack-window');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+            const t = tab.dataset.tab;
+            tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === t));
+            windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-' + t + '-single'));
+        });
+    });
+    const stepsContent = document.getElementById('calc-steps-content-single');
+    const hasSteps = stepsContent && !stepsContent.classList.contains('calc-steps-waiting') && stepsContent.innerHTML.trim() && !stepsContent.innerHTML.includes('等待解题步骤');
+    const defaultTab = hasSteps ? 'steps' : 'video';
+    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === defaultTab));
+    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-' + defaultTab + '-single'));
 }
 
 // 初始化计算页面的监听器
@@ -85,7 +111,7 @@ function startCooldown(duration = 10) {
     }, 1000);
 }
 
-// 核心：开始生成动画
+// 核心：开始生成动画（仅在有错误时由后端对单阶段重试，前端不整请求重试）
 export async function startAnimation() {
     const btn = document.querySelector('.calc-sidebar .action-btn.full-width');
 
@@ -100,7 +126,7 @@ export async function startAnimation() {
         return;
     }
 
-    // --- 核心修改：点击后立即启动冷却 (并行执行) ---
+    // --- 点击后立即启动冷却 (并行执行) ---
     startCooldown(30);
 
     // 获取 DOM 元素
@@ -134,6 +160,11 @@ export async function startAnimation() {
     if(saveScriptWrap) saveScriptWrap.style.display = 'none';
     const dualWrap = document.getElementById('calc-dual-videos-wrap');
     if(dualWrap) dualWrap.style.display = 'none';
+    const singleWrap = document.getElementById('calc-single-wrap');
+    if(singleWrap) {
+        singleWrap.style.display = 'none';
+        singleWrap.dataset.tabsInited = '0'; // 重置标签初始化状态
+    }
     const videoCalc = document.getElementById('result-video-player-calc');
     const videoVis = document.getElementById('result-video-player-vis');
     const placeholderCalc = document.getElementById('calc-placeholder-calc');
@@ -142,12 +173,42 @@ export async function startAnimation() {
     const saveVisWrap = document.getElementById('calc-save-vis-wrap');
     if(videoCalc) { videoCalc.pause(); videoCalc.src = ''; videoCalc.style.display = 'none'; }
     if(videoVis) { videoVis.pause(); videoVis.src = ''; videoVis.style.display = 'none'; }
-    if(placeholderCalc) { placeholderCalc.style.display = 'block'; placeholderCalc.textContent = '等待「计算」渲染…'; }
-    if(placeholderVis) { placeholderVis.style.display = 'block'; placeholderVis.textContent = '等待「可视化」渲染…'; }
+    if(placeholderCalc) {
+        placeholderCalc.style.display = 'block';
+        placeholderCalc.innerHTML = '<span>等待「计算」渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
+    }
+    if(placeholderVis) {
+        placeholderVis.style.display = 'block';
+        placeholderVis.innerHTML = '<span>等待「可视化」渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
+    }
     if(saveCalcWrap) saveCalcWrap.style.display = 'none';
     if(saveVisWrap) saveVisWrap.style.display = 'none';
+    const stepsContentSingle = document.getElementById('calc-steps-content-single');
+    const stepsContentUnified = document.getElementById('calc-steps-content');
+    const placeholderSingle = document.getElementById('calc-placeholder-single');
+    const loadingSingle = document.getElementById('calc-window-loading-single');
+    if (stepsContentSingle) {
+        stepsContentSingle.innerHTML = '<span>等待解题步骤</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
+        stepsContentSingle.classList.add('calc-steps-waiting');
+    }
+    if (stepsContentUnified) {
+        stepsContentUnified.innerHTML = '<span>等待解题步骤</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
+        stepsContentUnified.classList.add('calc-steps-waiting');
+    }
+    if (placeholderSingle) {
+        placeholderSingle.style.display = 'block';
+        placeholderSingle.innerHTML = '<span>等待渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
+    }
+    if (loadingSingle) loadingSingle.style.display = 'none';
+    // 重置流式输出累积
+    accumulatedStepsContent.unified = '';
+    accumulatedStepsContent.single = '';
     const renderLoading = document.getElementById('calc-render-loading');
     if(renderLoading) renderLoading.style.display = 'flex';
+    const loadingCalc = document.getElementById('calc-window-loading-calc');
+    const loadingVis = document.getElementById('calc-window-loading-vis');
+    if(loadingCalc) loadingCalc.style.display = 'none';
+    if(loadingVis) loadingVis.style.display = 'none';
 
     // 辅助：添加日志
     function addLog(msg, color = "#cbd5e1") {
@@ -208,34 +269,34 @@ export async function startAnimation() {
 
     try {
         const response = await fetch('/api/animate/stream', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                matrixA: formula,
-                matrixB: "",
-                operation: method
-            })
-        });
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    matrixA: formula,
+                    matrixB: "",
+                    operation: method
+                })
+            });
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n\n');
-            buffer = lines.pop();
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n\n');
+                buffer = lines.pop();
 
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    const jsonStr = line.replace('data: ', '');
-                    try {
-                        const data = JSON.parse(jsonStr);
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const jsonStr = line.replace('data: ', '');
+                        try {
+                            const data = JSON.parse(jsonStr);
 
-                        if (data.progress) {
+                            if (data.progress) {
                             if(progBar) progBar.style.width = data.progress + '%';
                             if(percentText) percentText.innerText = data.progress + '%';
 
@@ -244,6 +305,135 @@ export async function startAnimation() {
                             else if(progBar) progBar.style.background = "#10b981";
                         }
 
+                        if (data.step === 'text_result') {
+                            const content = data.content || '';
+                            if (!content) return; // 空内容跳过
+                            
+                            // 累积内容（流式输出）
+                            accumulatedStepsContent.unified += content;
+                            accumulatedStepsContent.single += content;
+                            
+                            // 解析累积的 Markdown（每次追加后重新解析完整内容）
+                            let htmlContentUnified = '';
+                            let htmlContentSingle = '';
+                            if (window.marked && typeof window.marked.parse === 'function') {
+                                try {
+                                    htmlContentUnified = window.marked.parse(accumulatedStepsContent.unified);
+                                    htmlContentSingle = window.marked.parse(accumulatedStepsContent.single);
+                                } catch (e) {
+                                    console.warn('Markdown parse error:', e);
+                                    htmlContentUnified = accumulatedStepsContent.unified.replace(/\n/g, '<br>');
+                                    htmlContentSingle = accumulatedStepsContent.single.replace(/\n/g, '<br>');
+                                }
+                            } else {
+                                htmlContentUnified = accumulatedStepsContent.unified.replace(/\n/g, '<br>');
+                                htmlContentSingle = accumulatedStepsContent.single.replace(/\n/g, '<br>');
+                            }
+                            
+                            // 将 $...$ / $$...$$ 转为 MathJax 默认的 \(...\) / \[...\]
+                            // 修复：确保所有公式（包括包含 \left...\right 的）都能正确解析
+                            function convertDollarToMathJax(html) {
+                                if (!html) return '';
+                                
+                                // 先标记所有 $$...$$（块级公式），避免后续处理时误匹配
+                                const blockMarkers = [];
+                                html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
+                                    const marker = `__BLOCK_MATH_${blockMarkers.length}__`;
+                                    blockMarkers.push({ marker, match, content });
+                                    return marker;
+                                });
+                                
+                                // 处理行内公式 $...$（不匹配 $$）
+                                // 修复：包含 \left...\right 的公式也需要转换，MathJax 可以正确解析
+                                html = html.replace(/\$([^$\n]+?)\$/g, (match, content) => {
+                                    // 如果内容已经包含 \( 或 \[，说明已经转换过，不重复转换
+                                    if (content.includes('\\(') || content.includes('\\[')) return match;
+                                    // 所有 $...$ 都转换为 \(...\)，包括包含 \left...\right 的复杂公式
+                                    return '\\(' + content + '\\)';
+                                });
+                                
+                                // 恢复块级公式标记，并转换
+                                blockMarkers.forEach(({ marker, match, content }) => {
+                                    // 如果内容已经包含 \[，不转换
+                                    if (content.includes('\\[')) {
+                                        html = html.replace(marker, match);
+                                    } else {
+                                        // 块级公式转换为 \[...\]
+                                        html = html.replace(marker, '\\[' + content + '\\]');
+                                    }
+                                });
+                                
+                                return html;
+                            }
+                            htmlContentUnified = convertDollarToMathJax(htmlContentUnified);
+                            htmlContentSingle = convertDollarToMathJax(htmlContentSingle);
+                            
+                            // 通用模式：流式更新独立的「解题步骤」窗口
+                            const stepsContentUnified = document.getElementById('calc-steps-content');
+                            const dualWrap = document.getElementById('calc-dual-videos-wrap');
+                            if (stepsContentUnified) {
+                                stepsContentUnified.innerHTML = htmlContentUnified;
+                                stepsContentUnified.classList.remove('calc-steps-waiting'); // 移除等待状态样式
+                                // 自动滚动到底部（流式输出时跟随最新内容）
+                                stepsContentUnified.scrollTop = stepsContentUnified.scrollHeight;
+                                if (dualWrap && dualWrap.style.display !== 'none') {
+                                    const tabs = dualWrap.querySelectorAll('.calc-stack-tab');
+                                    const windows = dualWrap.querySelectorAll('.calc-stack-window');
+                                    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'steps'));
+                                    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-steps'));
+                                }
+                            }
+                            
+                            // 单阶段模式：流式更新独立的「解题步骤」窗口
+                            const stepsContentSingle = document.getElementById('calc-steps-content-single');
+                            const singleWrap = document.getElementById('calc-single-wrap');
+                            const placeholder = document.getElementById('video-placeholder-content');
+                            if (stepsContentSingle) {
+                                stepsContentSingle.innerHTML = htmlContentSingle;
+                                stepsContentSingle.classList.remove('calc-steps-waiting'); // 移除等待状态样式
+                                stepsContentSingle.scrollTop = stepsContentSingle.scrollHeight;
+                                // 显示单阶段窗口并切换到解题步骤标签
+                                if (singleWrap && placeholder) {
+                                    placeholder.style.display = 'none';
+                                    singleWrap.style.display = 'flex';
+                                    initSingleStackTabs();
+                                    const tabs = singleWrap.querySelectorAll('.calc-stack-tab');
+                                    const windows = singleWrap.querySelectorAll('.calc-stack-window');
+                                    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'steps'));
+                                    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-steps-single'));
+                                }
+                            }
+                            
+                            // 延迟批量渲染 MathJax（避免每次追加都触发，提高性能）
+                            // 修复：确保所有公式（包括包含 \left...\right 的结论）都能正确解析
+                            clearTimeout(window.stepsMathJaxTimeout);
+                            const nodesToTypeset = [stepsContentUnified, stepsContentSingle].filter(Boolean);
+                            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function' && nodesToTypeset.length) {
+                                window.stepsMathJaxTimeout = setTimeout(() => {
+                                    try {
+                                        // 先清除之前的 MathJax 内容，避免重复渲染
+                                        nodesToTypeset.forEach(node => {
+                                            if (node) {
+                                                const mjxElements = node.querySelectorAll('.mjx-container, .MathJax');
+                                                mjxElements.forEach(el => el.remove());
+                                            }
+                                        });
+                                        // 重新渲染所有数学公式
+                                        window.MathJax.typesetPromise(nodesToTypeset).catch(e => {
+                                            console.warn('MathJax typeset error:', e);
+                                            // 如果失败，尝试重新配置并重试
+                                            if (window.MathJax && window.MathJax.startup) {
+                                                window.MathJax.startup.promise.then(() => {
+                                                    window.MathJax.typesetPromise(nodesToTypeset);
+                                                });
+                                            }
+                                        });
+                                    } catch (e) {
+                                        console.warn('MathJax typeset error:', e);
+                                    }
+                                }, 300); // 300ms 防抖，避免频繁渲染
+                            }
+                        }
                         if (data.step === 'normal_split') {
                             addLog(data.message || "通用演示将分两步：先计算推演，再可视化演示", "#a78bfa");
                             const dualWrap = document.getElementById('calc-dual-videos-wrap');
@@ -251,6 +441,9 @@ export async function startAnimation() {
                             if (dualWrap && placeholder) {
                                 placeholder.style.display = 'none';
                                 dualWrap.style.display = 'flex';
+                                const singleContainer = document.getElementById('calc-single-video-container');
+                                if (singleContainer) singleContainer.style.display = 'none';
+                                if (renderLoading) renderLoading.style.display = 'none';
                                 initCalcStackTabs();
                             }
                         }
@@ -268,10 +461,30 @@ export async function startAnimation() {
                                 await streamCodeBlock(data.code);
                             }
                             if (data.part && document.getElementById('calc-dual-videos-wrap')) {
+                                // 通用模式
                                 document.getElementById('video-placeholder-content').style.display = 'none';
                                 const dw = document.getElementById('calc-dual-videos-wrap');
-                                dw.style.display = 'flex';
+                                const singleWrap = document.getElementById('calc-single-wrap');
+                                if (dw) dw.style.display = 'flex';
+                                if (singleWrap) singleWrap.style.display = 'none';
+                                if (renderLoading) renderLoading.style.display = 'none';
                                 if (typeof initCalcStackTabs === 'function') initCalcStackTabs();
+                                const loadingCalc = document.getElementById('calc-window-loading-calc');
+                                const loadingVis = document.getElementById('calc-window-loading-vis');
+                                if (data.part === 'calc' && loadingCalc) loadingCalc.style.display = 'flex';
+                                if (data.part === 'vis' && loadingVis) loadingVis.style.display = 'flex';
+                            } else if (!data.part) {
+                                // 单阶段模式：显示窗口并显示加载状态
+                                const singleWrap = document.getElementById('calc-single-wrap');
+                                const placeholder = document.getElementById('video-placeholder-content');
+                                if (singleWrap && placeholder) {
+                                    placeholder.style.display = 'none';
+                                    singleWrap.style.display = 'flex';
+                                    initSingleStackTabs();
+                                    const loadingSingle = document.getElementById('calc-window-loading-single');
+                                    if (loadingSingle) loadingSingle.style.display = 'flex';
+                                }
+                                if (renderLoading) renderLoading.style.display = 'none';
                             }
                         }
                         else if (data.step === 'fixing_code') {
@@ -280,6 +493,14 @@ export async function startAnimation() {
                         else if (data.step === 'rendering') {
                             if (data.message) {
                                 addLog(data.message, "#e2e8f0");
+                            }
+                            // 单阶段模式渲染时显示加载状态
+                            if (!data.part) {
+                                const singleWrap = document.getElementById('calc-single-wrap');
+                                if (singleWrap && singleWrap.style.display !== 'none') {
+                                    const loadingSingle = document.getElementById('calc-window-loading-single');
+                                    if (loadingSingle) loadingSingle.style.display = 'flex';
+                                }
                             }
                         }
                         else if (data.step === 'complete') {
@@ -295,6 +516,9 @@ export async function startAnimation() {
                                     if (dualWrap) {
                                         placeholder.style.display = 'none';
                                         dualWrap.style.display = 'flex';
+                                        const singleContainer = document.getElementById('calc-single-video-container');
+                                        if (singleContainer) singleContainer.style.display = 'none';
+                                        if (renderLoading) renderLoading.style.display = 'none';
                                         if (typeof initCalcStackTabs === 'function') initCalcStackTabs();
                                     }
                                     const windowEl = document.getElementById('calc-window-calc');
@@ -310,7 +534,8 @@ export async function startAnimation() {
                                     if (ph) ph.style.display = 'none';
                                     if (v) { v.src = url; v.style.display = 'block'; v.play(); }
                                     if (sw) sw.style.display = 'block';
-                                    // 高亮动画
+                                    const loadingCalc = document.getElementById('calc-window-loading-calc');
+                                    if (loadingCalc) loadingCalc.style.display = 'none';
                                     if (windowEl) {
                                         windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
                                     }
@@ -327,6 +552,9 @@ export async function startAnimation() {
                                 setTimeout(() => {
                                     const dualWrap = document.getElementById('calc-dual-videos-wrap');
                                     if (dualWrap) dualWrap.style.display = 'flex';
+                                    const singleContainer = document.getElementById('calc-single-video-container');
+                                    if (singleContainer) singleContainer.style.display = 'none';
+                                    if (renderLoading) renderLoading.style.display = 'none';
                                     const windowEl = document.getElementById('calc-window-vis');
                                     const tabEl = document.querySelector('.calc-stack-tab[data-tab="vis"]');
                                     const v = document.getElementById('result-video-player-vis');
@@ -340,7 +568,8 @@ export async function startAnimation() {
                                     if (ph) ph.style.display = 'none';
                                     if (v) { v.src = url; v.style.display = 'block'; v.play(); }
                                     if (sw) sw.style.display = 'block';
-                                    // 高亮动画
+                                    const loadingVis = document.getElementById('calc-window-loading-vis');
+                                    if (loadingVis) loadingVis.style.display = 'none';
                                     if (windowEl) {
                                         windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
                                     }
@@ -353,21 +582,47 @@ export async function startAnimation() {
                                     }, 1500);
                                 }, 300);
                             } else {
+                                // 单阶段模式：显示视频并切换到视频标签
                                 if (data.code) lastGeneratedCode = data.code;
                                 setTimeout(() => {
+                                    const placeholder = document.getElementById('video-placeholder-content');
+                                    const renderLoading = document.getElementById('calc-render-loading');
+                                    const singleWrap = document.getElementById('calc-single-wrap');
                                     if (placeholder) placeholder.style.display = 'none';
-                                    const videoWrapper = document.getElementById('calc-video-wrapper');
-                                    if (videoPlayer) {
-                                        videoPlayer.src = url;
-                                        videoPlayer.style.display = 'block';
-                                        videoPlayer.play();
-                                        if (videoWrapper) {
-                                            videoWrapper.style.animation = 'calcCompleteHighlight 1.5s ease-out';
-                                            setTimeout(() => { if (videoWrapper) videoWrapper.style.animation = ''; }, 1500);
-                                        }
+                                    if (renderLoading) renderLoading.style.display = 'none';
+                                    if (singleWrap) {
+                                        singleWrap.style.display = 'flex';
+                                        initSingleStackTabs();
                                     }
-                                    const saveScriptWrap = document.getElementById('calc-save-script-wrap');
-                                    if (saveScriptWrap && lastGeneratedCode) saveScriptWrap.style.display = 'block';
+                                    const windowEl = document.getElementById('calc-window-video-single');
+                                    const tabEl = singleWrap ? singleWrap.querySelector('.calc-stack-tab[data-tab="video"]') : null;
+                                    const v = document.getElementById('result-video-player');
+                                    const ph = document.getElementById('calc-placeholder-single');
+                                    const sw = document.getElementById('calc-save-script-wrap');
+                                    const loadingSingle = document.getElementById('calc-window-loading-single');
+                                    const tabs = singleWrap ? singleWrap.querySelectorAll('.calc-stack-tab') : [];
+                                    const windows = singleWrap ? singleWrap.querySelectorAll('.calc-stack-window') : [];
+                                    // 激活视频窗口和标签
+                                    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'video'));
+                                    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-video-single'));
+                                    if (ph) ph.style.display = 'none';
+                                    if (loadingSingle) loadingSingle.style.display = 'none';
+                                    if (v) {
+                                        v.src = url;
+                                        v.style.display = 'block';
+                                        v.play();
+                                    }
+                                    if (sw && lastGeneratedCode) sw.style.display = 'block';
+                                    if (windowEl) {
+                                        windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                    }
+                                    if (tabEl) {
+                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                    }
+                                    setTimeout(() => {
+                                        if (windowEl) windowEl.style.animation = '';
+                                        if (tabEl) tabEl.style.animation = '';
+                                    }, 1500);
                                 }, 500);
                                 return;
                             }
@@ -375,8 +630,9 @@ export async function startAnimation() {
                         }
                         else if (data.step === 'error') {
                             if (renderLoading) renderLoading.style.display = 'none';
-                            addLog("❌ 错误: " + data.message, "#ef4444");
-                            if(progBar) progBar.style.background = "#ef4444";
+                            addLog("❌ 错误: " + (data.message || '未知错误'), "#ef4444");
+                            if (progBar) progBar.style.background = "#ef4444";
+                            if (typeof showToast === 'function') showToast(data.message || '生成失败，请检查公式或稍后再试。', 'error');
                             return;
                         }
 
@@ -391,7 +647,8 @@ export async function startAnimation() {
         console.error(e);
         const loadingEl = document.getElementById('calc-render-loading');
         if (loadingEl) loadingEl.style.display = 'none';
-        addLog("网络连接错误，请检查服务器状态。", "#ef4444");
+        addLog("❌ 网络或请求错误: " + (e.message || '请检查服务器状态'), "#ef4444");
+        if (typeof showToast === 'function') showToast('请求失败，请稍后再试。', 'error');
     }
 }
 

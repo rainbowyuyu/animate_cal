@@ -272,6 +272,58 @@
     box-shadow: var(--shadow-sm);
 }
 
+/* 锁定画板按钮：手机端显眼，桌面端也可用 */
+.canvas-lock-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 12;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    pointer-events: auto;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.canvas-lock-btn:hover {
+    background: var(--bg-input);
+}
+.canvas-lock-btn.is-locked {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+.canvas-lock-btn.is-locked:hover {
+    filter: brightness(1.1);
+}
+.canvas-lock-btn .canvas-lock-icon {
+    font-size: 1rem;
+}
+@media (min-width: 901px) {
+    .canvas-lock-btn .canvas-lock-label {
+        display: inline;
+    }
+}
+@media (max-width: 900px) {
+    .canvas-lock-btn {
+        top: 10px;
+        right: 10px;
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+    .canvas-lock-btn .canvas-lock-label {
+        display: inline;
+    }
+}
+
 /* 识别结果「查看源码」弹层：跟随主题 */
 .code-detail-popup {
     background: var(--bg-surface);
