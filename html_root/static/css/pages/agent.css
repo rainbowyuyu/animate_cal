@@ -16,15 +16,16 @@
 }
 
 .agent-sidebar {
-    width: 280px;
-    min-width: 280px;
+    width: 300px;
+    min-width: 300px;
     background: var(--bg-surface);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    transition: transform 0.3s ease, width 0.3s ease;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
     z-index: 100;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
 }
 
 .agent-sidebar.collapsed {
@@ -44,10 +45,22 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
     transition: opacity 0.2s ease;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.03), rgba(124, 58, 237, 0.03));
+    position: relative;
+}
+
+.agent-sidebar-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
 }
 
 .agent-sidebar-header .agent-sidebar-toggle {
@@ -55,46 +68,97 @@
 }
 
 .agent-sidebar-toggle {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     border: none;
-    background: transparent;
+    background: var(--bg-input);
     color: var(--text-secondary);
     cursor: pointer;
-    border-radius: 6px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s, color 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-color);
 }
 
 .agent-sidebar-toggle:hover {
-    background: var(--bg-input);
-    color: var(--primary-color);
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
 }
 
 .agent-sidebar-title {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-main);
+    font-size: 1.3rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
     flex: 1;
+    letter-spacing: -0.02em;
 }
 
 .agent-sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: 1.25rem 1rem;
+    padding: 1.5rem 1.25rem;
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    gap: 1.5rem;
     transition: opacity 0.2s ease;
+}
+
+.agent-sidebar-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.agent-sidebar-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.agent-sidebar-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.agent-sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .agent-sidebar-section {
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0.875rem;
+    padding: 1rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+}
+
+.agent-sidebar-section:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    transform: translateY(-1px);
+}
+
+/* 功能与示例按钮区域 - 顶部醒目位置 */
+.agent-section-examples-top {
+    padding: 0;
+    background: transparent;
+    border: none;
+    margin-bottom: 0.5rem;
+}
+
+.agent-section-examples-top:hover {
+    transform: none;
+    box-shadow: none;
+    border: none;
 }
 
 .agent-section-badge {
@@ -123,8 +187,9 @@
 .agent-sidebar-desc {
     margin: 0;
     font-size: 0.9rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
+    color: var(--text-main);
+    line-height: 1.6;
+    font-weight: 400;
 }
 
 .agent-sidebar-actions {
@@ -136,21 +201,41 @@
 .agent-sidebar-action-btn {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.6rem 0.85rem;
+    gap: 0.6rem;
+    padding: 0.7rem 1rem;
     font-size: 0.9rem;
+    font-weight: 500;
     color: var(--text-main);
-    background: var(--bg-input);
+    background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: left;
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-sidebar-action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(37, 99, 235, 0.1), transparent);
+    transition: left 0.3s ease;
+}
+
+.agent-sidebar-action-btn:hover::before {
+    left: 100%;
 }
 
 .agent-sidebar-action-btn:hover {
-    background: rgba(37, 99, 235, 0.1);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.08));
     border-color: var(--primary-color);
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
 }
 
 .agent-sidebar-action-btn i {
@@ -162,23 +247,45 @@
 .agent-features-examples-btn {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     width: 100%;
-    padding: 0.65rem 0.85rem;
+    padding: 0.75rem 1rem;
     font-size: 0.95rem;
     font-weight: 600;
-    color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.12));
-    border: 1px solid rgba(37, 99, 235, 0.3);
-    border-radius: 8px;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-features-examples-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.4s ease;
+}
+
+.agent-features-examples-btn:hover::before {
+    left: 100%;
 }
 
 .agent-features-examples-btn:hover,
 .agent-features-examples-btn.active {
-    background: rgba(37, 99, 235, 0.18);
-    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+}
+
+.agent-features-examples-btn:active {
+    transform: translateY(0);
 }
 
 .agent-features-examples-btn i {
@@ -294,6 +401,25 @@
     position: relative;
 }
 
+.agent-main::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(124, 58, 237, 0.03) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.agent-main > * {
+    position: relative;
+    z-index: 1;
+}
+
 .agent-mobile-menu-btn {
     position: absolute;
     top: 1rem;
@@ -356,16 +482,27 @@
 .agent-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.35rem 0.75rem;
+    gap: 0.4rem;
+    padding: 0.4rem 0.875rem;
     font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.12));
-    border: 1px solid rgba(37, 99, 235, 0.25);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
     border-radius: 999px;
-    margin-bottom: 0.75rem;
-    letter-spacing: 0.02em;
+    margin-bottom: 0.875rem;
+    letter-spacing: 0.03em;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.agent-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.agent-badge i {
+    font-size: 0.85rem;
 }
 
 .agent-title {
@@ -389,20 +526,29 @@
     margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    font-size: 0.95rem;
-    color: var(--text-secondary);
+    gap: 0.65rem;
+    font-size: 0.9rem;
+    color: var(--text-main);
 }
 
 .agent-features-list li {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.agent-features-list li:hover {
+    background: rgba(37, 99, 235, 0.05);
 }
 
 .agent-features-list i {
     color: var(--primary-color);
     flex-shrink: 0;
+    margin-top: 0.15rem;
+    font-size: 0.85rem;
 }
 
 /* 未登录时展示的引导卡片 */
@@ -413,12 +559,20 @@
 .agent-gate-card {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 2rem;
+    border-radius: var(--radius-lg);
+    padding: 3rem 2.5rem;
     text-align: center;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     position: relative;
     overflow: hidden;
+    max-width: 480px;
+    margin: 0 auto;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.agent-gate-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
 }
 
 .agent-gate-card::before {
@@ -427,28 +581,60 @@
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
 }
 
+.agent-gate-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .agent-gate-icon {
-    width: 64px;
-    height: 64px;
-    margin: 0 auto 1.25rem;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2rem;
-    color: var(--primary-color);
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
-    border-radius: 16px;
+    font-size: 2.5rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.agent-gate-card:hover .agent-gate-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
 }
 
 .agent-gate-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 0.5rem;
+    font-size: 1.4rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    margin: 0 0 0.75rem;
+    position: relative;
+    z-index: 1;
 }
 
 .agent-gate-desc {
@@ -464,21 +650,44 @@
 .agent-gate-btn {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    gap: 0.6rem;
+    padding: 0.875rem 2rem;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     color: #fff;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: 12px;
     cursor: pointer;
-    transition: opacity 0.2s, transform 0.1s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.agent-gate-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s ease;
+}
+
+.agent-gate-btn:hover::before {
+    left: 100%;
 }
 
 .agent-gate-btn:hover {
-    opacity: 0.95;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(37, 99, 235, 0.4);
+}
+
+.agent-gate-btn:active {
+    transform: translateY(0);
 }
 
 .agent-workspace-wrap {
@@ -687,7 +896,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: var(--bg-surface);
+    background: transparent;
     border: none;
     border-radius: 0;
     box-shadow: none;
@@ -697,31 +906,50 @@
 .agent-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 1.25rem 1.5rem;
+    padding: 2rem 2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-    max-width: 720px;
+    gap: 1.75rem;
+    max-width: 800px;
     margin: 0 auto;
     width: 100%;
+    scroll-behavior: smooth;
+}
+
+.agent-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.agent-messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.agent-messages::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.agent-messages::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .agent-message {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
     align-items: flex-start;
     max-width: 100%;
-    animation: messageSlideIn 0.3s ease-out;
+    animation: messageSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
 }
 
 @keyframes messageSlideIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(15px) scale(0.98);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
@@ -730,24 +958,26 @@
 }
 
 .agent-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 1rem;
-    transition: transform 0.2s ease;
+    font-size: 1.1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .agent-message:hover .agent-avatar {
-    transform: scale(1.05);
+    transform: scale(1.08) rotate(2deg);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .agent-avatar-bot {
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
+    background: transparent;
+    border: none;
     color: var(--primary-color);
     overflow: hidden;
 }
@@ -776,18 +1006,19 @@
 
 .agent-bubble {
     max-width: 85%;
-    padding: 0.75rem 1rem;
-    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border-radius: 16px;
     font-size: 0.95rem;
-    line-height: 1.5;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    line-height: 1.6;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    position: relative;
 }
 
 .agent-bubble:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .agent-bubble p,
@@ -801,9 +1032,15 @@
 }
 
 .agent-bubble-assistant {
-    background: var(--bg-input);
+    background: var(--bg-surface);
     border: 1px solid var(--border-color);
     color: var(--text-main);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.agent-bubble-assistant:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
 }
 
 .agent-bubble-clickable {
@@ -833,9 +1070,16 @@
 }
 
 .agent-bubble-user {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.15));
-    border: 1px solid rgba(37, 99, 235, 0.3);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.12));
+    border: 1px solid rgba(37, 99, 235, 0.25);
     color: var(--text-main);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+.agent-bubble-user:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(124, 58, 237, 0.18));
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.2);
 }
 
 .agent-bubble-user .agent-msg-img {
@@ -854,47 +1098,84 @@
 
 .agent-input-bar {
     border-top: 1px solid var(--border-color);
-    padding: 1.25rem 1.5rem;
-    background: var(--bg-body);
-    max-width: 720px;
+    padding: 1.5rem 2rem;
+    background: var(--bg-surface);
+    max-width: 800px;
     margin: 0 auto;
     width: 100%;
     box-sizing: border-box;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+    position: relative;
+}
+
+.agent-input-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
 }
 
 .agent-image-preview-wrap {
     position: relative;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
     display: inline-block;
+    animation: previewSlideIn 0.3s ease-out;
+}
+
+@keyframes previewSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .agent-image-preview {
-    max-width: 120px;
-    max-height: 90px;
+    max-width: 140px;
+    max-height: 100px;
     object-fit: contain;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.agent-image-preview:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    transform: scale(1.02);
 }
 
 .agent-preview-remove {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 22px;
-    height: 22px;
+    top: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
     border: none;
     border-radius: 50%;
-    background: rgba(0,0,0,0.6);
+    background: rgba(0, 0, 0, 0.7);
     color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .agent-preview-remove:hover {
     background: #ef4444;
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
 }
 
 .agent-input-row {
@@ -913,48 +1194,57 @@
 
 .agent-input-label {
     display: block;
-    margin: 0;
-    font-weight: 500;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
 }
 
 .agent-upload-btn {
     flex-shrink: 0;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-input);
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-surface);
     color: var(--primary-color);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .agent-upload-btn:hover {
-    background: rgba(37, 99, 235, 0.1);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.1));
     border-color: var(--primary-color);
+    transform: scale(1.05) rotate(5deg);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+}
+
+.agent-upload-btn:active {
+    transform: scale(0.95);
 }
 
 /* 需求描述框：聊天式、贴合用户的输入样式 */
 .agent-input-bar .agent-chat-input.tech-input,
 .agent-input-bar .tech-input {
     flex: 1;
-    min-height: 48px;
-    max-height: 140px;
+    min-height: 52px;
+    max-height: 160px;
     margin-bottom: 0 !important;
-    padding: 14px 16px;
+    padding: 16px 18px;
     font-size: 0.95rem;
-    line-height: 1.5;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
+    line-height: 1.6;
+    background: var(--bg-input);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
     color: var(--text-main);
     resize: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 400;
 }
 
 .agent-input-bar .agent-chat-input.tech-input::placeholder,
@@ -965,42 +1255,62 @@
 
 .agent-input-bar .agent-chat-input.tech-input:hover,
 .agent-input-bar .tech-input:hover {
-    border-color: rgba(37, 99, 235, 0.35);
+    border-color: rgba(37, 99, 235, 0.4);
+    background: var(--bg-surface);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
 }
 
 .agent-input-bar .agent-chat-input.tech-input:focus,
 .agent-input-bar .tech-input:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15), 0 4px 12px rgba(37, 99, 235, 0.1);
     background: var(--bg-surface);
+    transform: translateY(-1px);
 }
 
 
 .agent-send-btn {
     flex-shrink: 0;
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
     color: #fff;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.1rem;
-    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    font-size: 1.15rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-send-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s ease;
+}
+
+.agent-send-btn:hover:not(:disabled)::before {
+    left: 100%;
 }
 
 .agent-send-btn:hover:not(:disabled) {
-    opacity: 0.95;
-    transform: scale(1.05);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transform: scale(1.08) rotate(5deg);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
 }
 
 .agent-send-btn:active:not(:disabled) {
-    transform: scale(0.98);
+    transform: scale(0.95) rotate(0deg);
 }
 
 .agent-send-btn:disabled {
@@ -1047,6 +1357,16 @@
 /* 设置项：智能体 */
 .settings-agent-panel .settings-agent-option input {
     margin: 0;
+}
+
+/* 优化加载动画 */
+.agent-loading-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation: loadingDot 1.4s infinite ease-in-out;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.4);
 }
 
 /* --- 移动端适配 --- */

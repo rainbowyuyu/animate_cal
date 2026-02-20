@@ -1,43 +1,147 @@
-/* static/css/pages/calculate.css */
+/* static/css/pages/calculate.css - 动态计算：与主页/智能体/智能识别统一，高级感与交互感 */
 
-/* --- 核心布局 --- */
+/* ========== 标题与核心布局 ========== */
+#calculate .section-title {
+    margin-bottom: 0.5rem;
+}
+
+#calculate .section-title::after {
+    margin-top: 12px;
+}
+
 .calc-layout {
     display: grid;
-    /* 桌面端：左侧边栏固定 400px，右侧自适应 */
-    grid-template-columns: 400px 1fr;
+    grid-template-columns: 420px 1fr;
     gap: 2rem;
     align-items: start;
-    height: calc(100vh - 120px); /* 限制高度，防止双滚动条 */
+    height: calc(100vh - 120px);
     min-height: 600px;
-    overflow: hidden; /* 防止溢出 */
+    overflow: hidden;
 }
 
-/* 左侧配置栏 */
+/* ========== 左侧配置栏（与智能体/我的算式面板一致：2px 边框 + 悬停主色，无顶条）========== */
 .calc-sidebar {
     height: 100%;
-    overflow-y: auto; /* 允许内部滚动 */
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    padding-right: 5px; /* 防止滚动条遮挡 */
+    padding-right: 6px;
 }
 
-/* 右侧显示区 */
+.calc-sidebar-panel {
+    padding: 0;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border-color);
+    background: var(--bg-surface);
+    box-shadow:
+        0 4px 24px -8px rgba(0, 0, 0, 0.08),
+        0 2px 12px -4px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.calc-sidebar-panel:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow:
+        0 8px 32px -8px rgba(37, 99, 235, 0.12),
+        0 4px 16px -4px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .calc-sidebar-panel:hover {
+    box-shadow: 0 8px 32px -4px rgba(37, 99, 235, 0.15), 0 4px 20px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* 左侧栏内容区内边距 */
+.calc-sidebar-panel .calc-mode-block,
+.calc-sidebar-panel .formula-input-wrapper,
+.calc-sidebar-panel .calc-cta-wrap {
+    margin-left: 1.75rem;
+    margin-right: 1.75rem;
+}
+
+.calc-sidebar-panel .calc-mode-block {
+    padding-top: 1.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.calc-sidebar-panel .formula-input-wrapper {
+    margin-bottom: 1rem;
+}
+
+.calc-sidebar-panel .calc-cta-wrap {
+    padding-top: 1.25rem;
+    padding-bottom: 1.75rem;
+    margin-bottom: 0;
+}
+
+/* ========== 演示模式区块（与智能体 block 标签一致）========== */
+.calc-block-label {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.calc-block-label i {
+    color: var(--primary-color);
+}
+
+.calc-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-weight: 500;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.calc-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.calc-block-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
+/* ========== 右侧显示区（深色屏 + 2px 边框，悬停主色，与智能识别画板一致）========== */
 .calc-display {
     height: 100%;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: #0f172a; /* 深色背景统一，即使在浅色模式下也是深色显示屏 */
-    border-radius: 12px;
-    border: 1px solid var(--border-color); /* 适配边框 */
+    background: #0f172a;
+    border-radius: var(--radius-lg);
+    border: 2px solid #334155;
+    box-shadow:
+        inset 0 0 60px rgba(0, 0, 0, 0.12),
+        0 4px 24px -8px rgba(0, 0, 0, 0.1);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* --- 移动端响应式适配 --- */
+.calc-display:hover {
+    border-color: rgba(59, 130, 246, 0.45);
+    box-shadow:
+        inset 0 0 60px rgba(0, 0, 0, 0.12),
+        0 8px 32px -8px rgba(37, 99, 235, 0.15);
+}
+
+/* ========== 移动端响应式 ========== */
 @media (max-width: 900px) {
     .calc-layout {
-        display: flex; /* 改为 Flex */
-        flex-direction: column; /* 垂直排列 */
-        height: auto; /* 取消高度限制，允许页面滚动 */
+        display: flex;
+        flex-direction: column;
+        height: auto;
         min-height: auto;
         overflow: visible;
         gap: 1.5rem;
@@ -46,19 +150,43 @@
     .calc-sidebar {
         height: auto;
         overflow-y: visible;
-        width: 100%; /* 占满宽度 */
-        order: 2; /* 把配置栏放到下面 */
+        width: 100%;
+        order: 2;
+    }
+
+    .calc-sidebar-panel .calc-mode-block,
+    .calc-sidebar-panel .formula-input-wrapper,
+    .calc-sidebar-panel .calc-cta-wrap {
+        margin-left: 1.25rem;
+        margin-right: 1.25rem;
+    }
+
+    .calc-sidebar-panel .calc-mode-block {
+        padding-top: 1.25rem;
+    }
+
+    .calc-sidebar-panel .calc-cta-wrap {
+        padding-bottom: 1.5rem;
     }
 
     .calc-display {
         width: 100%;
-        height: 400px; /* 固定视频区域高度 */
+        height: 400px;
         min-height: 300px;
-        order: 1; /* 视频/日志在上面 */
+        order: 1;
     }
 
     .formula-input-wrapper {
         min-height: 250px;
+    }
+
+    .calc-cta-btn {
+        height: 52px;
+        font-size: 1.05rem;
+    }
+
+    .calc-terminal-wrapper {
+        min-height: 180px;
     }
 }
 
@@ -73,18 +201,27 @@
     border: 1px solid var(--border-color);
 }
 
-/* 核心：单一大公式输入区 */
+/* ========== 单一大公式输入区（2px 边框 + 聚焦主色光晕，无顶条）========== */
 .formula-input-wrapper {
-    background: var(--bg-surface); /* 适配深色 */
-    border: 1px solid var(--border-color);
-    border-radius: 16px;
-    padding: 1.2rem;
-    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: 0 4px 12px -4px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
-    flex: 1; /* 撑开中间区域 */
+    flex: 1;
     min-height: 300px;
-    margin-bottom: 1rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calc-input-card:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="dark"] .calc-input-card:focus-within {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 /* 标题行 */
@@ -95,11 +232,20 @@
     margin-bottom: 1rem;
 }
 
+.calc-input-label,
 .input-header label {
     font-weight: 700;
     color: var(--text-main);
     font-size: 1rem;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.calc-input-label i,
+.input-header label i {
+    color: var(--primary-color);
 }
 
 .header-actions {
@@ -107,37 +253,56 @@
     gap: 8px;
 }
 
-/* 导入按钮 */
+/* ========== 导入/清空按钮（与我的算式/智能体 secondary 一致）========== */
 .btn-import {
-    border-radius: 8px;
-    padding: 6px 12px;
+    border-radius: 10px;
+    padding: 0.55rem 0.9rem;
     font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
-    border: 1px solid transparent;
+    border: 1px solid var(--border-color);
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    background: var(--bg-input); /* 适配深色 */
-    color: var(--text-secondary);
-    transition: all 0.2s;
+    gap: 0.4rem;
+    background: var(--bg-input);
+    color: var(--text-main);
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .btn-import:hover {
-    background: var(--bg-surface);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.06));
     color: var(--primary-color);
     border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
 }
 
-/* MathLive 主输入框 */
+.btn-import:active {
+    transform: translateY(0);
+}
+
+.btn-import-danger {
+    color: #dc2626 !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+.btn-import-danger:hover {
+    background: rgba(239, 68, 68, 0.1) !important;
+    color: #ef4444 !important;
+    border-color: #ef4444 !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* ========== MathLive 主输入框（以前形式：浅灰底、柔和圆角）========== */
+/* MathLive 主输入框（与 wiscomper.com 一致） */
 .math-field-container.main-input {
-    flex: 1; /* 占据剩余垂直空间 */
-    background: var(--bg-input); /* 适配深色 */
+    flex: 1;
+    background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1rem;
     display: flex;
-    align-items: flex-start; /* 顶部对齐 */
+    align-items: flex-start;
     overflow: hidden;
     transition: all 0.3s ease;
 }
@@ -148,16 +313,41 @@
     box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
 }
 
-/* MathLive 组件覆盖 */
+/* 动态计算页内 secondary 按钮（与我的算式一致）*/
+#calculate .action-btn.secondary {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+/* 悬停：白字 + 纯色蓝底，保证与背景对比清晰可读 */
+#calculate .action-btn.secondary:hover {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+#calculate .action-btn.secondary:hover::before {
+    opacity: 0 !important;
+}
+
+[data-theme="dark"] #calculate .action-btn.secondary:hover {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #fff !important;
+}
+
+/* 与网页 mathlive.css 一致：由 body 统一键盘变量，此处仅做布局与颜色 */
 math-field {
     width: 100%;
-    height: 100%; /* 填满容器 */
+    height: 100%;
     background: transparent;
     border: none;
     outline: none;
-    font-size: 1.6rem; /* 加大字体 */
+    font-size: 1.6rem;
     padding: 0;
-    /* MathLive 的颜色变量，确保深色模式下文字可见 */
     color: var(--text-main);
     --keyboard-background: var(--bg-surface);
     --keyboard-toolbar-text-active: var(--primary-color);
@@ -167,11 +357,39 @@ math-field::part(container) {
     box-shadow: none !important;
 }
 
-/* 代码折叠区 */
+/* ========== 主 CTA（与主页/智能体/我的算式主按钮一致）========== */
+.calc-cta-btn {
+    height: 54px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    border: none;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calc-cta-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(37, 99, 235, 0.45);
+    filter: brightness(1.05);
+}
+
+.calc-cta-btn:active {
+    transform: translateY(0);
+}
+
+/* ========== 代码折叠区 ========== */
 .code-details {
     margin-top: 1rem;
     border-top: 1px dashed var(--border-color);
-    padding-top: 0.5rem;
+    padding-top: 0.75rem;
 }
 
 .code-details summary {
@@ -179,13 +397,15 @@ math-field::part(container) {
     color: var(--text-secondary);
     list-style: none;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: color 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 0.4rem;
 }
 
-.code-details summary:hover { color: var(--primary-color); }
+.code-details summary:hover {
+    color: var(--primary-color);
+}
 
 .code-details textarea {
     width: 100%;
@@ -193,12 +413,19 @@ math-field::part(container) {
     margin-top: 8px;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.85rem;
-    padding: 10px;
+    padding: 10px 12px;
     background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
     resize: none;
     color: var(--text-main);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.code-details textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
 /* 隐藏的 Textarea (作为数据中转) */
@@ -237,6 +464,44 @@ textarea[style*="display:none"] {
     margin-bottom: 1.5rem;
     opacity: 0.5;
     color: #3b82f6;
+}
+
+/* ========== 初始等待占位（与我的算式空状态/智能体一致）========== */
+.calc-video-placeholder {
+    text-align: center;
+    color: #64748b;
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.calc-video-placeholder i {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.55;
+    color: #3b82f6;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.calc-video-placeholder:hover i {
+    transform: scale(1.1);
+    opacity: 0.75;
+}
+
+.calc-video-placeholder p {
+    font-weight: 600;
+    font-size: 1.08rem;
+    color: #94a3b8;
+    margin: 0 0 0.4rem 0;
+}
+
+.calc-video-placeholder span {
+    font-size: 0.875rem;
+    opacity: 0.75;
+    color: #64748b;
 }
 
 /* 计算渲染中加载层：覆盖在视频区上方，请求期间一直转 */
@@ -286,9 +551,73 @@ textarea[style*="display:none"] {
     margin: 0;
 }
 
-/* --- 日志控制台样式 --- */
-#gen-log {
+/* ========== 日志控制台（终端风格，与智能体/深色区统一）========== */
+.calc-terminal-wrapper {
+    flex: 2;
+    background: #0f172a;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+    border-top: 1px solid #334155;
+}
+
+.calc-terminal-header {
+    padding: 0.75rem 1.1rem;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+    border-bottom: 1px solid #334155;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.calc-terminal-title {
     font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.calc-terminal-title i {
+    margin-right: 0.45rem;
+    opacity: 0.9;
+    color: var(--primary-color);
+}
+
+.calc-terminal-percent {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #34d399;
+}
+
+.calc-terminal-progress-track {
+    height: 4px;
+    background: #334155;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 2px;
+}
+
+.calc-terminal-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #22d3ee);
+    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 2px;
+}
+
+.calc-terminal-log,
+#gen-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    line-height: 1.6;
+}
+
+#gen-log {
     scrollbar-width: thin;
     scrollbar-color: #475569 #1e293b;
 }
@@ -347,45 +676,43 @@ textarea[style*="display:none"] {
     background: #0f172a;
 }
 
+/* ========== 解题步骤/视频 Tab（与我的算式子导航风格一致，深色底）========== */
 .calc-stack-tabs {
     flex-shrink: 0;
     display: flex;
-    gap: 2px;
-    padding: 8px 10px 0;
+    gap: 6px;
+    padding: 10px 12px 0;
     background: #0f172a;
     border-bottom: 1px solid #334155;
     z-index: 10;
 }
 
 .calc-stack-tab {
-    padding: 8px 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
+    padding: 0.6rem 1.25rem;
+    font-size: 0.9rem;
+    font-weight: 600;
     color: #94a3b8;
     background: transparent;
-    border: 1px solid transparent;
-    border-bottom: none;
-    border-radius: 8px 8px 0 0;
+    border: none;
+    border-radius: 10px 10px 0 0;
     cursor: pointer;
-    transition: color 0.2s, background 0.2s, border-color 0.2s;
+    transition: color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
 }
 
 .calc-stack-tab:hover {
     color: #e2e8f0;
-    background: rgba(56, 189, 248, 0.12);
-    border-color: rgba(56, 189, 248, 0.25);
+    background: rgba(59, 130, 246, 0.12);
 }
 
 .calc-stack-tab.active {
-    color: #38bdf8;
-    background: #1e293b;
-    border-color: #334155;
-    border-bottom-color: #1e293b;
-    margin-bottom: -1px;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(124, 58, 237, 0.25));
+    box-shadow: 0 -2px 0 0 rgba(59, 130, 246, 0.4);
 }
+
 .calc-stack-tab.active:hover {
-    color: #7dd3fc;
-    background: #1e293b;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(124, 58, 237, 0.3));
 }
 
 .calc-stack-windows {
@@ -397,18 +724,19 @@ textarea[style*="display:none"] {
 
 .calc-stack-window {
     position: absolute;
-    inset: 8px;
-    border-radius: 10px;
+    inset: 10px;
+    border-radius: 12px;
     background: #1e293b;
     border: 1px solid #334155;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-    transition: z-index 0.2s, transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    transition: z-index 0.2s, transform 0.2s, box-shadow 0.25s ease, border-color 0.25s ease;
     z-index: 1;
 }
 
 .calc-stack-window.active {
     z-index: 2;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.5);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.08);
+    border-color: #475569;
 }
 /* 解题步骤窗口优先级更高，确保不被其他窗口的加载层遮挡 */
 .calc-stack-window-steps.active {

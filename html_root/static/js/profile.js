@@ -17,7 +17,14 @@ export async function loadProfile() {
     const content = document.getElementById('settings-profile-content');
     if (!guest || !content) return;
     try {
-        const me = await fetch('/api/user/me', { credentials: 'include' }).then(r => r.json());
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        // 401 是未登录的正常状态，静默处理
+        if (res.status === 401 || !res.ok) {
+            guest.style.display = 'block';
+            content.style.display = 'none';
+            return;
+        }
+        const me = await res.json();
         if (me.status !== 'success' || !me.username) {
             guest.style.display = 'block';
             content.style.display = 'none';
@@ -26,8 +33,8 @@ export async function loadProfile() {
         guest.style.display = 'none';
         content.style.display = 'block';
 
-        const res = await fetch('/api/user/profile', { credentials: 'include' }).then(r => r.json());
-        const profile = (res.status === 'success' && res.profile) ? res.profile : { username: me.username, avatar_url: null, nickname: null };
+        const profileRes = await fetch('/api/user/profile', { credentials: 'include' }).then(r => r.json());
+        const profile = (profileRes.status === 'success' && profileRes.profile) ? profileRes.profile : { username: me.username, avatar_url: null, nickname: null };
 
         const img = document.getElementById('profile-avatar-img');
         const placeholder = document.getElementById('profile-avatar-placeholder');
@@ -82,7 +89,14 @@ export async function openChangeUsernameModal() {
     if (pwdEl) pwdEl.value = '';
     if (hintEl) hintEl.textContent = '';
     try {
-        const me = await fetch('/api/user/me', { credentials: 'include' }).then(r => r.json());
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        // 401 是未登录的正常状态，静默处理
+        if (res.status === 401 || !res.ok) {
+            if (guest) guest.style.display = 'block';
+            if (form) form.style.display = 'none';
+            return;
+        }
+        const me = await res.json();
         if (me.status !== 'success' || !me.username) {
             if (guest) guest.style.display = 'block';
             if (form) form.style.display = 'none';
@@ -156,7 +170,14 @@ export async function openChangePasswordModal() {
     if (pw1) pw1.value = '';
     if (pw2) pw2.value = '';
     try {
-        const me = await fetch('/api/user/me', { credentials: 'include' }).then(r => r.json());
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        // 401 是未登录的正常状态，静默处理
+        if (res.status === 401 || !res.ok) {
+            if (guest) guest.style.display = 'block';
+            if (form) form.style.display = 'none';
+            return;
+        }
+        const me = await res.json();
         if (me.status !== 'success' || !me.username) {
             if (guest) guest.style.display = 'block';
             if (form) form.style.display = 'none';

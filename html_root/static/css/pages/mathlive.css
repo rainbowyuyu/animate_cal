@@ -63,14 +63,24 @@ body {
 }
 
 /* --- math-field 内部容器统一美化（所有页面的 MathLive 输入框）--- */
+/* 避免 overflow 裁剪导致根号/上划线等笔画断开 */
 math-field::part(container) {
     border-radius: 10px;
     padding: 0.5rem 0.75rem;
     min-height: 2.5em;
     transition: box-shadow 0.2s, border-color 0.2s;
+    overflow: visible;
 }
 math-field:focus-within::part(container) {
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+/* 公式笔画抗锯齿 + 菜单样式（减少断开与错位感） */
+math-field {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    --menu-border: 1px solid var(--border-color);
+    --menu-border-radius: 8px;
 }
 
 /* 深色模式下的键盘与关闭按钮已通过变量适配，无需重复写 */
@@ -78,11 +88,7 @@ math-field:focus-within::part(container) {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
-/* --- 公式颜色/背景色选择面板：边框统一、柔和，避免电脑端加粗框突兀 --- */
-math-field {
-    --menu-border: 1px solid var(--border-color);
-    --menu-border-radius: 8px;
-}
+/* --- 公式颜色/背景色选择面板：边框统一、柔和 --- */
 /* MathLive 菜单/颜色面板常渲染在 body 下，类名含 ML__ 或 mathfield */
 [class*="ML__popover"],
 [class*="ML__panel"],

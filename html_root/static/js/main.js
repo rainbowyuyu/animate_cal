@@ -13,6 +13,7 @@ import * as Theme from './theme.js';
 import * as DevTools from './devtools.js';
 import * as Agent from './agent.js';
 import * as Profile from './profile.js';
+import * as ImageEditor from './image-editor.js';
 import * as MathLiveKeyboard from './mathlive/mathlive-keyboard.js';
 import * as MathLiveMenu from './mathlive/mathlive-menu.js';
 import * as MathLiveLocale from './mathlive/mathlive-locale.js';
@@ -36,14 +37,40 @@ function initCanvasLockButton() {
     const icon = document.getElementById('canvas-lock-icon');
     const label = document.getElementById('canvas-lock-label');
     if (!btn || !icon || !label) return;
+    
+    // 检测是否为移动设备
+    function isMobileDevice() {
+        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // 更新按钮显示状态（仅在移动端显示）
+    function updateButtonVisibility() {
+        if (isMobileDevice()) {
+            btn.style.display = 'inline-flex';
+        } else {
+            btn.style.display = 'none';
+        }
+    }
+    
     function updateButtonState() {
         const locked = Settings.getCanvasLockMobile();
         btn.classList.toggle('is-locked', locked);
         btn.title = locked ? '已锁定：画板区域仅可滑动' : '锁定画板（仅滑动不书写）';
         icon.className = locked ? 'fa-solid fa-lock canvas-lock-icon' : 'fa-solid fa-lock-open canvas-lock-icon';
         label.textContent = locked ? '已锁定' : '锁定画板';
+        const wrapper = document.querySelector('.canvas-wrapper');
+        if (wrapper) wrapper.classList.toggle('canvas-locked', locked);
     }
+    
+    // 初始化显示状态
+    updateButtonVisibility();
     updateButtonState();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+        updateButtonVisibility();
+    });
+    
     btn.addEventListener('click', () => {
         const next = !Settings.getCanvasLockMobile();
         Settings.setCanvasLockMobile(next);
@@ -71,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
     MathLiveKeyboard.initMathLiveKeyboard();
     MathLiveMenu.initMathLiveMenuOnce();
     MathLiveLocale.initMathLiveLocale();
+    
+    // 初始化Hero文字效果（根据设置选择渐变模式和交互效果）
+    initHeroTextGlow();
 
     // 画板快捷键（类 Photoshop），仅在非输入框时生效
     document.addEventListener('keydown', (e) => {
@@ -117,6 +147,299 @@ function isMatch(e, config) {
            e.shiftKey === config.shift &&
            e.altKey === config.alt &&
            e.metaKey === config.meta;
+}
+
+/** Hero文字创意交互效果（仅桌面端）- 根据设置选择渐变模式或交互效果（互斥） */
+window.initHeroTextGlow = function initHeroTextGlow() {
+    // 读取设置
+    const effectMode = Settings.getHeroEffectMode(); // 'gradient' 或 'interaction'
+    
+    const heroText = document.querySelector('.hero .animate-text');
+    if (!heroText) return;
+    
+    // 移除所有字符拆分（如果存在），恢复原始文本结构
+    const chars = heroText.querySelectorAll('.char');
+    if (chars.length > 0) {
+        // 恢复原始文本结构：将每个 .char 替换为文本节点
+        chars.forEach(char => {
+            const parent = char.parentNode;
+            if (parent) {
+                const text = document.createTextNode(char.textContent);
+                parent.replaceChild(text, char);
+            }
+        });
+        // 清理可能的空文本节点
+        const walker = document.createTreeWalker(
+            heroText,
+            NodeFilter.SHOW_TEXT,
+            null
+        );
+        const textNodes = [];
+        let node;
+        while (node = walker.nextNode()) {
+            if (node.textContent.trim() === '') {
+                textNodes.push(node);
+            }
+        }
+        textNodes.forEach(n => n.parentNode?.removeChild(n));
+    }
+    
+    // 应用效果模式到CSS
+    heroText.classList.remove('hero-gradient-dynamic', 'hero-gradient-static', 'hero-interaction-only');
+    
+    if (effectMode === 'gradient') {
+        // 动态渐变模式：只有渐变，没有交互
+        heroText.classList.add('hero-gradient-dynamic');
+        return; // 不拆分字符，不启用交互
+    } else if (effectMode === 'interaction') {
+        // 抖动交互模式：只有交互，没有渐变
+        heroText.classList.add('hero-interaction-only');
+        // 继续执行下面的交互逻辑
+    }
+    
+    // 仅在桌面端且支持hover的设备上启用交互
+    if (window.innerWidth < 769 || !window.matchMedia('(hover: hover)').matches) {
+        return;
+    }
+    
+    // heroText 已经在上面获取过了
+    if (!heroText) return;
+    
+    const hero = document.querySelector('.hero');
+    if (!hero) return;
+    
+    // 抖动交互模式：不需要渐变同步
+    
+    // 初始化交互效果
+    function initInteraction() {
+        const charElements = heroText.querySelectorAll('.char');
+        if (charElements.length === 0) {
+            // 如果还没有字符，等待一下再试
+            setTimeout(initInteraction, 100);
+            return;
+        }
+        
+        
+        let rafId = null;
+        let targetX = 50;
+        let targetY = 50;
+        let currentX = 50;
+        let currentY = 50;
+        
+        // 平滑插值函数
+        function lerp(start, end, factor) {
+            return start + (end - start) * factor;
+        }
+        
+        // 计算两点之间的距离
+        function distance(x1, y1, x2, y2) {
+            return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+        }
+        
+        // 缓存字符位置，避免频繁getBoundingClientRect
+        let charPositions = [];
+        let heroRect = null;
+        let lastUpdateTime = 0;
+        const UPDATE_INTERVAL = 16; // 约60fps
+        
+        function cacheCharPositions() {
+            heroRect = heroText.getBoundingClientRect();
+            charPositions = Array.from(charElements).map(char => {
+                const rect = char.getBoundingClientRect();
+                return {
+                    element: char,
+                    x: rect.left + rect.width / 2 - heroRect.left,
+                    y: rect.top + rect.height / 2 - heroRect.top,
+                    width: rect.width,
+                    height: rect.height
+                };
+            });
+        }
+        
+        // 初始化时缓存位置
+        cacheCharPositions();
+        
+        // 窗口resize时重新缓存
+        window.addEventListener('resize', () => {
+            setTimeout(cacheCharPositions, 100);
+        });
+        
+        function updatePosition() {
+            // 安全检查：确保 heroRect 存在
+            if (!heroRect || charPositions.length === 0) {
+                rafId = null;
+                return;
+            }
+            
+            const now = performance.now();
+            const timeSinceLastUpdate = now - lastUpdateTime;
+            
+            // 限制更新频率，避免卡顿
+            if (timeSinceLastUpdate < UPDATE_INTERVAL) {
+                // 如果还需要继续更新，继续请求下一帧
+                if (Math.abs(currentX - targetX) > 0.1 || Math.abs(currentY - targetY) > 0.1) {
+                    rafId = requestAnimationFrame(updatePosition);
+                } else {
+                    rafId = null;
+                }
+                return;
+            }
+            
+            lastUpdateTime = now;
+            
+            const factor = 0.16; // 折中跟手度，手感顺滑
+            currentX = lerp(currentX, targetX, factor);
+            currentY = lerp(currentY, targetY, factor);
+            
+            // 字符磁性吸引效果 - 使用缓存的位置，性能优化
+            const mouseX = heroRect.width * currentX / 100;
+            const mouseY = heroRect.height * currentY / 100;
+            
+            // 抖动交互模式：只应用交互效果，不使用渐变
+            charPositions.forEach(({element, x, y}) => {
+                const dist = distance(x, y, mouseX, mouseY);
+                const maxDist = 140; // 影响距离折中，手感舒适
+                const maxOffset = 5; // 偏移折中，既有反馈又不晃眼
+                
+                if (dist < maxDist && dist > 0) {
+                    const strength = 1 - (dist / maxDist);
+                    const offsetX = ((mouseX - x) / dist) * maxOffset * strength;
+                    const offsetY = ((mouseY - y) / dist) * maxOffset * strength;
+                    const rotation = strength * 2.5; // 旋转幅度折中
+                    
+                    element.style.transform = `translate(${offsetX}px, ${offsetY}px) rotate(${rotation}deg)`;
+                } else {
+                    element.style.transform = 'translate(0, 0) rotate(0deg)';
+                }
+            });
+            
+            // 检查是否需要继续更新
+            const needsUpdate = Math.abs(currentX - targetX) > 0.1 || Math.abs(currentY - targetY) > 0.1;
+            
+            if (needsUpdate) {
+                rafId = requestAnimationFrame(updatePosition);
+            } else {
+                // 重置所有字符
+                charPositions.forEach(({element}) => {
+                    element.style.transform = 'translate(0, 0) rotate(0deg)';
+                });
+                rafId = null;
+            }
+        }
+        
+        // 绑定鼠标移动事件（确保只绑定一次）
+        const mouseMoveHandler = (e) => {
+            // 确保 heroRect 存在
+            if (!heroRect) {
+                cacheCharPositions();
+            }
+            
+            // 重新缓存位置（鼠标移动时可能布局变化）
+            if (Math.random() < 0.05) { // 5%概率更新缓存，减少计算
+                cacheCharPositions();
+            }
+            
+            const rect = heroText.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            
+            targetX = Math.max(0, Math.min(100, x));
+            targetY = Math.max(0, Math.min(100, y));
+            
+            if (!rafId) {
+                rafId = requestAnimationFrame(updatePosition);
+            }
+        };
+        
+        hero.addEventListener('mousemove', mouseMoveHandler);
+        
+        // 鼠标离开时平滑重置
+        const mouseLeaveHandler = () => {
+            targetX = 50;
+            targetY = 50;
+            // 重置所有字符
+            charPositions.forEach(({element}) => {
+                element.style.transform = 'translate(0, 0) rotate(0deg)';
+            });
+            if (!rafId) {
+                rafId = requestAnimationFrame(updatePosition);
+            }
+        };
+        
+        hero.addEventListener('mouseleave', mouseLeaveHandler);
+        
+        // 页面可见性变化时停止动画，避免后台运行
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        });
+    }
+    
+    // 检查是否已经拆分过（避免重复拆分）
+    if (heroText.querySelector('.char')) {
+        // 已经拆分过，直接初始化交互
+        setTimeout(() => {
+            initInteraction();
+        }, 50);
+    } else {
+        // 将文字拆分为字符，用于磁性吸引效果
+        function splitTextIntoChars() {
+            // 递归处理所有文本节点
+            function processNode(node) {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    const text = node.textContent;
+                    // 保留空白和换行
+                    if (!text.trim()) {
+                        return;
+                    }
+                    
+                    const parent = node.parentNode;
+                    const chars = text.split('');
+                    const fragments = [];
+                    
+                    chars.forEach(char => {
+                        if (char === ' ') {
+                            fragments.push(document.createTextNode(' '));
+                        } else if (char === '\n' || char === '\r') {
+                            // 跳过换行符，因为HTML中已经有<br>
+                            return;
+                        } else {
+                            const span = document.createElement('span');
+                            span.className = 'char';
+                            span.textContent = char;
+                            fragments.push(span);
+                        }
+                    });
+                    
+                    // 替换原文本节点
+                    if (fragments.length > 0) {
+                        fragments.forEach(frag => {
+                            parent.insertBefore(frag, node);
+                        });
+                        parent.removeChild(node);
+                    }
+                } else if (node.nodeType === Node.ELEMENT_NODE) {
+                    // 跳过br标签，递归处理其他子节点
+                    if (node.tagName !== 'BR') {
+                        const children = Array.from(node.childNodes);
+                        children.forEach(child => processNode(child));
+                    }
+                }
+            }
+            
+            // 处理所有子节点
+            const children = Array.from(heroText.childNodes);
+            children.forEach(child => processNode(child));
+        }
+        
+        splitTextIntoChars();
+        // 字符拆分后，等待DOM更新完成再初始化交互
+        setTimeout(() => {
+            initInteraction();
+        }, 50);
+    }
 }
 
 // --- 核心挂载：将 Formulas 中的函数暴露给 HTML ---

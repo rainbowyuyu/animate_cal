@@ -1,30 +1,85 @@
 /* static/css/pages/home.css */
 
+/* 通用动画 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulseGlow {
+    0%, 100% { 
+        opacity: 0.08; 
+        transform: scale(1); 
+    }
+    50% { 
+        opacity: 0.12; 
+        transform: scale(1.05); 
+    }
+}
+
 /* --- Hero Section --- */
 
-/* 增强 Hero 背景光晕 */
+/* 柔和的 Hero 背景光晕（GitHub风格） */
 .hero::before {
-    /* 使用变量，并将结束色改为 transparent 以适配黑/白背景 */
-    background: radial-gradient(circle at center, var(--primary-color) 0%, transparent 60%);
-    opacity: 0.15; /* 通过 opacity 控制透明度，而不是在颜色里硬编码 rgba */
+    background: radial-gradient(circle at center, var(--primary-color) 0%, transparent 70%);
+    opacity: 0.08;
     width: 800px;
     height: 800px;
-    top: -30%;
-    filter: blur(60px);
-    pointer-events: none; /* 防止遮挡点击 */
+    top: -20%;
+    filter: blur(100px);
+    pointer-events: none;
+    animation: pulseGlow 12s ease-in-out infinite;
+}
+
+.hero::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle at center, var(--secondary-color) 0%, transparent 75%);
+    opacity: 0.06;
+    top: 30%;
+    right: 15%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: pulseGlow 15s ease-in-out infinite reverse;
+    z-index: -1;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 0.15; transform: scale(1); }
+    50% { opacity: 0.25; transform: scale(1.1); }
 }
 
 /* --- Features Grid --- */
 .features-grid {
     display: grid;
-    /* 核心修改：最小宽度从 300px 改为 100% (在手机上) */
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 2rem;
     margin-top: 5rem;
     position: relative;
     z-index: 1;
     padding-bottom: 2rem;
+    animation: fadeInUp 0.8s ease-out 0.4s backwards;
 }
+
+/* 卡片入场动画 */
+.feature-card {
+    animation: fadeInUp 0.6s ease-out backwards;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+.feature-card:nth-child(4) { animation-delay: 0.4s; }
+.feature-card:nth-child(5) { animation-delay: 0.5s; }
+.feature-card:nth-child(6) { animation-delay: 0.6s; }
 
 /* 手机端特定调整 */
 @media (max-width: 600px) {
@@ -86,8 +141,8 @@
 }
 
 .feature-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-color); /* 替换硬编码颜色 */
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
     padding: 2.5rem;
     border-radius: var(--radius-md);
     text-align: left;
@@ -95,40 +150,85 @@
     box-shadow: var(--shadow-sm);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* 卡片内部渐变光效 */
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
 }
 
 /* 卡片悬停效果增强 */
 .feature-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+        0 20px 40px -10px rgba(37, 99, 235, 0.2),
+        0 0 0 1px var(--primary-color),
+        var(--shadow-lg);
     border-color: var(--primary-color);
+    background: var(--bg-surface);
+}
+
+.feature-card:hover::before {
+    opacity: 1;
 }
 
 .feature-icon-box {
-    width: 64px;
-    height: 64px;
-    background: var(--bg-input); /* 替换 #eff6ff，使用输入框背景色变量 */
-    border-radius: 16px;
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, var(--bg-input), var(--bg-surface));
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 1.5rem;
-    transition: transform 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.feature-icon-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    border-radius: 18px;
 }
 
 .feature-card:hover .feature-icon-box {
-    transform: scale(1.1) rotate(5deg);
-    background: var(--primary-color);
+    transform: scale(1.15) rotate(8deg);
+    box-shadow: 0 8px 20px -5px rgba(37, 99, 235, 0.4);
+}
+
+.feature-card:hover .feature-icon-box::before {
+    opacity: 1;
 }
 
 .feature-card:hover .feature-icon-box i {
-    color: var(--text-inverse); /* 替换 white，使用反色变量 */
+    color: var(--text-inverse);
+    transform: scale(1.1);
+    position: relative;
+    z-index: 1;
 }
 
 .feature-icon-box i {
-    font-size: 1.8rem;
+    font-size: 2rem;
     color: var(--primary-color);
-    transition: color 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    z-index: 1;
 }
 
 .feature-card h3 {
@@ -278,30 +378,55 @@
 /* 首页智能体高亮条 */
 .agent-feature-strip {
     margin-top: 2.5rem;
-    padding: 1.25rem 1.5rem;
-    background: linear-gradient(135deg, var(--bg-surface), var(--bg-input));
+    padding: 1.5rem 1.75rem;
+    background: var(--bg-glass);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
 }
+
 .agent-feature-strip::before {
     content: '';
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 4px;
+    width: 5px;
     background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
     border-radius: 4px 0 0 4px;
+    transition: width 0.3s ease;
 }
+
+.agent-feature-strip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(124, 58, 237, 0.05));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
 .agent-feature-strip:hover {
     border-color: var(--primary-color);
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    box-shadow: 
+        0 12px 30px -10px rgba(37, 99, 235, 0.2),
+        var(--shadow-md);
+    transform: translateY(-4px) scale(1.01);
+    background: var(--bg-surface);
+}
+
+.agent-feature-strip:hover::before {
+    width: 6px;
+}
+
+.agent-feature-strip:hover::after {
+    opacity: 1;
 }
 .agent-feature-strip-inner {
     display: flex;

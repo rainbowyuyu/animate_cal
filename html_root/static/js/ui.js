@@ -112,6 +112,8 @@ export function switchInputMode(mode) {
     });
 
     // 2. 切换显示区域
+    const canvasHint = document.getElementById('canvas-hint');
+    
     if(mode === 'draw') {
         if(drawTools) drawTools.style.display = 'block';
         if(uploadTools) uploadTools.style.display = 'none';
@@ -122,6 +124,17 @@ export function switchInputMode(mode) {
             canvas.style.display = 'block';
             window.dispatchEvent(new CustomEvent('mode-change', { detail: 'draw' }));
         }
+        
+        // 显示提示（仅在手写模式）
+        if (canvasHint) {
+            canvasHint.style.display = 'flex';
+            canvasHint.style.visibility = 'visible';
+            canvasHint.style.opacity = '0.95';
+        }
+        
+        // 隐藏编辑按钮
+        const editBtn = document.getElementById('canvas-edit-btn');
+        if (editBtn) editBtn.style.display = 'none';
     } else {
         if(drawTools) drawTools.style.display = 'none';
         // 使用 flex 以保持样式 (关键修复)
@@ -133,6 +146,18 @@ export function switchInputMode(mode) {
         if(canvas) {
             canvas.style.display = 'block';
             window.dispatchEvent(new CustomEvent('mode-change', { detail: 'upload' }));
+        }
+        
+        // 隐藏提示（上传模式不显示）
+        if (canvasHint) {
+            canvasHint.style.display = 'none';
+            canvasHint.style.visibility = 'hidden';
+        }
+        
+        // 如果有图片，显示编辑按钮（使用已定义的 preview 变量）
+        if (preview && preview.src) {
+            const editBtn = document.getElementById('canvas-edit-btn');
+            if (editBtn) editBtn.style.display = 'flex';
         }
     }
 }

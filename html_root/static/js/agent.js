@@ -69,6 +69,8 @@ function sanitizeLatexForMathlive(latex) {
         .replace(/^```(?:latex)?\s*/g, '').replace(/\s*```\s*$/g, '')
         .replace(/^\\\[\s]*/g, '').replace(/\s*\\\]\s*$/g, '')
         .replace(/^\$\$\s*/g, '').replace(/\s*\$\$\s*$/g, '')
+        .replace(/^\\\(\s*/g, '').replace(/\s*\\\)\s*$/g, '') // 处理 \( 和 \)
+        .replace(/\\\(/g, '').replace(/\\\)/g, '') // 移除内联的 \( 和 \)
         .replace(/\\\\/g, '\\')
         .replace(/\\n/g, ' ').replace(/\r\n?|\n/g, ' ')
         .replace(/\s+/g, ' ').trim();
@@ -181,8 +183,15 @@ function animateMessageAppear(element) {
 /** 当前附带的图片（粘贴时部分浏览器无法设置 input.files，用此备份供发送使用） */
 let _attachedFile = null;
 
+/** 检测是否为移动设备 */
+function isMobileDevice() {
+    return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 /** 显示当前附带的图片预览；返回当前图片 data URL 或 null */
-function updateImagePreview(file) {
+// @param {File} file - 图片文件
+// @param {boolean} skipAutoOpen - 是否跳过移动端自动打开编辑器（用于从编辑器应用时）
+function updateImagePreview(file, skipAutoOpen = false) {
     const wrap = getPreviewWrap();
     const img = getPreviewImg();
     const input = getFileInput();
@@ -195,11 +204,81 @@ function updateImagePreview(file) {
         return null;
     }
     const url = URL.createObjectURL(file);
-    img.onload = () => URL.revokeObjectURL(url);
-    img.src = url;
-    wrap.style.display = 'inline-block';
+    // 不在 onload 时立即 revoke，保留 URL 供编辑器使用
+    // img.onload = () => URL.revokeObjectURL(url);
+    
+    // 如果 skipAutoOpen 为 true，先清理可能存在的 onload 事件监听器
+    if (skipAutoOpen) {
+        img.onload = null;
+        img.onerror = null;
+    }
+    
+    // 移动端：图片加载完成后自动打开编辑器（除非是从编辑器应用来的）
+    if (isMobileDevice() && !skipAutoOpen) {
+        const openEditorOnLoad = () => {
+            // 检查是否应该跳过自动打开
+            if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                return;
+            }
+            
+            // 确保图片已显示
+            wrap.style.display = 'inline-block';
+            // 延迟一小段时间确保 DOM 更新完成和 ImageEditor 初始化
+            setTimeout(() => {
+                // 再次检查标志
+                if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                    return;
+                }
+                
+                if (window.ImageEditor && typeof window.ImageEditor.openEditor === 'function') {
+                    try {
+                        window.ImageEditor.openEditor('agent-image-preview', 'agent');
+                    } catch (e) {
+                        console.error('Failed to open editor:', e);
+                        if (typeof showToast === 'function') {
+                            showToast('打开编辑器失败，请重试', 'error');
+                        }
+                    }
+                } else {
+                    console.warn('ImageEditor not available, retrying...');
+                    setTimeout(openEditorOnLoad, 200);
+                }
+            }, 150);
+        };
+        
+        // 如果图片已经加载完成，直接打开编辑器
+        if (img.complete && img.naturalWidth > 0) {
+            img.src = url;
+            wrap.style.display = 'inline-block';
+            openEditorOnLoad();
+        } else {
+            img.onload = openEditorOnLoad;
+            img.onerror = () => {
+                wrap.style.display = 'inline-block';
+            };
+            img.src = url;
+            wrap.style.display = 'inline-block';
+        }
+    } else {
+        img.src = url;
+        wrap.style.display = 'inline-block';
+    }
+    
     return file;
 }
+
+// 导出供 image-editor.js 使用
+export { updateImagePreview };
+
+// 获取当前附带的文件（供外部使用）
+export function getAttachedFile() {
+    return _attachedFile;
+}
+
+// 同时挂载到全局，供 HTML 调用
+window.Agent = window.Agent || {};
+window.Agent.updateImagePreview = updateImagePreview;
+window.Agent.getAttachedFile = getAttachedFile;
 
 /** 移除附带图片（供 HTML 按钮调用） */
 export function clearAttachedImage() {

@@ -24,6 +24,10 @@ def sanitize_latex_for_mathlive(latex: str) -> str:
     s = re.sub(r"\s*\\\]\s*$", "", s)
     s = re.sub(r"^\$\$\s*", "", s)
     s = re.sub(r"\s*\$\$\s*$", "", s)
+    s = re.sub(r"^\\\(\s*", "", s)  # 处理 \(
+    s = re.sub(r"\s*\\\)\s*$", "", s)  # 处理 \)
+    s = re.sub(r"\\\(", "", s)  # 移除内联的 \(
+    s = re.sub(r"\\\)", "", s)  # 移除内联的 \)
     s = re.sub(r"^\\begin\s*\{\s*displaymath\s*\}\s*", "", s, flags=re.IGNORECASE)
     s = re.sub(r"\s*\\end\s*\{\s*displaymath\s*\}\s*$", "", s, flags=re.IGNORECASE)
     s = re.sub(r"^\\begin\s*\{\s*equation\s*\}\s*", "", s, flags=re.IGNORECASE)

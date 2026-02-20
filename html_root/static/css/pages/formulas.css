@@ -1,87 +1,246 @@
-/* static/css/pages/formulas.css */
+/* static/css/pages/formulas.css - 我的算式：与主页/智能体统一，高级感与交互感 */
 
-.formulas-container { padding-bottom: 2rem; }
+/* ========== 页面容器与标题 ========== */
+#my-formulas .formulas-container {
+    padding-bottom: 3.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
 
+#my-formulas .section-title {
+    margin-bottom: 0.5rem;
+}
+
+#my-formulas .section-title::after {
+    margin-top: 12px;
+}
+
+/* 可选：副标题/说明，与智能体 badge 风格呼应 */
+#my-formulas .formulas-intro {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+/* ========== 子导航 Tab（与主页导航 pill + 智能体 Tab 结合）========== */
 .formulas-sub-nav {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 1.5rem;
+    display: inline-flex;
+    gap: 6px;
+    margin-bottom: 1.75rem;
+    padding: 6px;
+    background: var(--bg-input);
+    border: 2px solid var(--border-color);
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.formulas-sub-nav:hover {
+    border-color: rgba(37, 99, 235, 0.25);
 }
 
 .formulas-sub-tab {
-    padding: 10px 20px;
-    border: 1px solid var(--border-color);
-    background: var(--bg-input);
+    padding: 0.8rem 1.5rem;
+    border: none;
+    background: transparent;
     color: var(--text-secondary);
     border-radius: 10px;
     font-weight: 600;
+    font-size: 0.95rem;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.formulas-sub-tab:hover {
-    border-color: var(--primary-color);
-    color: var(--primary-color);
+.formulas-sub-tab:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(37, 99, 235, 0.06);
 }
 
 .formulas-sub-tab.active {
-    background: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
 }
 
+[data-theme="dark"] .formulas-sub-tab.active {
+    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* ========== 面板整体（与智能体 sidebar 渐变头 + 玻璃感）========== */
 .formulas-panel {
-    min-height: 500px;
+    min-height: 480px;
+    padding: 0;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border-color);
+    background: var(--bg-surface);
+    box-shadow:
+        0 4px 24px -8px rgba(0, 0, 0, 0.08),
+        0 2px 12px -4px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+    overflow: hidden;
 }
 
+.formulas-panel:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow:
+        0 8px 32px -8px rgba(37, 99, 235, 0.12),
+        0 4px 16px -4px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="dark"] .formulas-panel {
+    box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.25);
+}
+
+[data-theme="dark"] .formulas-panel:hover {
+    box-shadow: 0 8px 32px -4px rgba(37, 99, 235, 0.15), 0 4px 20px -4px rgba(0, 0, 0, 0.2);
+}
+
+/* ========== 面板标题栏（智能体 sidebar-header 风格：渐变底 + 底部分隔线）========== */
+.formulas-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.35rem 1.75rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(124, 58, 237, 0.04));
+    position: relative;
+}
+
+.formulas-panel-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+}
+
+.formulas-panel-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    letter-spacing: -0.02em;
+}
+
+.formulas-panel-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* 面板内主按钮 / 次要按钮（与主页 action-btn、智能体 secondary 一致）*/
+.formulas-panel .action-btn {
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.formulas-panel .action-btn.secondary {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+/* 悬停：白字 + 纯色蓝底，保证与背景对比清晰可读 */
+.formulas-panel .action-btn.secondary:hover {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+}
+
+.formulas-panel .action-btn.secondary:hover::before {
+    opacity: 0 !important;
+}
+
+[data-theme="dark"] .formulas-panel .action-btn.secondary:hover {
+    background: #3b82f6 !important;
+    border-color: #3b82f6 !important;
+    color: #fff !important;
+}
+
+.formulas-refresh-btn {
+    transition: transform 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.formulas-refresh-btn:hover {
+    transform: translateY(-1px);
+}
+
+.formulas-refresh-btn:active {
+    transform: translateY(0);
+}
+
+/* ========== 卡片网格 ========== */
 .formula-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.5rem;
-    padding-bottom: 2rem;
+    padding: 1.5rem 1.75rem 1.75rem;
 }
 
+/* ========== 算式/脚本卡片（与智能体 section 卡片 + 主页卡片感）========== */
 .formula-card {
-    background: var(--bg-surface); /* 适配深色 */
-    border: 1px solid var(--border-color); /* 适配深色 */
-    border-radius: 12px;
-    padding: 1.5rem;
+    background: var(--bg-surface);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.35rem;
     display: flex;
     flex-direction: column;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
 }
 
 .formula-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-5px);
     border-color: var(--primary-color);
+    box-shadow: 0 12px 28px -8px rgba(37, 99, 235, 0.18);
 }
 
-/* 预览区域 */
+[data-theme="dark"] .formula-card:hover {
+    box-shadow: 0 12px 28px -8px rgba(59, 130, 246, 0.2);
+}
+
+/* ========== 公式预览区域 ========== */
 .formula-preview {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
     color: var(--text-main);
-    margin-bottom: 1.2rem;
+    margin-bottom: 1.1rem;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 1rem;
-    background: var(--bg-input); /* 适配深色 */
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
-    min-height: 80px;
+    padding: 1rem 1.1rem;
+    background: var(--bg-input);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    min-height: 82px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
-/* 底部元数据 */
+.formula-card:hover .formula-preview {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+}
+
+/* ========== 卡片底部元数据与操作 ========== */
 .formula-meta {
     margin-top: auto;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     border-top: 1px solid var(--border-color);
     padding-top: 1rem;
 }
@@ -91,16 +250,17 @@
     flex-direction: column;
     gap: 2px;
     overflow: hidden;
+    min-width: 0;
 }
 
 .formula-note {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 140px;
+    max-width: 160px;
 }
 
 .formula-date {
@@ -108,82 +268,239 @@
     color: var(--text-secondary);
 }
 
-/* 操作按钮 */
+/* 转发 / 使用、编辑、删除：始终横向排列 */
 .formula-actions {
     display: flex;
-    gap: 8px;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 6px;
+    flex-shrink: 0;
+    align-items: center;
 }
 
+/* ========== 操作按钮（图标按钮，与智能体 icon 按钮一致）========== */
 .btn-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background: var(--bg-input);
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 .btn-icon:hover {
-    background: #eff6ff; /* 浅色模式悬停背景 */
+    background: rgba(37, 99, 235, 0.12);
     color: var(--primary-color);
+    border-color: rgba(37, 99, 235, 0.25);
+    transform: scale(1.06);
 }
 
-/* 深色模式下的按钮悬停适配 */
+.btn-icon:active {
+    transform: scale(0.98);
+}
+
 [data-theme="dark"] .btn-icon:hover {
-    background: rgba(59, 130, 246, 0.2); /* 深色模式悬停背景 */
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.35);
 }
 
 .btn-icon.delete:hover {
-    background: #fee2e2; /* 浅色模式删除背景 */
+    background: rgba(239, 68, 68, 0.12);
     color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
 [data-theme="dark"] .btn-icon.delete:hover {
-    background: rgba(239, 68, 68, 0.2); /* 深色模式删除背景 */
+    background: rgba(239, 68, 68, 0.2);
 }
 
-/* 空状态 */
+/* ========== 空状态（与主页/智能体 CTA 一致）========= */
 .empty-state {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 5rem 0;
+    padding: 4rem 1.5rem;
     color: var(--text-secondary);
 }
 
 .empty-state i {
-    font-size: 3.5rem;
-    margin-bottom: 1.5rem;
-    opacity: 0.3;
+    font-size: 3.25rem;
+    margin-bottom: 1.25rem;
+    opacity: 0.5;
     color: var(--primary-color);
+    display: inline-block;
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.empty-state:hover i {
+    transform: scale(1.08);
 }
 
 .empty-state p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     margin-bottom: 1.5rem;
+    max-width: 380px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.65;
 }
 
-/* 新建算式卡片 */
+.empty-state .action-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.empty-state .action-btn {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    border: none;
+    padding: 0.85rem 1.75rem;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.35);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.empty-state .action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(37, 99, 235, 0.45);
+    filter: brightness(1.05);
+}
+
+/* ========== 新建卡片（与主页渐变 CTA 区 + 智能体 dashed 区）========= */
 .add-new-card {
-    background-color: var(--bg-input); /* 适配深色 */
-    transition: all 0.3s ease;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.06));
+    border: 2px dashed rgba(37, 99, 235, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius-lg);
 }
 
 .add-new-card:hover {
-    background-color: #eff6ff;
     border-color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.1));
     transform: translateY(-5px);
-}
-
-[data-theme="dark"] .add-new-card:hover {
-    background-color: rgba(59, 130, 246, 0.1);
+    box-shadow: 0 12px 32px -8px rgba(37, 99, 235, 0.2);
 }
 
 .add-new-card:hover i {
-    transform: scale(1.1);
-    transition: transform 0.3s;
+    transform: scale(1.2);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.add-new-card:not(:hover) i {
+    transition: transform 0.3s ease;
+}
+
+[data-theme="dark"] .add-new-card {
+    border-color: rgba(59, 130, 246, 0.45);
+}
+
+[data-theme="dark"] .add-new-card:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(139, 92, 246, 0.1));
+    box-shadow: 0 12px 32px -8px rgba(59, 130, 246, 0.25);
+}
+
+/* ========== 脚本详情工具栏与 Monaco 区 ========== */
+.formulas-detail-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.formulas-detail-toolbar .action-btn {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.formulas-detail-toolbar .action-btn:hover {
+    transform: translateY(-2px);
+}
+
+#formulas-monaco-wrap {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 2px solid var(--border-color);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+#formulas-monaco-wrap:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+[data-theme="dark"] #formulas-monaco-wrap:focus-within {
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* 脚本详情：备注输入与标签 */
+#scripts-detail-view label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+#scripts-detail-view .tech-input {
+    max-width: 100%;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 700px) {
+    #my-formulas .formulas-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .formulas-panel-header {
+        padding: 1.1rem 1.25rem;
+    }
+
+    .formula-grid,
+    #formula-list,
+    #animation-scripts-list {
+        padding: 1.25rem 1.25rem 1.5rem;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .formulas-panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .formulas-panel-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .formulas-sub-nav {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .formulas-sub-tab {
+        flex: 1;
+        text-align: center;
+        padding: 0.75rem 1rem;
+    }
+
+    .formulas-panel-title {
+        font-size: 1.1rem;
+    }
+
+    .empty-state {
+        padding: 3rem 1rem;
+    }
 }

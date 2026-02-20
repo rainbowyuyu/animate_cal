@@ -57,16 +57,18 @@ export function initDevTools() {
     initManimResize();
 }
 
-/** 代码 / 视频 / 日志 三者交界处拖拽调整大小 */
+/** 竖排布局：上（代码+日志）/ 下（视频）拖拽调整高度 */
 function initManimResize() {
+    const topPane = document.getElementById('ide-left-pane');
     const editorPane = document.getElementById('ide-editor-pane');
-    const previewPane = document.getElementById('ide-preview-pane');
-    const innerPane = document.getElementById('ide-preview-inner-pane');
     const logPane = document.getElementById('ide-log-pane');
-    const handleEditorPreview = document.getElementById('ide-resize-editor-preview');
-    const handlePreviewLog = document.getElementById('ide-resize-preview-log');
-    if (!editorPane || !previewPane || !handleEditorPreview) return;
+    const previewPane = document.getElementById('ide-preview-pane');
+    const handleTopBottom = document.getElementById('ide-resize-top-bottom');
+    const handleEditorLog = document.getElementById('ide-resize-editor-log');
+    
+    if (!topPane || !editorPane || !previewPane || !handleTopBottom) return;
 
+    // 垂直拖拽：调整上（代码+日志）与下（视频）的高度
     function dragVertical(handle, paneAbove, paneBelow, minAbove, minBelow) {
         let startY = 0, startAbove = 0;
         function onMove(e) {
@@ -80,7 +82,7 @@ function initManimResize() {
             document.removeEventListener('mouseup', onUp);
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
-            if (monacoEditor) monacoEditor.layout();
+            if (window.monacoEditor) window.monacoEditor.layout();
         }
         handle.addEventListener('mousedown', function(e) {
             e.preventDefault();
@@ -93,9 +95,10 @@ function initManimResize() {
         });
     }
 
-    dragVertical(handleEditorPreview, editorPane, previewPane, 180, 180);
-    if (handlePreviewLog && innerPane && logPane) {
-        dragVertical(handlePreviewLog, innerPane, logPane, 120, 80);
+    // 上/下大块：最小高度 200px / 180px
+    dragVertical(handleTopBottom, topPane, previewPane, 200, 180);
+    if (handleEditorLog && logPane) {
+        dragVertical(handleEditorLog, editorPane, logPane, 200, 120);
     }
 }
 
@@ -534,15 +537,15 @@ function renderImportScripts() {
     rainbowEl.style.display = 'none';
     const user = getCurrentUsername();
     if (!user) {
-        listEl.innerHTML = '<p style="padding:1rem; color:#94a3b8; font-size:0.85rem;">请先登录后在此选择已保存的脚本。</p>';
+        listEl.innerHTML = '<p class="manim-import-msg" style="padding:1rem; font-size:0.85rem;">请先登录后在此选择已保存的脚本。</p>';
         return;
     }
-    listEl.innerHTML = '<p style="padding:0.5rem; color:#94a3b8; font-size:0.8rem;">加载中...</p>';
+    listEl.innerHTML = '<p class="manim-import-msg" style="padding:0.5rem; font-size:0.8rem;">加载中...</p>';
     fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`)
         .then(res => res.json())
         .then(data => {
             if (data.status !== 'success' || !data.data || data.data.length === 0) {
-                listEl.innerHTML = '<p style="padding:1rem; color:#94a3b8; font-size:0.85rem;">暂无保存的脚本，可前往「我的算式 → 动画脚本库」保存。</p>';
+                listEl.innerHTML = '<p class="manim-import-msg" style="padding:1rem; font-size:0.85rem;">暂无保存的脚本，可前往「我的算式 → 动画脚本库」保存。</p>';
                 return;
             }
             listEl.innerHTML = data.data.map(s => {
@@ -556,7 +559,7 @@ function renderImportScripts() {
             });
         })
         .catch(() => {
-            listEl.innerHTML = '<p style="padding:1rem; color:#ef4444; font-size:0.85rem;">加载失败</p>';
+            listEl.innerHTML = '<p class="manim-import-msg manim-import-msg-error" style="padding:1rem; font-size:0.85rem;">加载失败</p>';
         });
 }
 

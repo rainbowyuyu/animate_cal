@@ -15,13 +15,9 @@ let isResizeGesture = false;
 let resizeStartX = 0;
 let resizeStartVal = 0;
 
-// 手机端防误触：仅当判定为「书写」时才占住触摸，否则允许页面上下滑动
+// 手机端触摸处理
 // 设置中「锁定画板（手机版）」开启时，触摸仅滚动、不绘制
-const TOUCH_COMMIT_DIST = 10;       // 移动超过此像素才做意图判断
-const TOUCH_SCROLL_VERTICAL_RATIO = 1.3; // 垂直位移 / 水平位移 > 此值视为滚动
 const CANVAS_LOCK_MOBILE_KEY = 'canvas_lock_mobile';
-let touchStartX = 0;
-let touchStartY = 0;
 let touchCommittedToDraw = false;
 
 function isCanvasLockedForTouch() {
@@ -69,9 +65,10 @@ export function setupCanvas() {
     canvas.addEventListener('mouseup', onCanvasMouseUp);
     canvas.addEventListener('mouseout', onCanvasMouseOut);
     canvas.addEventListener('contextmenu', onCanvasContextMenu);
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+    // 触摸事件：锁定状态下使用 passive: true 允许滚动，解锁状态下使用 passive: false 阻止滚动
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd);
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     // 4. 监听模式切换 (自定义事件)
     window.addEventListener('mode-change', (e) => {
@@ -151,27 +148,218 @@ function handlePaste(e) {
     }
 }
 
+/** 检测是否为移动设备 */
+function isMobileDevice() {
+    return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+/** 显示画板编辑按钮 */
+function showCanvasEditButton() {
+    let btn = document.getElementById('canvas-edit-btn');
+    if (!btn) {
+        // 创建按钮
+        btn = document.createElement('button');
+        btn.id = 'canvas-edit-btn';
+        btn.className = 'canvas-edit-btn';
+        btn.innerHTML = '<i class="fa-solid fa-crop"></i> <span>编辑图片</span>';
+        btn.title = '编辑图片（裁剪等）';
+        btn.onclick = () => {
+            const preview = document.getElementById('uploaded-preview');
+            if (preview && preview.src && window.ImageEditor && window.ImageEditor.openEditor) {
+                window.ImageEditor.openEditor('uploaded-preview', 'canvas');
+            }
+        };
+        const canvasWrapper = document.querySelector('.canvas-wrapper');
+        if (canvasWrapper) {
+            canvasWrapper.appendChild(btn);
+        }
+    }
+    btn.style.display = 'flex';
+}
+
+/** 隐藏画板编辑按钮 */
+function hideCanvasEditButton() {
+    const btn = document.getElementById('canvas-edit-btn');
+    if (btn) {
+        btn.style.display = 'none';
+    }
+}
+
 // 统一处理图片加载与预览
-function handleImageFile(file) {
+// @param {File} file - 图片文件
+// @param {boolean} skipAutoOpen - 是否跳过移动端自动打开编辑器（用于从编辑器应用时）
+function handleImageFile(file, skipAutoOpen = false) {
     const fileNameDisplay = document.getElementById('file-name-display');
     if(fileNameDisplay) fileNameDisplay.innerText = file.name || "Pasted Image";
 
     const reader = new FileReader();
     reader.onload = function(evt) {
+        const previewContainer = document.getElementById('uploaded-preview-container');
         const preview = document.getElementById('uploaded-preview');
-        if(preview) {
-            preview.src = evt.target.result;
-            preview.style.display = 'block';
-
-            // 强制 Canvas 变透明
-            const dpr = window.devicePixelRatio || 1;
-            if (ctx && canvas) {
-                ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        const dataUrl = evt.target.result;
+        
+        // 将图片绘制到 Canvas 上作为背景，而不是只显示预览图
+        if (canvas && ctx) {
+            const img = new Image();
+            img.onload = function() {
+                const dpr = window.devicePixelRatio || 1;
+                const canvasWidth = canvas.width / dpr;
+                const canvasHeight = canvas.height / dpr;
+                
+                // 清空画布
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                
+                // 计算图片缩放以适应画布（保持宽高比）
+                const imgAspect = img.width / img.height;
+                const canvasAspect = canvasWidth / canvasHeight;
+                
+                let drawWidth, drawHeight, drawX, drawY;
+                
+                if (imgAspect > canvasAspect) {
+                    // 图片更宽，以宽度为准
+                    drawWidth = canvasWidth;
+                    drawHeight = canvasWidth / imgAspect;
+                    drawX = 0;
+                    drawY = (canvasHeight - drawHeight) / 2;
+                } else {
+                    // 图片更高，以高度为准
+                    drawWidth = canvasHeight * imgAspect;
+                    drawHeight = canvasHeight;
+                    drawX = (canvasWidth - drawWidth) / 2;
+                    drawY = 0;
+                }
+                
+                // 绘制图片到 canvas
+                ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+                
+                // 保存状态到历史记录
+                historyStack.length = 0;
+                historyStep = -1;
+                saveState();
+                
+                // 更新预览图（用于编辑器）
+                if (preview) {
+                    // 如果 skipAutoOpen 为 true，先清理可能存在的 onload 事件监听器
+                    if (skipAutoOpen) {
+                        preview.onload = null;
+                    }
+                    preview.src = dataUrl;
+                }
+                
+                // 显示编辑按钮
+                showCanvasEditButton();
+                
+                // 移动端：图片绘制完成后自动打开编辑器（除非是从编辑器应用来的）
+                if (isMobileDevice() && !skipAutoOpen) {
+                    // 等待预览图加载完成，然后打开编辑器
+                    const openEditorWhenReady = () => {
+                        // 检查是否应该跳过自动打开
+                        if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                            return;
+                        }
+                        
+                        // 确保预览图已加载
+                        if (preview && preview.complete && preview.naturalWidth > 0) {
+                            setTimeout(() => {
+                                // 再次检查标志
+                                if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                                    return;
+                                }
+                                
+                                if (window.ImageEditor && typeof window.ImageEditor.openEditor === 'function') {
+                                    try {
+                                        window.ImageEditor.openEditor('uploaded-preview', 'canvas');
+                                    } catch (e) {
+                                        console.error('Failed to open editor:', e);
+                                        if (typeof showToast === 'function') {
+                                            showToast('打开编辑器失败，请重试', 'error');
+                                        }
+                                    }
+                                } else {
+                                    console.warn('ImageEditor not available, retrying...');
+                                    setTimeout(openEditorWhenReady, 200);
+                                }
+                            }, 150);
+                        } else {
+                            // 等待预览图加载
+                            preview.onload = openEditorWhenReady;
+                        }
+                    };
+                    openEditorWhenReady();
+                } else {
+                    // 桌面端：隐藏预览容器（图片已绘制到 canvas）
+                    if (previewContainer) {
+                        previewContainer.style.display = 'none';
+                    }
+                }
+            };
+            img.onerror = function() {
+                console.error('Failed to load image for canvas');
+            };
+            img.src = dataUrl;
+        } else {
+            // 如果 canvas 不可用，回退到原来的预览模式
+            if(preview && previewContainer) {
+                // 如果 skipAutoOpen 为 true，先清理可能存在的 onload 事件监听器
+                if (skipAutoOpen) {
+                    preview.onload = null;
+                    preview.onerror = null;
+                }
+                
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+                previewContainer.style.display = 'block';
+                
+                // 移动端：图片加载完成后自动打开编辑器（除非是从编辑器应用来的）
+                if (isMobileDevice() && !skipAutoOpen) {
+                    const openEditorOnLoad = () => {
+                        // 检查是否应该跳过自动打开
+                        if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                            return;
+                        }
+                        
+                        setTimeout(() => {
+                            // 再次检查标志
+                            if (skipAutoOpen || (window.ImageEditor && window.ImageEditor._editorJustClosed)) {
+                                return;
+                            }
+                            
+                            if (window.ImageEditor && typeof window.ImageEditor.openEditor === 'function') {
+                                try {
+                                    window.ImageEditor.openEditor('uploaded-preview', 'canvas');
+                                } catch (e) {
+                                    console.error('Failed to open editor:', e);
+                                    if (typeof showToast === 'function') {
+                                        showToast('打开编辑器失败，请重试', 'error');
+                                    }
+                                }
+                            } else {
+                                console.warn('ImageEditor not available, retrying...');
+                                setTimeout(openEditorOnLoad, 200);
+                            }
+                        }, 150);
+                    };
+                    preview.onload = openEditorOnLoad;
+                    if (preview.complete && preview.naturalWidth > 0) {
+                        openEditorOnLoad();
+                    }
+                }
+                
+                // 强制 Canvas 变透明
+                const dpr = window.devicePixelRatio || 1;
+                if (ctx && canvas) {
+                    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                }
             }
         }
     }
     reader.readAsDataURL(file);
 }
+
+// 导出供 image-editor.js 使用
+export { handleImageFile };
+// 同时挂载到全局，供 HTML 调用
+window.handleImageFile = handleImageFile;
 
 
 export function resizeCanvas() {
@@ -313,46 +501,60 @@ function onCanvasMouseOut(e) {
 
 function handleTouchStart(e) {
     if (!e.touches.length) return;
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchCommittedToDraw = false;
-    // 不 preventDefault，先让浏览器可以滚动；在 touchmove 里再根据移动方向决定是画还是滚
+    
+    // 锁定画板（手机版）：不拦截触摸，允许页面滑动
+    if (isCanvasLockedForTouch()) {
+        // 锁定状态下，不阻止默认行为，允许滚动
+        touchCommittedToDraw = false;
+        return;
+    }
+    
+    // 解锁状态：立即开始绘制，自由书写
+    e.preventDefault();
+    const touch = e.touches[0];
+    const mockEvent = {
+        clientX: touch.clientX,
+        clientY: touch.clientY,
+        preventDefault: () => {}
+    };
+    startDraw(mockEvent);
+    touchCommittedToDraw = true;
 }
 
 function handleTouchMove(e) {
     if (!e.touches.length) return;
-    // 锁定画板（手机版）：不拦截触摸，仅允许页面滑动
-    if (isCanvasLockedForTouch()) return;
-    const touch = e.touches[0];
-    const x = touch.clientX;
-    const y = touch.clientY;
-
+    
+    // 锁定画板（手机版）：不拦截触摸，允许页面滑动
+    if (isCanvasLockedForTouch()) {
+        // 锁定状态下，不阻止默认行为，允许滚动
+        return;
+    }
+    
+    // 解锁状态：继续绘制（自由书写，任何方向都可以绘制）
     if (touchCommittedToDraw) {
         e.preventDefault();
-        canvas.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y }));
-        return;
+        const touch = e.touches[0];
+        const mockEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => {}
+        };
+        draw(mockEvent);
     }
-
-    const dx = x - touchStartX;
-    const dy = y - touchStartY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < TOUCH_COMMIT_DIST) return;
-
-    // 以移动方向区分：明显偏垂直视为滚动，否则视为书写
-    const absDx = Math.abs(dx);
-    const absDy = Math.abs(dy);
-    if (absDy > absDx * TOUCH_SCROLL_VERTICAL_RATIO) {
-        return;
-    }
-
-    touchCommittedToDraw = true;
-    e.preventDefault();
-    canvas.dispatchEvent(new MouseEvent("mousedown", { clientX: touchStartX, clientY: touchStartY }));
-    canvas.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y }));
 }
 
 function handleTouchEnd(e) {
-    if (touchCommittedToDraw) stopDraw();
+    // 锁定画板（手机版）：不处理触摸结束事件
+    if (isCanvasLockedForTouch()) {
+        touchCommittedToDraw = false;
+        return;
+    }
+    
+    // 解锁状态：如果正在绘制，结束绘制
+    if (touchCommittedToDraw) {
+        e.preventDefault();
+        stopDraw();
+    }
     touchCommittedToDraw = false;
 }
 
@@ -459,6 +661,8 @@ export function clearCanvas() {
     if (!isUploadMode) {
         ctx.fillStyle = getCanvasBgColor();
         ctx.fillRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+        // 清空画布后隐藏编辑按钮
+        hideCanvasEditButton();
     } else {
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
     }

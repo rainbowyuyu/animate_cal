@@ -43,6 +43,8 @@ const CALC_DEFAULT_MODE_KEY = 'calc_default_mode';
 const DEVTOOLS_DEFAULT_TAB_KEY = 'devtools_default_tab';
 /** 手机版锁定画板：开启后画板区域仅可滑动不可书写 */
 export const CANVAS_LOCK_MOBILE_KEY = 'canvas_lock_mobile';
+/** 主页Hero文字效果模式：'gradient' 动态渐变，'interaction' 抖动交互 */
+export const HERO_EFFECT_MODE_KEY = 'hero_effect_mode';
 
 export function getAgentEnterSend() {
     try {
@@ -99,6 +101,27 @@ export function setCanvasLockMobile(value) {
     } catch (_) {}
 }
 
+export function getHeroEffectMode() {
+    const v = localStorage.getItem(HERO_EFFECT_MODE_KEY);
+    return v === 'gradient' ? 'gradient' : 'interaction'; // 默认为抖动交互
+}
+export function setHeroEffectMode(value) {
+    const allowed = ['gradient', 'interaction'];
+    const mode = allowed.includes(value) ? value : 'interaction';
+    localStorage.setItem(HERO_EFFECT_MODE_KEY, mode);
+    persistAfterChange();
+    
+    // 更新UI选择状态
+    syncHeroEffectMode();
+    
+    // 触发重新初始化Hero效果
+    if (window.initHeroTextGlow) {
+        setTimeout(() => {
+            window.initHeroTextGlow();
+        }, 100);
+    }
+}
+
 /** 从本地组装完整设置（供保存到云端与恢复用） */
 export function getFullSettings() {
     const theme = localStorage.getItem('theme') || 'light';
@@ -115,7 +138,8 @@ export function getFullSettings() {
         detect_default_input: getDetectDefaultInput(),
         calc_default_mode: getCalcDefaultMode(),
         devtools_default_tab: getDevtoolsDefaultTab(),
-        canvas_lock_mobile: getCanvasLockMobile()
+        canvas_lock_mobile: getCanvasLockMobile(),
+        hero_effect_mode: getHeroEffectMode()
     };
     try {
         const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
@@ -162,12 +186,33 @@ export function applySettings(obj) {
             const sel = document.getElementById('settings-devtools-default-tab');
             if (sel) sel.value = obj.devtools_default_tab;
         }
+        if (obj.hero_gradient_mode === 'static' || obj.hero_gradient_mode === 'dynamic') {
+            localStorage.setItem(HERO_GRADIENT_MODE_KEY, obj.hero_gradient_mode);
+            const sel = document.getElementById('settings-hero-gradient-mode');
+            if (sel) sel.value = obj.hero_gradient_mode;
+        }
+        if (typeof obj.hero_interaction_enabled === 'boolean') {
+            localStorage.setItem(HERO_INTERACTION_ENABLED_KEY, obj.hero_interaction_enabled ? 'true' : 'false');
+            const cb = document.getElementById('settings-hero-interaction-enabled');
+            if (cb) cb.checked = obj.hero_interaction_enabled;
+        }
         if (typeof obj.canvas_lock_mobile === 'boolean') {
             localStorage.setItem(CANVAS_LOCK_MOBILE_KEY, obj.canvas_lock_mobile ? 'true' : 'false');
             const cb = document.getElementById('settings-canvas-lock-mobile');
             if (cb) cb.checked = obj.canvas_lock_mobile;
         }
-        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, canvas_lock_mobile, ...rest } = obj;
+        if (obj.hero_effect_mode === 'gradient' || obj.hero_effect_mode === 'interaction') {
+            localStorage.setItem(HERO_EFFECT_MODE_KEY, obj.hero_effect_mode);
+            const sel = document.getElementById('settings-hero-effect-mode');
+            if (sel) sel.value = obj.hero_effect_mode;
+            // 触发重新初始化Hero效果
+            if (window.initHeroTextGlow) {
+                setTimeout(() => {
+                    window.initHeroTextGlow();
+                }, 100);
+            }
+        }
+        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, canvas_lock_mobile, hero_effect_mode, ...rest } = obj;
         if (Object.keys(rest).length > 0) {
             const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
             Object.assign(extra, rest);
@@ -187,16 +232,19 @@ export function persistAfterChange() {
 /** 仅内部/防抖用：上报到云端，返回是否成功 */
 async function saveSettingsToServer() {
     try {
-        const me = await fetch('/api/user/me').then(r => r.json());
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        // 401 是未登录的正常状态，静默处理
+        if (res.status === 401 || !res.ok) return false;
+        const me = await res.json();
         if (me.status !== 'success' || !me.username) return false;
         const settings = getFullSettings();
-        const res = await fetch('/api/user/settings', {
+        const settingsRes = await fetch('/api/user/settings', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ settings }),
             credentials: 'include'
         });
-        const data = await res.json();
+        const data = await settingsRes.json();
         return data.status === 'success';
     } catch (_) {
         return false;
@@ -206,7 +254,14 @@ async function saveSettingsToServer() {
 /** 用户点击「保存」：未登录则引导登录，已登录则立即同步到账号 */
 export async function saveSettingsToAccount() {
     try {
-        const me = await fetch('/api/user/me').then(r => r.json());
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        // 401 是未登录的正常状态
+        if (res.status === 401 || !res.ok) {
+            if (typeof showToast === 'function') showToast('请登录后再保存到账号', 'info');
+            if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
+            return;
+        }
+        const me = await res.json();
         if (me.status !== 'success' || !me.username) {
             if (typeof showToast === 'function') showToast('请登录后再保存到账号', 'info');
             if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
@@ -230,6 +285,7 @@ export async function loadUserSettings() {
             applySettings(data.settings);
             updateShortcutDisplay();
             syncAgentEnterSendCheckbox();
+            syncHeroEffectMode();
         }
     } catch (e) {
         console.warn('loadUserSettings', e);
@@ -237,16 +293,157 @@ export async function loadUserSettings() {
 }
 
 function syncDetectDefaultInput() {
-    const sel = document.getElementById('settings-detect-default-input');
-    if (sel) sel.value = getDetectDefaultInput();
+    const value = getDetectDefaultInput();
+    const drawRadio = document.getElementById('detect-input-draw');
+    const uploadRadio = document.getElementById('detect-input-upload');
+    
+    if (drawRadio) drawRadio.checked = (value === 'draw');
+    if (uploadRadio) uploadRadio.checked = (value === 'upload');
+    
+    // 更新卡片选中状态
+    const drawCard = drawRadio?.closest('.settings-select-card');
+    const uploadCard = uploadRadio?.closest('.settings-select-card');
+    if (drawCard) drawCard.classList.toggle('selected', value === 'draw');
+    if (uploadCard) uploadCard.classList.toggle('selected', value === 'upload');
+}
+
+function syncHeroEffectMode() {
+    const mode = getHeroEffectMode();
+    // 更新卡片式选择器
+    const gradientCard = document.getElementById('hero-effect-gradient');
+    const interactionCard = document.getElementById('hero-effect-interaction');
+    const gradientCardEl = document.getElementById('hero-effect-gradient-card');
+    const interactionCardEl = document.getElementById('hero-effect-interaction-card');
+    
+    if (gradientCard) gradientCard.checked = (mode === 'gradient');
+    if (interactionCard) interactionCard.checked = (mode === 'interaction');
+    
+    // 更新卡片选中状态
+    if (gradientCardEl) {
+        gradientCardEl.classList.toggle('selected', mode === 'gradient');
+    }
+    if (interactionCardEl) {
+        interactionCardEl.classList.toggle('selected', mode === 'interaction');
+    }
+    
+    // 更新预览
+    updateHeroEffectPreview(mode);
+}
+
+function updateHeroEffectPreview(mode) {
+    const preview = document.getElementById('hero-effect-preview');
+    if (!preview) return;
+    
+    preview.className = 'settings-preview-box preview-hero-text';
+    
+    if (mode === 'gradient') {
+        preview.classList.add('gradient-preview');
+        // 恢复原始文本（移除字符拆分）
+        const text = '让数学计算 看得见、摸得着';
+        preview.innerHTML = `<span>${text}</span>`;
+    } else if (mode === 'interaction') {
+        preview.classList.add('interaction-preview');
+        // 拆分文字为字符，用于抖动效果预览
+        const text = '让数学计算 看得见、摸得着';
+        const chars = text.split('');
+        preview.innerHTML = chars.map((char, index) => {
+            if (char === ' ') {
+                return '<span class="preview-char" style="display: inline-block; width: 0.3em;">&nbsp;</span>';
+            }
+            return `<span class="preview-char">${char}</span>`;
+        }).join('');
+    }
+}
+
+// 为卡片式选择器添加点击事件处理
+function initSelectCards() {
+    // 主页文字效果卡片
+    const heroCards = document.querySelectorAll('#hero-effect-gradient-card, #hero-effect-interaction-card');
+    heroCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            const radio = this.querySelector('input[type="radio"]');
+            if (radio && !radio.checked) {
+                radio.checked = true;
+                radio.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+    
+    // 识别页默认输入卡片
+    const detectCards = document.querySelectorAll('[name="detect-default-input"]');
+    detectCards.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const card = this.closest('.settings-select-card');
+            document.querySelectorAll('[name="detect-default-input"]').forEach(r => {
+                const c = r.closest('.settings-select-card');
+                if (c) c.classList.remove('selected');
+            });
+            if (card) card.classList.add('selected');
+        });
+    });
+    
+    // 动态计算模式卡片
+    const calcCards = document.querySelectorAll('[name="calc-default-mode"]');
+    calcCards.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const card = this.closest('.settings-select-card');
+            document.querySelectorAll('[name="calc-default-mode"]').forEach(r => {
+                const c = r.closest('.settings-select-card');
+                if (c) c.classList.remove('selected');
+            });
+            if (card) card.classList.add('selected');
+        });
+    });
+    
+    // 开发者工具标签卡片
+    const devtoolsCards = document.querySelectorAll('[name="devtools-default-tab"]');
+    devtoolsCards.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const card = this.closest('.settings-select-card');
+            document.querySelectorAll('[name="devtools-default-tab"]').forEach(r => {
+                const c = r.closest('.settings-select-card');
+                if (c) c.classList.remove('selected');
+            });
+            if (card) card.classList.add('selected');
+        });
+    });
 }
 function syncCalcDefaultMode() {
-    const sel = document.getElementById('settings-calc-default-mode');
-    if (sel) sel.value = getCalcDefaultMode();
+    const value = getCalcDefaultMode();
+    const normalRadio = document.getElementById('calc-mode-normal');
+    const formularRadio = document.getElementById('calc-mode-formular');
+    const visualizationRadio = document.getElementById('calc-mode-visualization');
+    
+    if (normalRadio) normalRadio.checked = (value === 'normal');
+    if (formularRadio) formularRadio.checked = (value === 'formular');
+    if (visualizationRadio) visualizationRadio.checked = (value === 'visualization');
+    
+    // 更新卡片选中状态
+    [normalRadio, formularRadio, visualizationRadio].forEach(radio => {
+        if (radio) {
+            const card = radio.closest('.settings-select-card');
+            if (card) card.classList.toggle('selected', radio.checked);
+        }
+    });
 }
+
 function syncDevtoolsDefaultTab() {
-    const sel = document.getElementById('settings-devtools-default-tab');
-    if (sel) sel.value = getDevtoolsDefaultTab();
+    const value = getDevtoolsDefaultTab();
+    const latexRadio = document.getElementById('devtools-tab-latex');
+    const manimRadio = document.getElementById('devtools-tab-manim');
+    const rainbowRadio = document.getElementById('devtools-tab-rainbow');
+    
+    if (latexRadio) latexRadio.checked = (value === 'latex');
+    if (manimRadio) manimRadio.checked = (value === 'manim');
+    if (rainbowRadio) rainbowRadio.checked = (value === 'rainbow');
+    
+    // 更新卡片选中状态
+    [latexRadio, manimRadio, rainbowRadio].forEach(radio => {
+        if (radio) {
+            const card = radio.closest('.settings-select-card');
+            if (card) card.classList.toggle('selected', radio.checked);
+        }
+    });
 }
 function syncCanvasLockMobileCheckbox() {
     const cb = document.getElementById('settings-canvas-lock-mobile');
@@ -302,9 +499,17 @@ function updateSettingsFooterHint() {
     const welcome = document.getElementById('settings-welcome');
     if (!hint) return;
     fetch('/api/user/me', { credentials: 'include' })
-        .then(r => r.json())
+        .then(r => {
+            // 401 是未登录的正常状态，静默处理
+            if (r.status === 401 || !r.ok) {
+                hint.textContent = '当前仅本地生效，登录后可保存到账号';
+                if (welcome) welcome.style.display = 'none';
+                return null;
+            }
+            return r.json();
+        })
         .then(data => {
-            if (data.status === 'success' && data.username) {
+            if (data && data.status === 'success' && data.username) {
                 hint.textContent = '设置已自动保存并同步到账号';
                 if (welcome) {
                     welcome.textContent = '欢迎，' + data.username;
@@ -328,9 +533,14 @@ export function initSettings() {
     syncDetectDefaultInput();
     syncCalcDefaultMode();
     syncDevtoolsDefaultTab();
+    syncHeroEffectMode();
+    syncDetectDefaultInput();
+    syncCalcDefaultMode();
+    syncDevtoolsDefaultTab();
     syncCanvasLockMobileCheckbox();
     loadVersionFromUpdate();
     initSettingsNav();
+    initSelectCards();
     window.addEventListener('settings-changed', persistAfterChange);
 }
 
@@ -382,6 +592,7 @@ export function openSettings(anchor) {
     syncDetectDefaultInput();
     syncCalcDefaultMode();
     syncDevtoolsDefaultTab();
+    syncHeroEffectMode();
     onOpenSettings();
     toggleModal('settings-modal', true);
     const scrollMap = { shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile' };
@@ -460,6 +671,10 @@ export function resetDefaults() {
     setCanvasLockMobile(false);
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
+    syncDetectDefaultInput();
+    syncCalcDefaultMode();
+    syncDevtoolsDefaultTab();
+    syncHeroEffectMode();
     syncDetectDefaultInput();
     syncCalcDefaultMode();
     syncDevtoolsDefaultTab();

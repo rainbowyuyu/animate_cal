@@ -12,6 +12,42 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 520px;
+    width: 100%;
+    min-width: 0; /* 允许在 grid 1fr 中正确收缩 */
+}
+
+#devtools .workspace {
+    min-height: 580px;
+}
+
+/* 侧边栏工具箱：防止激活按钮渐变超出圆角框 */
+#devtools .tools-panel .control-group {
+    overflow: hidden;
+    min-width: 0;
+}
+
+#devtools .tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+}
+
+#devtools .tools-list .tab-btn {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.35;
+}
+
+#devtools .tools-list .tab-btn.active {
+    transform: none;
 }
 
 .dev-panel {
@@ -70,17 +106,17 @@
     width: 100%;
     outline: none;
     border: none;
-    background: transparent;
-    color: var(--text-main);
     --keyboard-background: var(--bg-surface);
     --keyboard-toolbar-text-active: var(--primary-color);
+    background: transparent;
+    color: var(--text-main);
 }
 
-/* 最终渲染预览容器：固定最大高度，不抢占上方 LaTeX 输入区 */
+/* 最终渲染预览：加大高度，避免遮挡公式、完整显示并支持滚动 */
 .dev-latex-preview-wrap {
     flex: 0 0 auto;
-    min-height: 80px;
-    max-height: 140px;
+    min-height: 120px;
+    max-height: 280px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -88,43 +124,73 @@
 
 #dev-latex-preview {
     flex: 1;
-    min-height: 60px;
-    max-height: 110px;
+    min-height: 100px;
+    max-height: 240px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     color: var(--text-main);
     overflow: auto;
     background: var(--bg-surface);
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px dashed var(--border-color);
+    /* 预留空间避免根号/上划线贴边被裁导致断开 */
+    padding: 1.25rem 1.5rem;
     -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
+}
+
+/* MathJax 渲染内容在预览区内完整显示、可滚动（overflow 由 main.css 统一为 visible 防断开） */
+#dev-latex-preview .mjx-chtml,
+#dev-latex-preview mjx-container {
+    max-width: 100%;
 }
 
 /* =========================================
-   3. Manim 工作台 (IDE)
+   3. Manim 工作台 (IDE)：竖排 — 上：代码+日志，下：视频（16:9 全宽）
    ========================================= */
 .ide-layout {
     display: flex;
     flex-direction: column;
+    width: 100%;
     height: 100%;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+    min-height: 560px;
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-lg);
     overflow: hidden;
     background: #1e1e1e;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#devtools .ide-layout:hover {
+    border-color: rgba(37, 99, 235, 0.4);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.08);
+}
+
+/* 上方面板：代码 + 日志（全宽，可拖拽调整与下方视频的高度比） */
+.ide-top-panel,
+.ide-left-panel {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    flex: 1 1 50%;
+    min-height: 200px;
+    overflow: hidden;
 }
 
 .ide-editor {
     display: flex;
     flex-direction: column;
-    border-bottom: none;
     position: relative;
-    min-height: 180px;
-    overflow: visible;
+    min-height: 0; /* 允许在 flex 中收缩，便于 Monaco 获得正确高度（HTML 内联可设 min-height: 200px） */
+    overflow: hidden;
+    background: #1e1e1e;
 }
 
 .ide-toolbar {
+    position: relative;
+    z-index: 100;
     height: 40px;
     background: #252526;
     border-bottom: 1px solid #333;
@@ -139,36 +205,64 @@
 }
 
 .ide-btn-run {
-    background: #4caf50;
-    color: white;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 4px;
+    background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%);
+    color: #fff;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    padding: 6px 14px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    transition: 0.2s;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
-.ide-btn-run:hover { background: #43a047; }
-.ide-btn-run:disabled { background: #555; cursor: not-allowed; opacity: 0.7; }
+.ide-btn-run:hover {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+}
+.ide-btn-run:focus {
+    outline: none;
+    border-color: #22c55e;
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+}
+.ide-btn-run:disabled {
+    background: #475569;
+    border-color: #64748b;
+    cursor: not-allowed;
+    opacity: 0.8;
+}
 
-/* 预览区域：视频背景黑色，可与日志区拖拽调整 */
+/* 下方预览区域：视频（16:9 全宽），可拖拽调整与上方的高度比 */
 .ide-preview {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    flex: 1 1 50%;
     min-height: 180px;
     background: #000;
-    border-left: 1px solid var(--border-color);
     overflow: hidden;
 }
 
-/* 视频与占位、加载圈共用区域；背景黑色 */
-.ide-preview-inner {
+/* 视频容器：保持 16:9 比例（1920x1080），在文档流中撑开高度 */
+.ide-video-container {
     position: relative;
-    min-height: 120px;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    overflow: hidden;
+    background: #000;
+    flex-shrink: 0;
+}
+
+/* 内层：绝对定位填满容器，放视频/占位/加载 */
+.ide-preview .ide-preview-inner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -178,7 +272,8 @@
 
 .ide-preview-video {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: contain;
@@ -186,64 +281,85 @@
     background: #000;
 }
 
-/* 代码 | 视频 | 日志 交界处拖拽条 */
+/* 拖拽条：垂直（调整代码与日志）和水平（调整左右面板） */
 .ide-resize-handle {
     flex-shrink: 0;
-    background: var(--border-color);
-    cursor: ns-resize;
+    background: #4b5563;
     user-select: none;
-    transition: background 0.15s;
+    transition: background 0.2s ease, background-color 0.2s ease;
+    z-index: 2;
 }
+
 .ide-resize-handle:hover,
 .ide-resize-handle:active {
     background: var(--primary-color);
 }
-.ide-resize-h {
-    height: 6px;
-    min-height: 6px;
+
+/* 垂直拖拽条（调整代码与日志的高度） */
+.ide-resize-v {
+    height: 8px;
+    min-height: 8px;
+    cursor: ns-resize;
+    margin: 0 8px;
+    border-radius: 4px;
 }
-.ide-resize-log { margin: 0 8px; border-radius: 3px; }
+
+/* 水平拖拽条（竖排布局下：调整上/下高度）沿用 .ide-resize-v */
 .ide-placeholder {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     pointer-events: none;
-    color: var(--text-secondary);
+    color: #94a3b8;
     padding: 1.5rem;
+    z-index: 1;
 }
 .ide-placeholder-icon {
-    font-size: 2.75rem;
+    font-size: 3rem;
     margin-bottom: 1rem;
-    opacity: 0.45;
-    color: var(--text-secondary);
+    opacity: 0.5;
+    color: var(--primary-color);
+    transition: transform 0.3s ease;
 }
+
+.ide-preview-inner:hover .ide-placeholder-icon {
+    transform: scale(1.05);
+}
+
 .ide-placeholder-text {
-    font-size: 0.875rem;
-    line-height: 1.5;
-    color: var(--text-secondary);
-    max-width: 260px;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #94a3b8;
+    max-width: 280px;
 }
 
 .ide-loading {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
     z-index: 10;
-    background: var(--bg-surface);
-    border-radius: var(--radius-sm);
+    background: rgba(30, 30, 30, 0.95);
+    border-radius: var(--radius-md);
     margin: 8px;
-    box-shadow: var(--shadow-md);
-    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    border: 2px solid var(--border-color);
     padding: 1.5rem 2rem;
     min-width: 160px;
+    box-sizing: border-box;
 }
 .ide-loading-spinner {
     font-size: 1.75rem;
@@ -255,10 +371,27 @@
     color: var(--text-main);
 }
 
+/* 响应式：Manim 已是竖排，小屏仅微调 */
 @media (max-width: 900px) {
     .dev-split-view { flex-direction: column; }
-    .ide-editor { flex: 1; min-height: 300px; }
-    .ide-preview { flex: 1; min-height: 250px; }
+    
+    .ide-top-panel,
+    .ide-left-panel {
+        min-height: 180px;
+    }
+    
+    .ide-editor {
+        flex: 1;
+        min-height: 200px;
+    }
+    
+    .ide-preview {
+        min-height: 160px;
+    }
+    
+    .ide-video-container {
+        padding-bottom: 56.25%; /* 保持 16:9 */
+    }
 }
 
 
@@ -457,149 +590,195 @@
 }
 .dev-manim-log-title {
     flex-shrink: 0;
-    padding: 6px 12px;
-    font-size: 0.75rem;
+    padding: 8px 12px;
+    font-size: 0.8rem;
     font-weight: 600;
-    color: var(--text-secondary);
-    font-family: inherit;
+    color: #94a3b8;
+    font-family: 'JetBrains Mono', monospace;
     letter-spacing: 0.02em;
-    border-bottom: 1px solid var(--border-color);
-    background: var(--bg-surface);
+    border-bottom: 1px solid #333;
+    background: #252526;
 }
 .cmd-log {
     flex: 1;
     margin: 0;
-    padding: 8px 12px;
+    padding: 10px 14px;
     overflow: auto;
     font-size: 0.8125rem;
-    color: var(--text-main);
+    color: #cbd5e1;
     font-family: 'Consolas', 'JetBrains Mono', 'SF Mono', Monaco, monospace;
     white-space: pre-wrap;
     word-break: break-all;
-    background: var(--bg-input);
-    line-height: 1.5;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background: #1e1e1e;
+    line-height: 1.6;
 }
 .cmd-log:empty::before {
     content: '等待渲染输出…';
     color: var(--text-secondary);
     font-style: normal;
 }
-.cmd-log::-webkit-scrollbar { width: 6px; height: 6px; }
-.cmd-log::-webkit-scrollbar-track { background: var(--bg-surface); border-radius: 3px; }
-.cmd-log::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-.cmd-log::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+.cmd-log::-webkit-scrollbar { width: 8px; height: 8px; }
+.cmd-log::-webkit-scrollbar-track { background: #252526; border-radius: 4px; }
+.cmd-log::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+.cmd-log::-webkit-scrollbar-thumb:hover { background: #64748b; }
 
-/* 导入按钮与下拉面板 */
+/* 导入按钮与下拉面板：保证不被 section 标题遮挡，整体高级感 */
 .ide-btn-import {
-    background: #334155;
+    position: relative;
+    z-index: 101;
+    background: linear-gradient(180deg, #3d4a5c 0%, #334155 100%);
     color: #e2e8f0;
     border: 1px solid #475569;
-    padding: 4px 12px;
-    border-radius: 4px;
+    padding: 6px 14px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.75rem;
-    display: flex;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 .ide-btn-import:hover {
-    background: #475569;
-    border-color: #64748b;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+.ide-btn-import:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 .ide-btn-save {
-    background: var(--primary-color);
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
     color: #fff;
-    border: none;
-    padding: 4px 12px;
-    border-radius: 4px;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    padding: 6px 14px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: 600;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 6px;
-    transition: 0.2s;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 .ide-btn-save:hover {
-    opacity: 0.9;
-    filter: brightness(1.05);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+.ide-btn-save:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
 .manim-import-wrap {
     position: relative;
-    z-index: 1000;
+    z-index: 1002;
 }
+/* 导入下拉面板：固定定位由 JS 设置，保证在标题之上、视觉高级 */
 .manim-import-panel {
     position: absolute;
     top: 100%;
     left: 0;
-    margin-top: 6px;
-    width: 320px;
-    min-width: 280px;
-    max-height: 360px;
-    min-height: 120px;
-    background: #252526;
-    border: 1px solid #333;
-    border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    z-index: 10001;
+    margin-top: 8px;
+    width: 340px;
+    min-width: 300px;
+    max-height: 380px;
+    min-height: 140px;
+    background: linear-gradient(180deg, #2a2d33 0%, #252526 100%);
+    border: 1px solid rgba(71, 85, 105, 0.6);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2), 0 10px 30px -4px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    z-index: 100002;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.manim-import-panel[style*="position: fixed"] {
+    margin-top: 0;
 }
 .manim-import-tabs {
     display: flex;
-    border-bottom: 1px solid #333;
+    gap: 4px;
+    padding: 10px 10px 0;
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+}
+/* 导入面板内文字固定为白色，不随深浅色主题变化 */
+.manim-import-panel,
+.manim-import-panel p,
+.manim-import-msg {
+    color: #fff;
+}
+.manim-import-msg-error {
+    color: #fca5a5 !important; /* 仅错误提示用淡红区分，其余一律白 */
 }
 .manim-import-tab {
     flex: 1;
-    padding: 10px 12px;
+    padding: 10px 14px;
     background: transparent;
     border: none;
-    color: #94a3b8;
+    border-radius: 8px 8px 0 0;
+    color: #e2e8f0;
     font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
 }
-.manim-import-tab:hover { color: #e2e8f0; }
+.manim-import-tab:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+}
 .manim-import-tab.active {
-    color: #3b82f6;
-    border-bottom: 2px solid #3b82f6;
-    margin-bottom: -1px;
+    color: #fff;
+    background: rgba(59, 130, 246, 0.25);
+    box-shadow: 0 -1px 0 0 rgba(59, 130, 246, 0.4);
 }
 .manim-import-list {
     flex: 1;
     overflow-y: auto;
-    padding: 8px;
+    padding: 12px;
+    min-height: 80px;
 }
+.manim-import-list::-webkit-scrollbar { width: 6px; }
+.manim-import-list::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 3px; }
+.manim-import-list::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
 .manim-import-list .import-item {
     display: block;
     width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 6px;
-    background: #1e1e1e;
-    border: 1px solid #333;
-    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid rgba(71, 85, 105, 0.35);
+    border-radius: 10px;
     color: #e2e8f0;
-    font-size: 0.85rem;
+    font-size: 0.875rem;
     text-align: left;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 .manim-import-list .import-item:hover {
-    background: #334155;
-    border-color: #3b82f6;
+    background: rgba(51, 65, 85, 0.7);
+    border-color: rgba(59, 130, 246, 0.5);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.manim-import-list .import-item:active {
+    transform: scale(0.99);
 }
 .manim-import-list .import-item .import-item-note {
     display: block;
-    color: var(--text-main, #e2e8f0);
+    color: #fff;
     font-weight: 500;
+    margin-bottom: 2px;
 }
 .manim-import-list .import-item small,
 .manim-import-list .import-item .import-item-meta {
     display: block;
-    color: #94a3b8;
+    color: #cbd5e1;
     font-size: 0.75rem;
     margin-top: 4px;
+    line-height: 1.4;
 }
 
 /* 载入按钮 */

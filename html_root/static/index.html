@@ -17,18 +17,28 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- 第三方库 -->
-    <!-- MathJax (用于静态公式渲染)。polyfill 已移除：外链易 ERR_CONNECTION_CLOSED，现代浏览器已支持 ES6 -->
+    <!-- MathJax 3 配置：改善 CHTML 渲染，减少根号/上划线等断开与错位 -->
+    <script>
+    window.MathJax = {
+        tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']], processEscapes: true },
+        chtml: { scale: 1, minScale: 0.5, matchFontHeight: true },
+        options: { enableMenu: false }
+    };
+    </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Driver.js (用于新手引导) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
     <!-- MathLive (用于可视化公式编辑) -->
-    <script defer src="//unpkg.com/mathlive"></script>
+    <script defer src="https://unpkg.com/mathlive"></script>
     <!-- Marked (Markdown 解析) -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <!-- Highlight.js (代码高亮) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <!-- Cropper.js (图片裁剪编辑) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 
     <!-- 核心样式 -->
     <link rel="stylesheet" href="css/main.css">
@@ -204,6 +214,13 @@
                         <h2 class="agent-sidebar-title">智能体</h2>
                     </div>
                     <div class="agent-sidebar-content">
+                        <!-- 打开功能与示例按钮 - 放在顶部醒目位置 -->
+                        <div class="agent-sidebar-section agent-section-examples-top">
+                            <button type="button" class="agent-features-examples-btn" id="agent-features-examples-btn" onclick="Agent.toggleFeaturesExamples()">
+                                <i class="fa-solid fa-sparkles"></i> 打开功能与示例
+                            </button>
+                        </div>
+                        
                         <div class="agent-sidebar-section">
                             <span class="agent-badge"><i class="fa-solid fa-crown"></i> 会员功能</span>
                             <p class="agent-sidebar-desc">用自然语言描述你想做的事，智能体会自动调用识别、计算、动画、LaTeX 编辑等能力，一步到位完成复杂任务。</p>
@@ -216,12 +233,6 @@
                                 <li><i class="fa-solid fa-check"></i> 支持上传公式图片，自动识别并跳转计算</li>
                                 <li><i class="fa-solid fa-check"></i> 与本站所有功能无缝联动</li>
                             </ul>
-                        </div>
-                        <div class="agent-sidebar-section agent-section-examples">
-                            <span class="agent-section-badge"><i class="fa-solid fa-lightbulb"></i> 示例</span>
-                            <button type="button" class="agent-features-examples-btn" id="agent-features-examples-btn" onclick="Agent.toggleFeaturesExamples()">
-                                <i class="fa-solid fa-up-right-from-square"></i> 打开功能与示例
-                            </button>
                         </div>
                         <div class="agent-sidebar-section">
                             <h3 class="agent-sidebar-section-title">快捷操作</h3>
@@ -275,8 +286,11 @@
                                 </div>
                             </div>
                             <div class="agent-input-bar">
-                                <div id="agent-image-preview-wrap" class="agent-image-preview-wrap" style="display:none;">
-                                    <img id="agent-image-preview" alt="预览" class="agent-image-preview">
+                                        <div id="agent-image-preview-wrap" class="agent-image-preview-wrap" style="display:none;">
+                                    <div class="agent-image-preview-container">
+                                        <img id="agent-image-preview" alt="预览" class="agent-image-preview" onclick="ImageEditor.openEditor('agent-image-preview', 'agent')">
+                                        <div class="agent-image-edit-hint">点击编辑</div>
+                                    </div>
                                     <button type="button" class="agent-preview-remove" onclick="Agent.clearAttachedImage()" title="移除图片"><i class="fa-solid fa-times"></i></button>
                                 </div>
                                 <div class="agent-input-row">
@@ -324,8 +338,8 @@
                             </div>
 
                             <button class="tutorial-link shortcut-hint-btn" onclick="openSettings('shortcuts')" title="画板快捷键设置"><i class="fa-solid fa-keyboard"></i> 点击设置快捷键</button>
-                            <div style="margin-top: 20px; display: flex; align-items: center; gap: 10px;">
-                                <label style="margin:0; min-width:40px; font-size:0.8rem;">粗细</label>
+                            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.75rem;">
+                                <label style="margin:0; min-width:48px; font-size:0.875rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center;">粗细</label>
                                 <input type="range" id="brush-size" min="1" max="20" value="3" style="flex:1;">
                             </div>
                         </div>
@@ -342,11 +356,11 @@
                         <div id="file-name-display" class="file-name"></div>
                     </div>
 
-                    <div style="margin-top: auto;">
-                        <button class="action-btn full-width" onclick="processRecognition()" style="height: 50px; font-size: 1.1rem;">
+                    <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                        <button class="action-btn full-width" onclick="processRecognition()" style="height: 52px; font-size: 1rem; font-weight: 700; border-radius: 12px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: #fff; border: none; box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);">
                             <i class="fa-solid fa-magnifying-glass"></i> 立即识别
                         </button>
-                        <p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 10px;">
+                        <p style="text-align: center; color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.75rem; font-weight: 500;">
                             识别结果将显示在右侧底部
                         </p>
                     </div>
@@ -361,17 +375,28 @@
                             <canvas id="drawing-board"></canvas>
 
                             <!-- 确保预览图在这里，且默认隐藏 -->
-                            <img id="uploaded-preview" src="" alt="预览" style="display:none;">
+                            <div id="uploaded-preview-container" style="display:none; position: relative; width: 100%; height: 100%;">
+                                <img id="uploaded-preview" src="" alt="预览" style="display:none; width: 100%; height: 100%; object-fit: contain;" onclick="ImageEditor.openEditor('uploaded-preview', 'canvas')">
+                                <div class="canvas-image-edit-hint">点击编辑</div>
+                            </div>
                         </div>
                         <!-- 手机版锁定画板按钮：锁定后仅可滑动不可书写 -->
                         <button type="button" id="canvas-lock-btn" class="canvas-lock-btn" title="锁定画板（仅滑动不书写）" aria-label="锁定画板">
                             <i class="fa-solid fa-lock-open canvas-lock-icon" id="canvas-lock-icon"></i>
                             <span class="canvas-lock-label" id="canvas-lock-label">锁定画板</span>
                         </button>
-                        <!-- 提示浮层 -->
-                        <div class="canvas-hint" style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; pointer-events: none;">
-                            <i class="fa-solid fa-info-circle"></i> 在此区域绘制公式
+                        <!-- 提示浮层（仅在手写模式显示） -->
+                        <div id="canvas-hint" class="canvas-hint">
+                            <i class="fa-solid fa-pen"></i> 在此区域进行手写
                         </div>
+                    </div>
+
+                    <!-- 醒目主操作：立即识别（画板与结果之间） -->
+                    <div class="detect-action-bar">
+                        <button type="button" class="btn-detect-primary" onclick="processRecognition()" title="对手写或上传的公式进行识别">
+                            <i class="fa-solid fa-magnifying-glass"></i> 立即识别
+                        </button>
+                        <p class="detect-action-hint">识别结果将显示在下方</p>
                     </div>
 
                     <!-- 下半部分：识别结果 (独立面板) -->
@@ -385,8 +410,8 @@
                                 <summary style="font-size:0.85rem; color:var(--text-secondary); cursor:pointer;">
                                     <i class="fa-solid fa-terminal"></i> 查看源码
                                 </summary>
-                                <div class="code-detail-popup" style="position: absolute; bottom: 100%; right: 0; width: 300px; padding: 10px; border-radius: 8px; z-index: 20;">
-                                    <textarea id="latex-code-detect" placeholder="LaTeX 代码..." style="width:100%; height:100px; font-family:monospace;"></textarea>
+                                <div class="code-detail-popup">
+                                    <textarea id="latex-code-detect" placeholder="LaTeX 代码..." style="width:100%; height:100px; font-family:monospace; box-sizing: border-box;"></textarea>
                                 </div>
                             </details>
                         </div>
@@ -435,9 +460,9 @@
 
                 <!-- 算式库面板 -->
                 <div id="formulas-panel" class="formulas-panel glass-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-                        <h3 style="margin:0; color:var(--text-main);">已保存的公式</h3>
-                        <button class="action-btn secondary" onclick="loadMyFormulas()">
+                    <div class="formulas-panel-header">
+                        <h3 class="formulas-panel-title">已保存的公式</h3>
+                        <button class="action-btn secondary formulas-refresh-btn" onclick="loadMyFormulas()">
                             <i class="fa-solid fa-rotate"></i> 刷新列表
                         </button>
                     </div>
@@ -447,13 +472,13 @@
                 <!-- 动画脚本库面板：列表 + 详情(Monaco) -->
                 <div id="scripts-panel" class="formulas-panel glass-panel" style="display:none;">
                     <div id="scripts-list-view">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-                            <h3 style="margin:0; color:var(--text-main);">已保存的 Manim 脚本</h3>
-                            <div style="display:flex; gap:10px;">
-                                <button type="button" class="action-btn secondary" onclick="Formulas.createNewScriptInWorkbench()">
+                        <div class="formulas-panel-header">
+                            <h3 class="formulas-panel-title">已保存的 Manim 脚本</h3>
+                            <div class="formulas-panel-actions">
+                                <button type="button" class="action-btn secondary formulas-refresh-btn" onclick="Formulas.createNewScriptInWorkbench()">
                                     <i class="fa-solid fa-plus"></i> 新建空白脚本
                                 </button>
-                                <button class="action-btn secondary" onclick="Formulas.loadAnimationScripts()">
+                                <button class="action-btn secondary formulas-refresh-btn" onclick="Formulas.loadAnimationScripts()">
                                     <i class="fa-solid fa-rotate"></i> 刷新
                                 </button>
                             </div>
@@ -463,7 +488,7 @@
                         </div>
                     </div>
                     <div id="scripts-detail-view" style="display:none;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                        <div class="formulas-detail-toolbar">
                             <button type="button" class="action-btn secondary" onclick="Formulas.closeScriptDetail()">
                                 <i class="fa-solid fa-arrow-left"></i> 返回列表
                             </button>
@@ -492,33 +517,30 @@
             <h2 class="section-title">数学运算可视化</h2>
             <div class="calc-layout">
                 <!-- 左侧配置区 -->
-                <div class="calc-sidebar glass-panel">
-                    <div style="margin-bottom: 1.5rem;">
-                        <label style="font-weight:700; display:block; margin-bottom:0.8rem; color:var(--text-main); font-size:0.95rem;">
-                            <i class="fa-solid fa-layer-group" style="color:var(--primary-color); margin-right:5px;"></i>
-                            演示模式
+                <div class="calc-sidebar glass-panel calc-sidebar-panel">
+                    <div class="calc-mode-block">
+                        <label class="calc-block-label">
+                            <i class="fa-solid fa-layer-group"></i> 演示模式
                         </label>
-                        <select id="calc-method" class="tech-select">
+                        <select id="calc-method" class="tech-select calc-select">
                             <option value="normal">通用公式推演+可视化 (推荐)</option>
                             <option value="formular">公式推演</option>
                             <option value="visualization">可视化演示</option>
                             <option value="det" disabled>矩阵专项</option>
                             <option value="int" disabled>微积分专项</option>
                         </select>
-                        <p style="font-size:0.8rem; color:var(--text-secondary); margin-top:5px;">
-                            * "通用模式"下，将自动分析您输入的算式并生成对应动画。
-                        </p>
+                        <p class="calc-block-hint">* "通用模式"下，将自动分析您输入的算式并生成对应动画。</p>
                     </div>
 
                     <!-- 核心：单一大公式输入区 -->
-                    <div class="formula-input-wrapper">
+                    <div class="formula-input-wrapper calc-input-card">
                         <div class="input-header">
-                            <label><i class="fa-solid fa-calculator"></i> 数学表达式</label>
+                            <label class="calc-input-label"><i class="fa-solid fa-calculator"></i> 数学表达式</label>
                             <div class="header-actions">
                                 <button class="btn-import" onclick="openFormulaSelector('A')" title="从库中导入">
                                     <i class="fa-solid fa-book-bookmark"></i> 导入
                                 </button>
-                                <button class="btn-import" onclick="clearCalcInput()" title="清空" style="color:#ef4444; border-color:#fee2e2;">
+                                <button class="btn-import btn-import-danger" onclick="clearCalcInput()" title="清空">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </div>
@@ -541,8 +563,8 @@
                     </div>
 
                     <!-- 底部操作按钮 -->
-                    <div style="margin-top: auto; padding-top: 1rem;">
-                        <button class="action-btn full-width" onclick="startAnimation()" style="height: 54px; font-size: 1.1rem; display: flex; justify-content: center; align-items: center; gap: 10px;">
+                    <div class="calc-cta-wrap">
+                        <button type="button" class="calc-cta-btn action-btn full-width" onclick="startAnimation()">
                             <i class="fa-solid fa-clapperboard"></i> 生成可视化动画
                         </button>
                     </div>
@@ -559,10 +581,10 @@
                     <!-- 2. 上半部分：视频播放区（背景与右侧区统一深色） -->
                     <div id="calc-video-wrapper" class="calc-video-wrapper-bg" style="flex: 3; position: relative; display: flex; flex-direction: column; border-bottom: 1px solid #334155; min-height: 300px; overflow: hidden;">
                         <!-- 默认占位符（初始状态） -->
-                        <div id="video-placeholder-content" style="text-align: center; color: #64748b; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column;">
-                            <i class="fa-solid fa-cube" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <p style="font-weight: 500;">等待指令...</p>
-                            <span style="font-size:0.85rem; opacity:0.6;">配置左侧参数后点击生成</span>
+                        <div id="video-placeholder-content" class="calc-video-placeholder">
+                            <i class="fa-solid fa-cube"></i>
+                            <p>等待指令...</p>
+                            <span>配置左侧参数后点击生成</span>
                         </div>
                         <!-- 单阶段模式双窗口：解题步骤 | 视频（同级标签，与通用模式一致） -->
                         <div id="calc-single-wrap" class="calc-stack-wrap" style="display:none;">
@@ -677,21 +699,16 @@
                     </div>
 
                     <!-- 3. 下半部分：代码/日志控制台 -->
-                    <div id="calc-terminal-wrapper" style="flex: 2; background: #0f172a; display: flex; flex-direction: column; min-height: 200px;">
-                        <!-- 头部 -->
-                        <div style="padding: 8px 15px; background: #1e293b; border-bottom: 1px solid #334155; display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #94a3b8;">
-                                <i class="fa-solid fa-terminal"></i> <span id="console-title">系统日志</span>
-                            </span>
-                            <span id="gen-percent" style="font-family: 'JetBrains Mono'; font-size: 0.8rem; color: #34d399;">0%</span>
+                    <div id="calc-terminal-wrapper" class="calc-terminal-wrapper">
+                        <div class="calc-terminal-header">
+                            <span class="calc-terminal-title"><i class="fa-solid fa-terminal"></i> <span id="console-title">系统日志</span></span>
+                            <span id="gen-percent" class="calc-terminal-percent">0%</span>
                         </div>
-                        <!-- 进度条 -->
-                        <div style="height: 2px; background: #334155; width: 100%;">
-                            <div id="gen-progress" style="width: 0%; height: 100%; background: #3b82f6; transition: width 0.3s;"></div>
+                        <div class="calc-terminal-progress-track">
+                            <div id="gen-progress" class="calc-terminal-progress-bar"></div>
                         </div>
-                        <!-- 日志内容 -->
-                        <div id="gen-log" style="flex: 1; overflow-y: auto; padding: 15px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #cbd5e1;">
-                            <div class="log-entry" style="color: #64748b;">> 系统就绪，等待输入...</div>
+                        <div id="gen-log" class="calc-terminal-log">
+                            <div class="log-entry">> 系统就绪，等待输入...</div>
                         </div>
                     </div>
                 </div>
@@ -780,57 +797,60 @@
                         </div>
                     </div>
 
-                    <!-- 2. Manim 工作台 -->
+                    <!-- 2. Manim 工作台：竖排布局 — 上：代码+日志，下：视频（16:9 全宽） -->
                     <div id="dev-manim" class="dev-panel" style="display: none; padding: 0;">
                         <div class="ide-layout" id="ide-layout-manim">
-                            <!-- 代码编辑器 -->
-                            <div class="ide-editor ide-resize-pane" id="ide-editor-pane" style="flex: 1 1 45%; min-height: 180px;">
-                                <div class="ide-toolbar">
-                                    <span><i class="fa-brands fa-python"></i> main.py (Monaco Kernel)</span>
-                                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                                        <div class="manim-import-wrap">
-                                            <button type="button" class="ide-btn-import" id="btn-manim-import" onclick="DevTools.toggleImportPanel()">
-                                                <i class="fa-solid fa-file-import"></i> 导入
-                                            </button>
-                                            <div id="manim-import-panel" class="manim-import-panel" style="display: none;">
-                                                <div class="manim-import-tabs">
-                                                    <button type="button" class="manim-import-tab active" data-tab="scripts" onclick="DevTools.switchImportTab('scripts')">我的脚本</button>
-                                                    <button type="button" class="manim-import-tab" data-tab="rainbow" onclick="DevTools.switchImportTab('rainbow')">Rainbow 样例</button>
+                            <!-- 上：代码编辑器 + 日志（可拖拽调整与下方视频的高度比） -->
+                            <div class="ide-top-panel ide-resize-pane" id="ide-left-pane" style="display: flex; flex-direction: column;">
+                                <div class="ide-editor ide-resize-pane" id="ide-editor-pane" style="flex: 1 1 60%; min-height: 200px;">
+                                    <div class="ide-toolbar">
+                                        <span><i class="fa-brands fa-python"></i> main.py (Monaco Kernel)</span>
+                                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                            <div class="manim-import-wrap">
+                                                <button type="button" class="ide-btn-import" id="btn-manim-import" onclick="DevTools.toggleImportPanel()">
+                                                    <i class="fa-solid fa-file-import"></i> 导入
+                                                </button>
+                                                <div id="manim-import-panel" class="manim-import-panel" style="display: none;">
+                                                    <div class="manim-import-tabs">
+                                                        <button type="button" class="manim-import-tab active" data-tab="scripts" onclick="DevTools.switchImportTab('scripts')">我的脚本</button>
+                                                        <button type="button" class="manim-import-tab" data-tab="rainbow" onclick="DevTools.switchImportTab('rainbow')">Rainbow 样例</button>
+                                                    </div>
+                                                    <div id="manim-import-scripts" class="manim-import-list"></div>
+                                                    <div id="manim-import-rainbow" class="manim-import-list" style="display: none;"></div>
                                                 </div>
-                                                <div id="manim-import-scripts" class="manim-import-list"></div>
-                                                <div id="manim-import-rainbow" class="manim-import-list" style="display: none;"></div>
                                             </div>
+                                            <button type="button" class="ide-btn-save" onclick="DevTools.saveScriptFromWorkbench()" title="保存到动画脚本库">
+                                                <i class="fa-solid fa-floppy-disk"></i> 保存
+                                            </button>
+                                            <button id="btn-run-manim" class="ide-btn-run" onclick="runDevManim()">
+                                                <i class="fa-solid fa-play"></i> 运行脚本
+                                            </button>
                                         </div>
-                                        <button type="button" class="ide-btn-save" onclick="DevTools.saveScriptFromWorkbench()" title="保存到动画脚本库">
-                                            <i class="fa-solid fa-floppy-disk"></i> 保存
-                                        </button>
-                                        <button id="btn-run-manim" class="ide-btn-run" onclick="runDevManim()">
-                                            <i class="fa-solid fa-play"></i> 运行脚本
-                                        </button>
                                     </div>
+                                    <div id="monaco-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden;"></div>
                                 </div>
-
-                                <!-- 核心：Monaco 容器 -->
-                                <div id="monaco-container" style="flex: 1; width: 100%; height: 100%; overflow: hidden;"></div>
-                            </div>
-                            <div class="ide-resize-handle ide-resize-h" id="ide-resize-editor-preview" title="拖拽调整代码与预览区高度"></div>
-                            <!-- 视频预览 + 渲染日志 -->
-                            <div class="ide-preview ide-resize-pane" id="ide-preview-pane" style="flex: 1 1 55%; flex-direction: column; min-height: 180px;">
-                                <div class="ide-preview-inner" id="ide-preview-inner-pane" style="flex: 1 1 60%; min-height: 120px;">
-                                    <video id="dev-manim-video" class="ide-preview-video" controls></video>
-                                    <div id="dev-manim-placeholder" class="ide-placeholder">
-                                        <i class="ide-placeholder-icon fa-solid fa-clapperboard"></i>
-                                        <p class="ide-placeholder-text">编写代码并点击运行<br>可从「导入」选择已保存脚本或 Rainbow 样例</p>
-                                    </div>
-                                    <div id="dev-manim-loading" class="ide-loading" style="display: none;">
-                                        <i class="ide-loading-spinner fa-solid fa-circle-notch fa-spin"></i>
-                                        <p class="ide-loading-text">正在云端渲染...</p>
-                                    </div>
-                                </div>
-                                <div class="ide-resize-handle ide-resize-h ide-resize-log" id="ide-resize-preview-log" title="拖拽调整视频与日志高度"></div>
-                                <div class="dev-manim-log-wrap ide-resize-pane" id="ide-log-pane" style="flex: 1 1 40%; min-height: 80px;">
+                                <div class="ide-resize-handle ide-resize-v" id="ide-resize-editor-log" title="拖拽调整代码与日志高度"></div>
+                                <div class="dev-manim-log-wrap ide-resize-pane" id="ide-log-pane" style="flex: 1 1 40%; min-height: 120px;">
                                     <div class="dev-manim-log-title">渲染日志</div>
                                     <pre id="dev-manim-log" class="cmd-log"></pre>
+                                </div>
+                            </div>
+                            <!-- 中间：拖拽条（调整上方代码/日志与下方视频的高度） -->
+                            <div class="ide-resize-handle ide-resize-v" id="ide-resize-top-bottom" title="拖拽调整上方编辑区与下方视频的高度"></div>
+                            <!-- 下：视频预览（16:9 全宽） -->
+                            <div class="ide-preview ide-resize-pane" id="ide-preview-pane" style="display: flex; flex-direction: column;">
+                                <div class="ide-video-container" id="ide-video-outer">
+                                    <div class="ide-preview-inner" id="ide-preview-inner-pane">
+                                        <video id="dev-manim-video" class="ide-preview-video" controls></video>
+                                        <div id="dev-manim-placeholder" class="ide-placeholder">
+                                            <i class="ide-placeholder-icon fa-solid fa-clapperboard"></i>
+                                            <p class="ide-placeholder-text">编写代码并点击运行<br>可从「导入」选择已保存脚本或 Rainbow 样例</p>
+                                        </div>
+                                        <div id="dev-manim-loading" class="ide-loading" style="display: none;">
+                                            <i class="ide-loading-spinner fa-solid fa-circle-notch fa-spin"></i>
+                                            <p class="ide-loading-text">正在云端渲染...</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1082,119 +1102,212 @@
                 <div class="settings-content-inner">
 
                 <!-- 外观与基本信息 -->
-                <div id="settings-appearance" class="settings-section" style="margin-bottom: 2rem;">
+                <div id="settings-appearance" class="settings-section">
                     <h4 class="settings-section-title">外观与关于</h4>
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem;">
-                        <span>深色 / 浅色模式</span>
-                        <button class="nav-btn" onclick="toggleTheme()" title="切换模式">
-                            <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
-                        </button>
+                    
+                    <!-- 版本与开发者（置顶） -->
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">当前版本</span>
+                        <span id="version-display" class="settings-info-value" onclick="openDoc('update.md', '更新日志')" title="点击查看更新日志">Loading...</span>
                     </div>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">主题会自动保存，登录后在其他设备也会同步。</p>
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 12px;">
-                        <span>当前版本</span>
-                        <span id="version-display" onclick="openDoc('update.md', '更新日志')" title="点击查看更新日志" style="font-family: 'JetBrains Mono', monospace; background: var(--bg-surface); color: var(--primary-color); padding: 2px 8px; border-radius: 4px; cursor: pointer; user-select: none;">Loading...</span>
+                    <div class="settings-info-item">
+                        <span class="settings-info-label">开发者</span>
+                        <span class="settings-info-value" onclick="window.open('https://github.com/rainbowyuyu', '_blank')">rainbow_yu</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; color: var(--text-main); font-size: 0.95rem; margin-top: 10px;">
-                        <span>开发者</span>
-                        <span onclick="window.open('https://github.com/rainbowyuyu', '_blank')" style="font-family: 'JetBrains Mono', monospace; color: var(--primary-color); padding: 2px 8px; border-radius: 4px; cursor: pointer; user-select: none;">rainbow_yu</span>
+
+                    <!-- 主题切换 -->
+                    <div class="settings-item">
+                        <div class="settings-toggle-wrapper">
+                            <label class="settings-toggle-label" for="theme-toggle-btn">深色 / 浅色模式</label>
+                            <button class="nav-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="切换模式" style="margin: 0; padding: 0.5rem 1rem;">
+                                <i id="theme-toggle-icon" class="fa-solid fa-moon"></i>
+                            </button>
+                        </div>
+                        <p class="settings-item-description">主题会自动保存，登录后在其他设备也会同步。</p>
+                    </div>
+
+                    <!-- 主页文字效果 -->
+                    <div class="settings-item">
+                        <label class="settings-select-label">主页文字效果</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card" id="hero-effect-gradient-card">
+                                <input type="radio" name="hero-effect-mode" value="gradient" id="hero-effect-gradient" onchange="Settings.setHeroEffectMode('gradient')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">动态渐变</div>
+                                    <div class="settings-select-card-desc">有动画的渐变效果</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card" id="hero-effect-interaction-card">
+                                <input type="radio" name="hero-effect-mode" value="interaction" id="hero-effect-interaction" onchange="Settings.setHeroEffectMode('interaction')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">抖动交互</div>
+                                    <div class="settings-select-card-desc">鼠标移动时文字会有轻微的磁性吸引和抖动效果</div>
+                                </div>
+                            </label>
+                        </div>
+                        <div class="settings-preview-box preview-hero-text" id="hero-effect-preview">
+                            <span>让数学计算 看得见、摸得着</span>
+                        </div>
+                        <p class="settings-preview-label">实时预览效果</p>
                     </div>
                 </div>
 
                 <!-- 账户与资料（仅登录后显示） -->
-                <div id="settings-profile" class="settings-section" style="margin-bottom: 2rem;">
+                <div id="settings-profile" class="settings-section">
                     <h4 class="settings-section-title">账户与资料</h4>
                     <div id="settings-profile-guest" class="settings-profile-guest" style="display:none;">
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem;">登录后可修改头像、昵称、用户名与密码。</p>
-                        <button type="button" class="action-btn" onclick="toggleAuthModal(true)">登录 / 注册</button>
+                        <div class="settings-item">
+                            <p style="color: var(--text-secondary); margin-bottom: 1rem; text-align: center;">登录后可修改头像、昵称、用户名与密码。</p>
+                            <button type="button" class="action-btn" style="width: 100%;" onclick="toggleAuthModal(true)">登录 / 注册</button>
+                        </div>
                     </div>
                     <div id="settings-profile-content" class="settings-profile-content" style="display:none;">
-                        <div class="profile-row">
-                            <label class="profile-label">头像</label>
-                            <div class="profile-avatar-wrap">
+                        <div class="settings-item">
+                            <label class="settings-item-label">头像</label>
+                            <div class="profile-avatar-wrap" style="display: flex; align-items: center; gap: 1rem;">
                                 <img id="profile-avatar-img" src="" alt="头像" class="profile-avatar" onerror="this.style.display='none'; document.getElementById('profile-avatar-placeholder').style.display='flex';">
                                 <div id="profile-avatar-placeholder" class="profile-avatar-placeholder" style="display:flex;"><i class="fa-solid fa-user"></i></div>
-                                <label class="action-btn secondary profile-avatar-btn" style="margin-left:12px; margin-bottom:0;"><i class="fa-solid fa-upload"></i> 更换</label>
+                                <label class="action-btn secondary profile-avatar-btn" style="margin: 0;"><i class="fa-solid fa-upload"></i> 更换</label>
                                 <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style="display:none;">
                             </div>
                         </div>
-                        <div class="profile-row">
-                            <label class="profile-label">昵称</label>
-                            <input type="text" id="profile-nickname" class="tech-input" placeholder="选填，用于展示" maxlength="64" style="max-width:240px;">
+                        <div class="settings-item">
+                            <label class="settings-item-label" for="profile-nickname">昵称</label>
+                            <input type="text" id="profile-nickname" class="tech-input" placeholder="选填，用于展示" maxlength="64" style="width: 100%; max-width: 300px;">
                         </div>
-                        <div class="profile-row">
-                            <label class="profile-label">用户名</label>
-                            <span id="profile-username-display" class="profile-username-display"></span>
-                            <button type="button" class="action-btn secondary" onclick="Profile.openChangeUsernameModal()">修改用户名</button>
+                        <div class="settings-item">
+                            <label class="settings-item-label">用户名</label>
+                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                                <span id="profile-username-display" class="settings-info-value" style="margin: 0;"></span>
+                                <button type="button" class="action-btn secondary" onclick="Profile.openChangeUsernameModal()">修改用户名</button>
+                            </div>
                         </div>
-                        <div class="profile-row">
-                            <label class="profile-label">密码</label>
+                        <div class="settings-item">
+                            <label class="settings-item-label">密码</label>
                             <button type="button" class="action-btn secondary" onclick="Profile.openChangePasswordModal()">修改密码</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- 智能体 -->
-                <div id="settings-agent" class="settings-section settings-agent-panel" style="margin-bottom: 2rem;">
+                <div id="settings-agent" class="settings-section">
                     <h4 class="settings-section-title">智能体</h4>
-                    <label class="settings-agent-option" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:500; color:var(--text-main);">
-                        <input type="checkbox" id="agent-enter-send" checked onchange="Settings.setAgentEnterSend(this.checked)">
-                        <span>回车发送消息，Shift+回车换行</span>
-                    </label>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">关闭后：回车换行，需点击发送或使用 Ctrl+Enter 发送。</p>
+                    <div class="settings-item">
+                        <div class="settings-toggle-wrapper">
+                            <label class="settings-toggle-label" for="agent-enter-send">回车发送消息，Shift+回车换行</label>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="agent-enter-send" checked onchange="Settings.setAgentEnterSend(this.checked)">
+                                <span class="settings-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">关闭后：回车换行，需点击发送或使用 Ctrl+Enter 发送。</p>
+                    </div>
                 </div>
 
                 <!-- 智能识别 / 画板 -->
-                <div id="settings-detect" class="settings-section" style="margin-bottom: 2rem;">
+                <div id="settings-detect" class="settings-section">
                     <h4 class="settings-section-title">智能识别与画板</h4>
-                    <div style="margin-bottom: 1rem;">
-                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">进入识别页时默认</label>
-                        <select id="settings-detect-default-input" class="tech-select" style="width:100%; max-width:240px;" onchange="Settings.setDetectDefaultInput(this.value)">
-                            <option value="draw">手写</option>
-                            <option value="upload">上传图片</option>
-                        </select>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">首次进入【智能识别】时自动选中的输入方式。</p>
+                    <div class="settings-item">
+                        <label class="settings-select-label">进入识别页时默认</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card">
+                                <input type="radio" name="detect-default-input" value="draw" id="detect-input-draw" onchange="Settings.setDetectDefaultInput('draw')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">手写</div>
+                                    <div class="settings-select-card-desc">使用鼠标或触摸屏手写输入</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="detect-default-input" value="upload" id="detect-input-upload" onchange="Settings.setDetectDefaultInput('upload')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">上传图片</div>
+                                    <div class="settings-select-card-desc">从设备上传图片进行识别</div>
+                                </div>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">首次进入【智能识别】时自动选中的输入方式。</p>
                     </div>
-                    <div class="settings-canvas-lock-row" style="margin-bottom: 1rem;">
-                        <label class="settings-canvas-lock-label" style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:600; color:var(--text-main);">
-                            <input type="checkbox" id="settings-canvas-lock-mobile" onchange="Settings.setCanvasLockMobile(this.checked)">
-                            锁定画板（手机版）
-                        </label>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">开启后，在手机端画板区域仅可上下滑动，不可书写；关闭后恢复原有防误触逻辑。</p>
+                    <div class="settings-item">
+                        <div class="settings-toggle-wrapper">
+                            <label class="settings-toggle-label" for="settings-canvas-lock-mobile">锁定画板（手机版）</label>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="settings-canvas-lock-mobile" onchange="Settings.setCanvasLockMobile(this.checked)">
+                                <span class="settings-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">开启后，在手机端画板区域仅可上下滑动，不可书写；关闭后恢复原有防误触逻辑。</p>
                     </div>
                 </div>
 
-                <div id="settings-shortcuts" class="settings-section shortcuts-panel" style="margin-bottom: 2rem;">
+                <div id="settings-shortcuts" class="settings-section">
                     <h4 class="settings-section-title">画板快捷键</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">点击「修改」后按下要绑定的组合键，类 Photoshop 操作。</p>
-                    <div id="shortcuts-list"></div>
+                    <div class="settings-item">
+                        <p class="settings-item-description" style="margin-top: 0;">点击「修改」后按下要绑定的组合键，类 Photoshop 操作。</p>
+                        <div id="shortcuts-list"></div>
+                    </div>
                 </div>
 
                 <!-- 动态计算 -->
-                <div id="settings-calc" class="settings-section" style="margin-bottom: 2rem;">
+                <div id="settings-calc" class="settings-section">
                     <h4 class="settings-section-title">动态计算</h4>
-                    <div>
-                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">默认演示模式</label>
-                        <select id="settings-calc-default-mode" class="tech-select" style="width:100%; max-width:280px;" onchange="Settings.setCalcDefaultMode(this.value)">
-                            <option value="normal">通用公式推演+可视化 (推荐)</option>
-                            <option value="formular">公式推演</option>
-                            <option value="visualization">可视化演示</option>
-                        </select>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">进入【动态计算】时预选的模式。</p>
+                    <div class="settings-item">
+                        <label class="settings-select-label">默认演示模式</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card">
+                                <input type="radio" name="calc-default-mode" value="normal" id="calc-mode-normal" onchange="Settings.setCalcDefaultMode('normal')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">通用模式</div>
+                                    <div class="settings-select-card-desc">公式推演+可视化 (推荐)</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="calc-default-mode" value="formular" id="calc-mode-formular" onchange="Settings.setCalcDefaultMode('formular')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">公式推演</div>
+                                    <div class="settings-select-card-desc">仅显示公式推导过程</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="calc-default-mode" value="visualization" id="calc-mode-visualization" onchange="Settings.setCalcDefaultMode('visualization')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">可视化演示</div>
+                                    <div class="settings-select-card-desc">仅显示动画可视化</div>
+                                </div>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">进入【动态计算】时预选的模式。</p>
                     </div>
                 </div>
 
                 <!-- 开发者工具 -->
-                <div id="settings-devtools" class="settings-section" style="margin-bottom: 2rem;">
+                <div id="settings-devtools" class="settings-section">
                     <h4 class="settings-section-title">开发者工具</h4>
-                    <div>
-                        <label style="display:block; font-weight:600; color:var(--text-main); font-size:0.9rem; margin-bottom:6px;">默认打开标签</label>
-                        <select id="settings-devtools-default-tab" class="tech-select" style="width:100%; max-width:240px;" onchange="Settings.setDevtoolsDefaultTab(this.value)">
-                            <option value="latex">LaTeX 可视化编辑器</option>
-                            <option value="manim">Manim 代码云端渲染工作台</option>
-                            <option value="rainbow">rainbow鱼拓展库</option>
-                        </select>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">进入【开发者工具】时默认显示的标签页。</p>
+                    <div class="settings-item">
+                        <label class="settings-select-label">默认打开标签</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card">
+                                <input type="radio" name="devtools-default-tab" value="latex" id="devtools-tab-latex" onchange="Settings.setDevtoolsDefaultTab('latex')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">LaTeX 编辑器</div>
+                                    <div class="settings-select-card-desc">可视化编辑器</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="devtools-default-tab" value="manim" id="devtools-tab-manim" onchange="Settings.setDevtoolsDefaultTab('manim')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">Manim 工作台</div>
+                                    <div class="settings-select-card-desc">代码云端渲染</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="devtools-default-tab" value="rainbow" id="devtools-tab-rainbow" onchange="Settings.setDevtoolsDefaultTab('rainbow')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">拓展库</div>
+                                    <div class="settings-select-card-desc">rainbow鱼拓展库</div>
+                                </div>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">进入【开发者工具】时默认显示的标签页。</p>
                     </div>
                 </div>
 
@@ -1275,7 +1388,7 @@
                     <label style="display:block; margin-bottom:8px; font-weight:600; color:var(--text-main); font-size:0.9rem;">公式内容</label>
 
                     <!-- 可视化编辑器 -->
-                    <div class="math-field-container" style="border: 1px solid #cbd5e1; border-radius: 8px; background: #f8fafc; padding: 0.5rem; margin-bottom: 10px;">
+                    <div class="math-field-container">
                         <math-field id="edit-formula-mathlive" virtual-keyboard-mode="manual" style="width: 100%; font-size: 1.4rem; padding: 0.5rem; background: transparent; border: none; outline: none;">
                             <!-- 动态填充 -->
                         </math-field>
@@ -1489,6 +1602,34 @@
             </p>
         </div>
     </footer>
+
+    <!-- 图片编辑器模态框 -->
+    <div id="image-editor-modal" class="image-editor-modal" style="display:none;">
+        <div class="image-editor-overlay" onclick="ImageEditor.closeEditor()"></div>
+        <div class="image-editor-content">
+            <div class="image-editor-header">
+                <h3>图片编辑</h3>
+                <button type="button" class="image-editor-close" onclick="ImageEditor.closeEditor()" title="关闭">
+                    <i class="fa-solid fa-times"></i>
+                </button>
+            </div>
+            <div class="image-editor-body">
+                <div class="image-editor-preview-container">
+                    <div id="image-editor-loading" class="image-editor-loading" style="display:none;">
+                        <i class="fa-solid fa-circle-notch fa-spin"></i>
+                        <p>加载图片中...</p>
+                    </div>
+                    <img id="image-editor-preview" src="" alt="编辑预览">
+                </div>
+            </div>
+            <div class="image-editor-footer">
+                <button type="button" class="action-btn secondary" onclick="ImageEditor.closeEditor()">取消</button>
+                <button type="button" class="action-btn" onclick="ImageEditor.applyEdit()">
+                    <i class="fa-solid fa-check"></i> 应用
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- 模块化 JS 入口 -->
     <script type="module" src="js/main.js"></script>

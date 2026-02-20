@@ -15,6 +15,7 @@
 @import url('pages/formulas.css');
 @import url('pages/devtools.css');
 @import url('pages/mathlive.css');
+@import url('pages/image-editor.css');
 
 /* 通用 section 控制 (这部分必须保留在 main.css 或 layout.css 中) */
 .section {
@@ -24,4 +25,29 @@
 
 .section.active-section {
     display: block;
+}
+
+/* ========== LaTeX 预览全局优化：减少根号/上划线断开与错位 ========== */
+/* MathJax CHTML 输出：允许公式完整绘制，避免 overflow 裁剪导致笔画断开 */
+mjx-container,
+mjx-container[jax="CHTML"] {
+    overflow: visible !important;
+    display: inline-block !important;
+    vertical-align: middle;
+}
+#dev-latex-preview .mjx-chtml,
+#dev-latex-preview mjx-container,
+.calc-steps-window-inner .mjx-chtml,
+.calc-steps-window-inner mjx-container,
+.markdown-body .mjx-chtml,
+.markdown-body mjx-container {
+    overflow: visible !important;
+    max-width: 100%;
+}
+/* 数学字体抗锯齿，使笔画更连贯 */
+.MathJax,
+.mjx-chtml,
+mjx-container {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }

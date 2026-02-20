@@ -42,6 +42,39 @@ export function initDetectListeners() {
             mathField.setValue(val);
             setButtonsState(checkContent(val));
         });
+        
+        // 调整"查看源码"弹层位置，确保不超出视口
+        const details = codeArea.closest('details');
+        if (details) {
+            const popup = details.querySelector('.code-detail-popup');
+            if (popup) {
+                const adjustPopupPosition = () => {
+                    if (!details.open) return;
+                    const detailsRect = details.getBoundingClientRect();
+                    const popupRect = popup.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    
+                    // 如果弹层会超出视口顶部，则显示在下方
+                    if (detailsRect.top - popupRect.height < 0) {
+                        popup.style.bottom = 'auto';
+                        popup.style.top = 'calc(100% + 0.5rem)';
+                    } else {
+                        popup.style.bottom = 'calc(100% + 0.5rem)';
+                        popup.style.top = 'auto';
+                    }
+                    
+                    // 确保不超出视口右侧
+                    if (popupRect.right > window.innerWidth) {
+                        popup.style.right = '0';
+                        popup.style.left = 'auto';
+                    }
+                };
+                
+                details.addEventListener('toggle', adjustPopupPosition);
+                window.addEventListener('resize', adjustPopupPosition);
+                window.addEventListener('scroll', adjustPopupPosition, true);
+            }
+        }
 
         // 手机端：点击编辑公式时，将结果面板固定在视口上方，避免键盘弹出后整页跳到最底部
         const runScrollToPanelTop = () => {

@@ -2,6 +2,44 @@
 
 import { toggleModal } from './ui.js';
 
+const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
+const LOAD_TIMEOUT_MS = 6000;   // 文档/Marked 加载超时（毫秒），超时后不再等待
+
+function timeout(ms, msg = '加载超时') {
+    return new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(msg)), ms)
+    );
+}
+
+/** 确保 window.marked 已加载，未加载则动态插入脚本并等待，超时则放弃 */
+function ensureMarked() {
+    if (window.marked && typeof window.marked.parse === 'function') {
+        return Promise.resolve();
+    }
+    const load = new Promise((resolve, reject) => {
+        if (document.querySelector('script[src*="marked"]')) {
+            const start = Date.now();
+            const check = () => {
+                if (window.marked && typeof window.marked.parse === 'function') {
+                    resolve();
+                } else if (Date.now() - start >= LOAD_TIMEOUT_MS) {
+                    reject(new Error('Marked.js 加载超时'));
+                } else {
+                    setTimeout(check, 80);
+                }
+            };
+            check();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = MARKED_CDN;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Marked.js 加载失败'));
+        document.head.appendChild(script);
+    });
+    return Promise.race([load, timeout(LOAD_TIMEOUT_MS, 'Marked.js 加载超时')]);
+}
+
 // 打开文档模态框并加载内容
 export async function openDoc(fileName, title) {
     const modal = document.getElementById('docs-modal');
@@ -26,15 +64,26 @@ export async function openDoc(fileName, title) {
     toggleModal('docs-modal', true);
 
     try {
-        // 3. 请求 Markdown 文件
-        const res = await fetch(`docs/${fileName}?t=${new Date().getTime()}`);
+        // 3. 请求 Markdown 文件（带超时，避免一直加载）
+        const fetchPromise = fetch(`docs/${fileName}?t=${new Date().getTime()}`);
+        const res = await Promise.race([
+            fetchPromise,
+            timeout(LOAD_TIMEOUT_MS, '文档加载超时').then(() => { throw new Error('文档加载超时'); })
+        ]);
 
         if (!res.ok) throw new Error(`File not found: ${fileName}`);
 
         const markdownText = await res.text();
 
-        // 4. 转换为 HTML
-        if (window.marked) {
+        // 4. 确保 Marked 已加载后转换为 HTML
+        try {
+            await ensureMarked();
+        } catch (_) {
+            contentEl.style.whiteSpace = 'pre-wrap';
+            contentEl.innerText = markdownText;
+        }
+
+        if (window.marked && typeof window.marked.parse === 'function') {
             window.marked.use({
                 gfm: true,
                 breaks: true
@@ -67,21 +116,16 @@ export async function openDoc(fileName, title) {
                     });
                 }
             }
-
-        } else {
-            console.warn('Marked.js not loaded');
-            contentEl.style.whiteSpace = 'pre-wrap';
-            contentEl.innerText = markdownText;
         }
 
     } catch (e) {
         console.error(e);
-        // 使用 CSS 类显示错误信息
+        const msg = (e && e.message) ? e.message : `无法获取文件 "${fileName}"`;
         contentEl.innerHTML = `
             <div class="docs-error">
                 <i class="fa-solid fa-triangle-exclamation"></i>
                 <p class="error-title">文档加载失败</p>
-                <p>无法获取文件 "${fileName}"</p>
+                <p>${msg}</p>
                 <button class="action-btn secondary" onclick="closeDocsModal()" style="margin-top: 1.5rem;">关闭</button>
             </div>
         `;

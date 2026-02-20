@@ -19,7 +19,19 @@ export async function initAuth() {
 
     // 修改：不再读取 localStorage，而是向后端询问 Session 状态
     try {
-        const res = await fetch('/api/user/me');
+        const res = await fetch('/api/user/me', { credentials: 'include' });
+        
+        // 401 是未登录的正常状态，不需要显示错误
+        if (res.status === 401) {
+            // 用户未登录，静默处理
+            return;
+        }
+        
+        // 其他错误状态也静默处理
+        if (!res.ok) {
+            return;
+        }
+        
         const data = await res.json();
 
         if (data.status === 'success' && data.username) {
@@ -35,7 +47,8 @@ export async function initAuth() {
             }
         }
     } catch (e) {
-        console.log("Not logged in or session expired");
+        // 网络错误或其他异常，静默处理（未登录是正常状态）
+        // 不输出错误日志，避免控制台噪音
     }
     setupUsernameCheck();
 }

@@ -1,0 +1,199 @@
+/* static/css/pages/image-editor.css - 图片编辑器样式（简化版，提升性能） */
+
+/* 智能体 & 画板 图片预览 hover 提示 */
+.agent-image-preview-container,
+#uploaded-preview-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.agent-image-edit-hint,
+.canvas-image-edit-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 10;
+}
+
+.agent-image-preview-container:hover .agent-image-edit-hint,
+#uploaded-preview-container:hover .canvas-image-edit-hint {
+    opacity: 1;
+}
+
+#uploaded-preview {
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+#uploaded-preview:hover {
+    opacity: 0.9;
+}
+
+/* 图片编辑器模态框 */
+.image-editor-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-editor-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.image-editor-content {
+    position: relative;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    z-index: 1;
+}
+
+.image-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.image-editor-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.image-editor-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-editor-body {
+    flex: 1;
+    padding: 1.2rem;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.image-editor-preview-container {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70vh;
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: auto; /* 支持滚动查看整张图片 */
+    background: var(--bg-input);
+}
+
+.image-editor-preview-container img {
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    display: block;
+}
+
+.image-editor-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0.9rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.image-editor-footer .action-btn {
+    min-width: 90px;
+}
+
+/* 加载遮罩（简单版） */
+.image-editor-loading {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    color: #e5e7eb;
+    font-size: 0.9rem;
+    z-index: 2;
+}
+
+/* 深色模式下 Cropper 颜色轻微增强（保留，但不强制布局） */
+[data-theme="dark"] .cropper-view-box,
+[data-theme="dark"] .cropper-face {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+[data-theme="dark"] .cropper-line {
+    background-color: rgba(59, 130, 246, 0.3);
+}
+
+[data-theme="dark"] .cropper-point {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .image-editor-content {
+        width: 95%;
+        max-height: 95vh;
+    }
+
+    .image-editor-body {
+        padding: 1rem;
+    }
+
+    .image-editor-preview-container {
+        max-height: 60vh;
+    }
+
+    .image-editor-preview-container img {
+        max-height: 60vh;
+    }
+
+    .image-editor-footer {
+        flex-direction: column-reverse;
+    }
+
+    .image-editor-footer .action-btn {
+        width: 100%;
+    }
+}
