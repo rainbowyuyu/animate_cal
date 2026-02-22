@@ -16,7 +16,16 @@ MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
 MYSQL_USER = os.getenv("MYSQL_USER", "root")
 MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "password")
 MYSQL_DB = os.getenv("MYSQL_DB", "visdom_db")
-MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))
+def _int_env(name: str, default: int) -> int:
+    v = os.getenv(name)
+    if v is None or v.strip() == "":
+        return default
+    try:
+        return int(v)
+    except ValueError:
+        return default
+
+MYSQL_PORT = _int_env("MYSQL_PORT", 3306)
 
 try:
     db_pool = mysql.connector.pooling.MySQLConnectionPool(
@@ -53,3 +62,17 @@ os.makedirs(AVATAR_DIR, exist_ok=True)
 ALLOWED_AVATAR_EXT = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 VIDEOS_DIR = os.path.join(ROOT_DIR, "static", "videos")
 os.makedirs(VIDEOS_DIR, exist_ok=True)
+
+# 教学案例视频存储与鉴权（storage 内视频使用签名 URL）
+STORAGE_DIR = os.path.join(ROOT_DIR, "static", "assets", "storage")
+VIDEO_TOKEN_SECRET = os.getenv("VIDEO_TOKEN_SECRET", "dev-secret-change-in-prod")
+VIDEO_TOKEN_EXPIRES_SECONDS = 3600  # 鉴权 URL 有效期 1 小时
+
+# 阿里云 CDN/DCDN 鉴权（可选：配置后视频走 CDN 鉴权地址，否则走本站 stream）
+# 资源包示例：CDN/DCDN_ResourcePack-cn-f0g4o1vfg001gx（在控制台绑定域名即可，此处仅配置鉴权参数）
+ALIYUN_CDN_RESOURCE_PACK_ID = os.getenv("ALIYUN_CDN_RESOURCE_PACK_ID", "CDN/DCDN_ResourcePack-cn-f0g4o1vfg001gx")
+ALIYUN_CDN_DOMAIN = os.getenv("ALIYUN_CDN_DOMAIN", "").rstrip("/")  # 例如 https://your-cdn.example.com
+ALIYUN_CDN_AUTH_KEY = os.getenv("ALIYUN_CDN_AUTH_KEY", "")           # 控制台「URL 鉴权」中配置的主 KEY
+ALIYUN_CDN_AUTH_TYPE = os.getenv("ALIYUN_CDN_AUTH_TYPE", "a").lower()  # a=鉴权方式A(b 暂不实现)
+ALIYUN_CDN_VIDEO_PATH = os.getenv("ALIYUN_CDN_VIDEO_PATH", "/storage").rstrip("/")  # CDN 上视频路径前缀
+ALIYUN_CDN_AUTH_TTL = _int_env("ALIYUN_CDN_AUTH_TTL", 3600)  # 鉴权 URL 有效时长（秒）

@@ -141,9 +141,8 @@
     box-sizing: border-box;
 }
 
-/* MathJax 渲染内容在预览区内完整显示、可滚动（overflow 由 main.css 统一为 visible 防断开） */
-#dev-latex-preview .mjx-chtml,
-#dev-latex-preview mjx-container {
+/* KaTeX 渲染内容在预览区内完整显示、可滚动 */
+#dev-latex-preview .katex {
     max-width: 100%;
 }
 

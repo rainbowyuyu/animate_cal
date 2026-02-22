@@ -121,7 +121,7 @@ function initLatexTool() {
         if(source) source.value = latex;
         if(preview) {
             preview.innerHTML = `\\[ ${latex} \\]`;
-            if(window.MathJax) MathJax.typesetPromise([preview]).catch(e => {});
+            if (typeof renderMath === 'function') renderMath(preview);
         }
     }
 }

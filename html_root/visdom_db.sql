@@ -44,3 +44,41 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(username) ON DELETE CASCADE
 );
+
+-- 教学案例视频点赞表（video_id 为示例视频标识，如文件名不含扩展名）
+CREATE TABLE IF NOT EXISTS example_video_likes (
+    video_id VARCHAR(128) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (video_id, user_id)
+);
+
+-- 教学案例视频评论表
+CREATE TABLE IF NOT EXISTS example_video_comments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    video_id VARCHAR(128) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 教学案例视频弹幕表（time 为视频时间点秒，color 十进制颜色，mode 1=滚动 4=底部 5=顶部）
+CREATE TABLE IF NOT EXISTS example_video_danmaku (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    video_id VARCHAR(128) NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
+    text VARCHAR(80) NOT NULL,
+    time DOUBLE NOT NULL,
+    color INT DEFAULT 16777215,
+    mode SMALLINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 教学案例播放进度/心跳表（用于续播与 30 秒心跳上报）
+CREATE TABLE IF NOT EXISTS example_play_history (
+    user_id VARCHAR(64) NOT NULL,
+    video_id VARCHAR(128) NOT NULL,
+    progress DOUBLE NOT NULL DEFAULT 0,
+    last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, video_id)
+);

@@ -1,182 +1,1210 @@
-/* static/css/pages/examples.css */
+/* 教学案例页 - B 站风格：高级、柔和、大气 */
 
-.video-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 2.5rem;
+/* ========== 区块整体 ========== */
+#examples.section {
+    padding: 3rem 1.5rem 4rem;
+    background: linear-gradient(180deg, var(--bg-page) 0%, var(--bg-surface) 100%);
 }
 
+/* 与全站 .section-title 一致：2rem、800、下划线 60px */
+#examples .section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    margin: 3rem 0 2rem;
+    text-align: center;
+    color: var(--text-main);
+    position: relative;
+    display: inline-block;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#examples .section-title::after {
+    content: '';
+    display: block;
+    width: 60px;
+    height: 4px;
+    background: var(--primary-color);
+    margin: 10px auto 0;
+    border-radius: 2px;
+}
+
+#examples .section-subtitle {
+    text-align: center;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin: -1rem 0 2.5rem;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+/* ========== 视频网格（B 站卡片流）========== */
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.75rem;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* ========== 视频卡片 ========== */
 .video-card {
-    background: var(--bg-surface); /* 适配深色 */
-    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    border-radius: 14px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid var(--border-color); /* 适配深色 */
-    box-shadow: var(--shadow-sm);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.35s ease,
+                border-color 0.3s ease;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
     display: flex;
     flex-direction: column;
 }
 
 .video-card:hover {
-    transform: translateY(-8px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--primary-color);
+    transform: translateY(-6px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.25);
 }
 
-/* 缩略图容器 */
+[data-theme="dark"] .video-card {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .video-card:hover {
+    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(59, 130, 246, 0.15);
+}
+
+/* 缩略图容器 - 16:9 比例 */
 .video-preview-container {
-    height: 180px;
-    background: #000; /* 视频背景保持黑色 */
     position: relative;
     overflow: hidden;
+    aspect-ratio: 16 / 9;
+    background: #0f172a;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-/* 覆盖层：存放播放图标和渐变 */
+.video-preview-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.video-card:hover .video-preview-container video {
+    transform: scale(1.06);
+}
+
+/* 底部渐变遮罩（B 站式，可放时长等） */
+.video-preview-container::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+    pointer-events: none;
+}
+
+/* B 站式时长角标：右下角半透明胶囊 */
+.video-duration-badge {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.65);
+    border-radius: 4px;
+    z-index: 2;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.02em;
+}
+
+.video-card-meta {
+    position: absolute;
+    left: 8px;
+    bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 2;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.video-card-meta span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+/* 播放按钮遮罩 */
 .play-overlay {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.3);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.25);
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity 0.3s;
-    pointer-events: none; /* 让鼠标事件穿透到 video */
+    transition: opacity 0.35s ease, background 0.35s ease;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.video-card:hover .play-overlay {
+    opacity: 0.85;
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .play-overlay i {
-    font-size: 3.5rem;
-    color: rgba(255,255,255,0.9);
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
-    transition: transform 0.3s;
+    font-size: 3.25rem;
+    color: rgba(255, 255, 255, 0.95);
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* 悬停时隐藏遮罩，让视频清晰显示 */
-.video-card:hover .play-overlay {
-    opacity: 0;
+.video-card:hover .play-overlay i {
+    transform: scale(1.12);
+    color: #fff;
 }
 
+/* 卡片信息区 */
 .video-card .info {
-    padding: 1.8rem;
+    padding: 1.25rem 1.35rem;
     flex: 1;
     display: flex;
     flex-direction: column;
+    gap: 0.5rem;
+    border-top: 1px solid var(--border-color);
 }
 
 .video-card h4 {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     font-weight: 700;
-    margin-bottom: 0.6rem;
-    color: var(--text-main); /* 适配深色 */
+    margin: 0;
+    color: var(--text-main);
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 .video-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ========== 加载 / 空状态 ========== */
+.video-grid-loading,
+.video-grid-empty,
+.video-grid-error {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
     font-size: 0.95rem;
-    color: var(--text-secondary); /* 适配深色 */
-    line-height: 1.6;
 }
 
-/* --- 沉浸式视频播放器 (Immersive Modal) --- */
-/* 这部分已经是深色设计，在深色模式下依然适用，无需大改 */
-#video-modal {
-    background-color: rgba(0, 0, 0, 0.95);
-    backdrop-filter: blur(20px);
+.video-grid-loading i,
+.video-grid-empty i,
+.video-grid-error i {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+    opacity: 0.85;
+}
+
+.video-grid-loading i {
+    animation: examplesSpin 0.9s linear infinite;
+}
+
+@keyframes examplesSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== 视频弹窗：与全站 .modal / glass-panel 风格一致 ========== */
+/* 默认隐藏，与 .modal 一致，避免覆盖导致一进页面就挡住点击 */
+.video-modal-overlay {
+    display: none;
+}
+
+.video-modal-overlay.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 9999;
+    animation: examplesModalFadeIn 0.25s ease-out;
 }
 
-#video-modal .modal-content {
-    background: transparent;
-    box-shadow: none;
-    width: 90%;
-    max-width: 1200px;
-    height: 90vh;
+@keyframes examplesModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 关闭按钮：与全站弹窗关闭按钮风格一致 */
+.video-modal-close-outside {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+    box-shadow: var(--shadow-md);
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.video-modal-close-outside:hover {
+    border-color: var(--primary-color);
+    background: var(--bg-input);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+}
+
+.video-modal-close-outside:active {
+    transform: scale(0.98);
+}
+
+/* 主面板：与全站 .modal-content / .glass-panel 一致；滚动条藏于内部不占边 */
+.video-modal-panel {
+    width: 100%;
+    max-width: 880px;
+    max-height: calc(100vh - 4rem);
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    padding: 1.5rem 1.5rem 1.75rem;
+    position: relative;
+    z-index: 10000;
+    animation: examplesPanelSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.video-modal-panel::-webkit-scrollbar {
+    display: none;
+}
+
+@keyframes examplesPanelSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97) translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.video-modal-header {
+    margin-bottom: 1rem;
+}
+
+.video-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.video-info h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+    line-height: 1.4;
+}
+
+.video-info p {
+    color: var(--text-secondary);
+    margin: 0.35rem 0 0;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.video-meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.video-viewer-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.video-viewer-count:empty {
+    display: none;
+}
+
+.video-like-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.25s ease, background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.video-like-btn:hover {
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.08);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+.video-like-btn:active {
+    transform: translateY(0);
+}
+
+.video-like-btn.liked {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.video-like-btn.liked i {
+    font-weight: 900;
+}
+
+.video-like-btn i {
+    font-size: 1rem;
+}
+
+/* ========== 自制播放器（B站/抖音风格） ========== */
+/* 中央大播放键 */
+.custom-player-center-play {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    transition: background 0.2s, transform 0.2s;
+    pointer-events: auto;
+}
+
+.custom-player-center-play:hover {
+    background: rgba(0, 174, 236, 0.85);
+    transform: translate(-50%, -50%) scale(1.08);
+    box-shadow: 0 0 24px rgba(0, 174, 236, 0.4);
+}
+.custom-player-center-play:active {
+    transform: translate(-50%, -50%) scale(1.02);
+}
+
+.custom-player-center-play i {
+    margin-left: 4px;
+}
+
+.custom-player-center-play.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+}
+
+/* 底部控制栏整体（显隐在下方 B站式 块中）；高能条+进度条+按钮同一块 */
+.custom-player-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 6;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.75));
+    padding: 0 12px 8px;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 进度条区域（B站式：细条悬停变粗） */
+.custom-player-progress-wrap {
+    position: relative;
+    height: 24px;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.custom-player-progress-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+    transition: height 0.15s;
+}
+
+.custom-player-progress-wrap:hover .custom-player-progress-track {
+    height: 6px;
+}
+
+.custom-player-progress-loaded,
+.custom-player-progress-played,
+.custom-player-progress-hover {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    border-radius: 2px;
+}
+
+.custom-player-progress-loaded {
+    background: rgba(255, 255, 255, 0.35);
+    width: 0%;
+}
+
+.custom-player-progress-played {
+    background: var(--primary-color);
+    width: 0%;
+}
+
+.custom-player-progress-hover {
+    background: rgba(255, 255, 255, 0.5);
+    width: 0%;
+    pointer-events: none;
+}
+
+.custom-player-progress-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    transform: translateX(-50%);
+    margin-bottom: 6px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.9);
+    color: #fff;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    border: none;
-    padding: 0;
-    overflow: visible;
+    gap: 4px;
 }
 
-/* 视频容器 */
-.video-player-wrapper {
-    width: 100%;
-    aspect-ratio: 16/9;
-    background: black;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+.custom-player-progress-wrap:hover .custom-player-progress-tooltip {
+    opacity: 1;
+}
+
+/* 进度条悬停雪碧图预览（B站式） */
+.custom-player-preview-box {
+    width: 160px;
+    height: 90px;
+    background-color: #000;
+    background-repeat: no-repeat;
+    border-radius: 4px;
+    display: none;
+}
+
+.custom-player-progress-tooltip.has-sprite .custom-player-preview-box {
+    display: block;
+}
+
+.custom-player-preview-time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* 控制栏左右行 */
+.custom-player-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.custom-player-left,
+.custom-player-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.custom-player-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+.custom-player-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: scale(1.06);
+}
+.custom-player-btn:active {
+    transform: scale(0.96);
+}
+.custom-player-btn.active {
+    color: #00aeec;
+}
+
+.custom-player-time {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+}
+
+/* 倍速按钮 */
+.custom-player-speed-btn {
+    min-width: 36px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.custom-player-speed-wrap {
     position: relative;
 }
 
-#video-modal video {
+.custom-player-speed-menu {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 4px;
+    padding: 6px 0;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 8px;
+    min-width: 80px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    display: none;
+    z-index: 20;
+}
+
+.custom-player-speed-menu.show {
+    display: block;
+}
+
+.custom-player-speed-menu button {
+    display: block;
+    width: 100%;
+    padding: 6px 14px;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.85rem;
+    cursor: pointer;
+    text-align: left;
+}
+
+.custom-player-speed-menu button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.custom-player-speed-menu button.active {
+    color: #00aeec;
+}
+
+/* 音量：点击图标即可展开滑块，不依赖 hover */
+.custom-player-volume-wrap {
+    position: relative;
+}
+.custom-player-volume-slider-wrap {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 4px;
+    padding: 10px 8px;
+    background: rgba(0, 0, 0, 0.9);
+    border-radius: 8px;
+    display: none;
+    z-index: 25;
+    pointer-events: auto;
+}
+.custom-player-volume-wrap:hover .custom-player-volume-slider-wrap,
+.custom-player-volume-wrap.volume-open .custom-player-volume-slider-wrap {
+    display: block;
+}
+.custom-player-volume-wrap .custom-player-volume-btn {
+    pointer-events: auto;
+}
+
+.custom-player-volume-slider {
+    width: 72px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    outline: none;
+}
+
+.custom-player-volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+}
+
+.custom-player-volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    border: none;
+}
+
+.custom-player-screen-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 0;
+    overflow: hidden;
+}
+
+@media (min-width: 520px) {
+    .custom-player-screen-label {
+        max-width: 3em;
+    }
+}
+
+/* ========== B站式多层播放器 ========== */
+:root {
+    --bilibili-pink: #FB7299;
+    --bilibili-blue: #00AEEC;
+}
+
+.video-player-wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--bg-body);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    position: relative;
+    outline: none;
+}
+
+.bilibili-player-area .player-layer {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.bilibili-player-area .player-layer-bg {
+    background: #000;
+    z-index: 0;
+}
+
+.bilibili-player-area .player-layer-video {
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.bilibili-player-area .player-layer-mask {
+    z-index: 2;
+}
+
+.bilibili-player-area .video-danmaku-layer {
+    z-index: 3;
+}
+
+.bilibili-player-area .video-danmaku-layer canvas {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* 高能条：在控制栏内、进度条上方，随控制栏显隐 */
+.player-layer-high-energy-inline {
+    width: 100%;
+    height: 18px;
+    margin-bottom: 4px;
+    position: relative;
+    flex-shrink: 0;
+    color: rgba(255, 255, 255, 0.35);
+}
+.player-layer-high-energy-inline .high-energy-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+.player-layer-high-energy-inline #high-energy-path,
+.player-layer-high-energy-inline #high-energy-watched-path {
+    transition: d 0.15s ease-out;
+}
+
+.high-energy-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 2px;
+    padding: 2px 8px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #fff;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+}
+
+.player-layer-high-energy:hover .high-energy-tooltip.show {
+    opacity: 1;
+}
+
+.video-modal-panel .player-layer-video {
     width: 100%;
     height: 100%;
     object-fit: contain;
     display: block;
 }
 
-/* 顶部信息栏 */
-.video-modal-header {
+/* 弹幕层容器（内为 Canvas） */
+.video-danmaku-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.video-danmaku-layer.half-screen {
+    bottom: auto;
+    height: 50%;
+}
+
+.video-danmaku-layer.quarter-screen {
+    bottom: auto;
+    height: 25%;
+}
+
+/* 控制栏：鼠标离开时下移隐藏（B站式） */
+.custom-player-controls {
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+.video-player-wrapper .custom-player-controls {
+    opacity: 0;
+    transform: translateY(100%);
+}
+
+.video-player-wrapper:hover .custom-player-controls,
+.video-player-wrapper .custom-player-controls.show,
+.video-player-wrapper.controls-visible .custom-player-controls {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 时间数字等宽，防止跳动 */
+.custom-player-time {
+    font-variant-numeric: tabular-nums;
+}
+
+/* 音量 Toast（交互反馈层） */
+.player-volume-toast {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 8;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+}
+
+.player-volume-toast.show {
+    opacity: 1;
+}
+
+/* 右键菜单（仿 B 站深色半透明） */
+.player-context-menu {
+    position: fixed;
+    z-index: 11000;
+    min-width: 220px;
+    padding: 6px 0;
+    background: rgba(28, 28, 32, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-xl);
+    display: none;
+    backdrop-filter: blur(12px);
+}
+
+.player-context-menu.show {
+    display: block;
+}
+
+.player-context-menu button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.player-context-menu button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #00aeec;
+}
+
+/* Stats for nerds */
+.player-stats-panel {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 11001;
+    width: 90%;
+    max-width: 420px;
+    max-height: 80vh;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-xl);
+    display: none;
+}
+
+.player-stats-panel.show {
+    display: block;
+}
+
+.player-stats-header {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
-    padding: 1rem 0;
-    color: white; /* 始终保持白色，因为背景是深黑遮罩 */
-}
-
-.video-info h3 {
-    font-size: 1.5rem;
-    margin: 0;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-color);
     font-weight: 700;
+    color: var(--text-main);
 }
 
-.video-info p {
-    color: #94a3b8;
-    margin: 5px 0 0;
+.player-stats-close {
+    border: none;
+    background: none;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.player-stats-body {
+    margin: 0;
+    padding: 12px 14px;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 60vh;
+    overflow: auto;
+}
+
+/* 评论区：贴合面板主题 */
+.video-modal-comments {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.video-modal-comments-title {
     font-size: 1rem;
-}
-
-/* 关闭按钮优化 */
-#video-modal .close-modal {
-    position: static;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 2.5rem;
-    width: 48px;
-    height: 48px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    transition: all 0.2s;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 0.75rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.5rem;
 }
 
-#video-modal .close-modal:hover {
-    color: white;
-    background: rgba(255, 255, 255, 0.2);
-    transform: rotate(90deg);
+.video-modal-comments-title i {
+    color: var(--primary-color);
 }
 
-/* 移动端适配 */
+.video-comments-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+.video-comment-item {
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.video-comment-item:last-child {
+    border-bottom: none;
+}
+
+.video-comment-user {
+    color: var(--text-main);
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+
+.video-comment-content {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.video-comment-time {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    opacity: 0.85;
+}
+
+.video-comment-input-wrap {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+}
+
+.video-comment-input-wrap input {
+    flex: 1;
+    padding: 0.6rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.video-comment-input-wrap input::placeholder {
+    color: var(--text-secondary);
+}
+
+.video-comment-input-wrap input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.video-comment-input-wrap .action-btn {
+    flex-shrink: 0;
+    padding: 0.6rem 1rem;
+}
+
+.video-comment-login-hint {
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.video-comment-login-hint a {
+    color: var(--primary-color);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.video-comment-login-hint a:hover {
+    text-decoration: underline;
+}
+
+/* 弹幕输入栏：放在播放器下方，不与视频进度条冲突 */
+.video-danmaku-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.video-danmaku-input-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.video-danmaku-input-wrap input {
+    flex: 1;
+    max-width: 240px;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.video-danmaku-input-wrap input::placeholder {
+    color: var(--text-secondary);
+}
+
+.video-danmaku-input-wrap input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.video-danmaku-input-wrap .action-btn,
+.video-comment-input-wrap .action-btn {
+    transition: transform 0.2s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.video-danmaku-input-wrap .action-btn:hover,
+.video-comment-input-wrap .action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+.video-danmaku-input-wrap .action-btn:active,
+.video-comment-input-wrap .action-btn:active {
+    transform: translateY(0);
+}
+.video-danmaku-input-wrap .action-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+}
+
+.video-danmaku-etiquette {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+.video-danmaku-etiquette:hover {
+    color: var(--primary-color);
+}
+
+.video-danmaku-login-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.video-danmaku-login-hint a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.video-danmaku-login-hint a:hover {
+    text-decoration: underline;
+}
+
+/* ========== 移动端 ========== */
 @media (max-width: 768px) {
-    #video-modal .modal-content {
-        width: 100%;
-        height: 100%;
-        justify-content: flex-start;
-        padding-top: 2rem;
+    #examples.section {
+        padding: 2rem 1rem 3rem;
     }
-    .video-player-wrapper {
-        border-radius: 0;
-        aspect-ratio: auto;
-        height: auto;
+
+    .video-grid {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        padding: 0 0.25rem;
     }
-    .video-modal-header {
+
+    .video-card .info {
+        padding: 1rem 1.15rem;
+    }
+
+    .video-card h4 {
+        font-size: 1rem;
+    }
+
+    .video-modal-overlay {
         padding: 1rem;
+    }
+
+    .video-modal-close-outside {
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+
+    .video-modal-panel {
+        max-height: calc(100vh - 3rem);
+        padding: 1.25rem 1rem 1.5rem;
+    }
+
+    .video-info h3 {
+        font-size: 1.1rem;
+    }
+
+    .video-player-wrapper {
+        border-radius: 10px;
     }
 }

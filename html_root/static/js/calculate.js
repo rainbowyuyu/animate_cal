@@ -1,6 +1,7 @@
 import { toggleModal, showSection, toggleAuthModal, showToast } from './ui.js';
 import { loadMyFormulas, normalizeLatex } from './formulas.js';
 import * as Formulas from './formulas.js';
+import * as Settings from './settings.js';
 
 let lastGeneratedCode = '';
 let lastGeneratedCodeCalc = '';
@@ -10,12 +11,72 @@ let accumulatedStepsContent = {
     unified: '',  // 通用模式的解题步骤
     single: ''   // 单阶段模式的解题步骤
 };
+// 本次生成完成的视频（用于在题解中插入可点击跳转链接）
+let completedVideosThisRun = [];
 
 function getCurrentUser() {
     const userDisplay = document.getElementById('user-display');
     const usernameSpan = document.getElementById('username-span');
     if (userDisplay && userDisplay.style.display !== 'none' && usernameSpan) return usernameSpan.innerText;
     return null;
+}
+
+/** 在题解区域追加「视频解析」可点击链接，点击后跳转到对应视频并播放 */
+function appendVideoLinksToSteps() {
+    if (completedVideosThisRun.length === 0) return;
+    function makeWrap() {
+        const wrap = document.createElement('div');
+        wrap.className = 'calc-video-links-wrap';
+        wrap.innerHTML = '<strong class="calc-video-links-title">视频解析：</strong>';
+        const linksContainer = document.createElement('span');
+        linksContainer.className = 'calc-video-links';
+        completedVideosThisRun.forEach((item, i) => {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'calc-video-link';
+            a.textContent = item.label || ('视频 ' + (i + 1));
+            a.dataset.videoUrl = item.url || '';
+            a.dataset.part = item.part || '';
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                const u = a.dataset.videoUrl;
+                if (!u) return;
+                const singleWrap = document.getElementById('calc-single-wrap');
+                const vSingle = document.getElementById('result-video-player');
+                const vCalc = document.getElementById('result-video-player-calc');
+                const vVis = document.getElementById('result-video-player-vis');
+                if (singleWrap && singleWrap.style.display !== 'none' && vSingle) {
+                    singleWrap.querySelectorAll('.calc-stack-tab').forEach((x) => x.classList.toggle('active', x.dataset.tab === 'video'));
+                    singleWrap.querySelectorAll('.calc-stack-window').forEach((w) => w.classList.toggle('active', w.id === 'calc-window-video-single'));
+                    vSingle.src = u;
+                    vSingle.style.display = 'block';
+                    vSingle.play();
+                    vSingle.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else if (vCalc || vVis) {
+                    const part = a.dataset.part;
+                    const target = part === 'calc' ? vCalc : vVis;
+                    if (target) {
+                        target.src = u;
+                        target.style.display = 'block';
+                        target.play();
+                        const wrap = target.closest('.calc-stack-wrap');
+                        if (wrap) wrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+            });
+            linksContainer.appendChild(a);
+            if (i < completedVideosThisRun.length - 1) linksContainer.appendChild(document.createTextNode(' · '));
+        });
+        wrap.appendChild(linksContainer);
+        return wrap;
+    }
+    [ 'calc-steps-content', 'calc-steps-content-single' ].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const old = el.querySelector('.calc-video-links-wrap');
+        if (old) old.remove();
+        el.appendChild(makeWrap());
+    });
 }
 
 /** 通用模式叠层窗口：解题步骤 | 计算 | 可视化，点击标签切换 (仅绑定一次) */
@@ -69,6 +130,22 @@ export function initCalculateListeners() {
         code.value = field.getValue();
         field.addEventListener('input', (e) => { code.value = e.target.value; });
         code.addEventListener('input', (e) => { field.setValue(e.target.value); });
+    }
+
+    // 数学表达式字号由设置页滑块控制，进入计算页时应用一次
+    if (typeof Settings.applyCalcMathFontSizeToPage === 'function') {
+        Settings.applyCalcMathFontSizeToPage();
+    }
+
+    // 演示模式下拉框变更时同步到设置，使设置页与计算页状态栏一致
+    const calcMethodSelect = document.getElementById('calc-method');
+    if (calcMethodSelect && typeof Settings.setCalcDefaultMode === 'function') {
+        calcMethodSelect.addEventListener('change', function () {
+            const v = this.value;
+            if (['normal', 'formular', 'visualization', 'solution'].includes(v)) {
+                Settings.setCalcDefaultMode(v);
+            }
+        });
     }
 }
 
@@ -137,6 +214,7 @@ export async function startAnimation() {
     const logBox = document.getElementById('gen-log');
     const progBar = document.getElementById('gen-progress');
     const percentText = document.getElementById('gen-percent');
+    const terminalWrapper = document.getElementById('calc-terminal-wrapper');
     const method = document.getElementById('calc-method').value;
 
     // 1. 重置 UI 状态
@@ -145,10 +223,10 @@ export async function startAnimation() {
 
     if(progBar) {
         progBar.style.width = '0%';
-        progBar.className = '';
-        progBar.style.background = "#3b82f6";
+        progBar.className = 'calc-terminal-progress-bar phase-start';
     }
     if(percentText) percentText.innerText = '0%';
+    if(terminalWrapper) terminalWrapper.classList.add('is-generating');
 
     if(videoPlayer) {
         videoPlayer.pause();
@@ -200,9 +278,10 @@ export async function startAnimation() {
         placeholderSingle.innerHTML = '<span>等待渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
     }
     if (loadingSingle) loadingSingle.style.display = 'none';
-    // 重置流式输出累积
+    // 重置流式输出累积与本次完成视频列表
     accumulatedStepsContent.unified = '';
     accumulatedStepsContent.single = '';
+    completedVideosThisRun = [];
     const renderLoading = document.getElementById('calc-render-loading');
     if(renderLoading) renderLoading.style.display = 'flex';
     const loadingCalc = document.getElementById('calc-window-loading-calc');
@@ -297,17 +376,20 @@ export async function startAnimation() {
                             const data = JSON.parse(jsonStr);
 
                             if (data.progress) {
-                            if(progBar) progBar.style.width = data.progress + '%';
+                            if(progBar) {
+                                progBar.style.width = data.progress + '%';
+                                progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
+                                progBar.classList.add(data.progress < 30 ? 'phase-start' : data.progress < 90 ? 'phase-mid' : 'phase-done');
+                            }
                             if(percentText) percentText.innerText = data.progress + '%';
-
-                            if(data.progress < 30 && progBar) progBar.style.background = "#3b82f6";
-                            else if(data.progress < 90 && progBar) progBar.style.background = "#8b5cf6";
-                            else if(progBar) progBar.style.background = "#10b981";
                         }
 
                         if (data.step === 'text_result') {
                             const content = data.content || '';
                             if (!content) return; // 空内容跳过
+                            
+                            // 题解已到：立即隐藏「正在生成与渲染」全屏遮罩，避免挡住解题步骤；系统日志保持可见
+                            if (renderLoading) renderLoading.style.display = 'none';
                             
                             // 累积内容（流式输出）
                             accumulatedStepsContent.unified += content;
@@ -330,44 +412,7 @@ export async function startAnimation() {
                                 htmlContentSingle = accumulatedStepsContent.single.replace(/\n/g, '<br>');
                             }
                             
-                            // 将 $...$ / $$...$$ 转为 MathJax 默认的 \(...\) / \[...\]
-                            // 修复：确保所有公式（包括包含 \left...\right 的）都能正确解析
-                            function convertDollarToMathJax(html) {
-                                if (!html) return '';
-                                
-                                // 先标记所有 $$...$$（块级公式），避免后续处理时误匹配
-                                const blockMarkers = [];
-                                html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match, content) => {
-                                    const marker = `__BLOCK_MATH_${blockMarkers.length}__`;
-                                    blockMarkers.push({ marker, match, content });
-                                    return marker;
-                                });
-                                
-                                // 处理行内公式 $...$（不匹配 $$）
-                                // 修复：包含 \left...\right 的公式也需要转换，MathJax 可以正确解析
-                                html = html.replace(/\$([^$\n]+?)\$/g, (match, content) => {
-                                    // 如果内容已经包含 \( 或 \[，说明已经转换过，不重复转换
-                                    if (content.includes('\\(') || content.includes('\\[')) return match;
-                                    // 所有 $...$ 都转换为 \(...\)，包括包含 \left...\right 的复杂公式
-                                    return '\\(' + content + '\\)';
-                                });
-                                
-                                // 恢复块级公式标记，并转换
-                                blockMarkers.forEach(({ marker, match, content }) => {
-                                    // 如果内容已经包含 \[，不转换
-                                    if (content.includes('\\[')) {
-                                        html = html.replace(marker, match);
-                                    } else {
-                                        // 块级公式转换为 \[...\]
-                                        html = html.replace(marker, '\\[' + content + '\\]');
-                                    }
-                                });
-                                
-                                return html;
-                            }
-                            htmlContentUnified = convertDollarToMathJax(htmlContentUnified);
-                            htmlContentSingle = convertDollarToMathJax(htmlContentSingle);
-                            
+                            // 保留 $...$ / $$...$$，由 KaTeX renderMathInElement 统一渲染（与 ChatGPT/Claude/豆包一致）
                             // 通用模式：流式更新独立的「解题步骤」窗口
                             const stepsContentUnified = document.getElementById('calc-steps-content');
                             const dualWrap = document.getElementById('calc-dual-videos-wrap');
@@ -404,35 +449,14 @@ export async function startAnimation() {
                                 }
                             }
                             
-                            // 延迟批量渲染 MathJax（避免每次追加都触发，提高性能）
-                            // 修复：确保所有公式（包括包含 \left...\right 的结论）都能正确解析
+                            // 延迟批量用 KaTeX 渲染公式（与 ChatGPT/Claude/豆包一致）
                             clearTimeout(window.stepsMathJaxTimeout);
                             const nodesToTypeset = [stepsContentUnified, stepsContentSingle].filter(Boolean);
-                            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function' && nodesToTypeset.length) {
-                                window.stepsMathJaxTimeout = setTimeout(() => {
-                                    try {
-                                        // 先清除之前的 MathJax 内容，避免重复渲染
-                                        nodesToTypeset.forEach(node => {
-                                            if (node) {
-                                                const mjxElements = node.querySelectorAll('.mjx-container, .MathJax');
-                                                mjxElements.forEach(el => el.remove());
-                                            }
-                                        });
-                                        // 重新渲染所有数学公式
-                                        window.MathJax.typesetPromise(nodesToTypeset).catch(e => {
-                                            console.warn('MathJax typeset error:', e);
-                                            // 如果失败，尝试重新配置并重试
-                                            if (window.MathJax && window.MathJax.startup) {
-                                                window.MathJax.startup.promise.then(() => {
-                                                    window.MathJax.typesetPromise(nodesToTypeset);
-                                                });
-                                            }
-                                        });
-                                    } catch (e) {
-                                        console.warn('MathJax typeset error:', e);
-                                    }
-                                }, 300); // 300ms 防抖，避免频繁渲染
-                            }
+                            window.stepsMathJaxTimeout = setTimeout(() => {
+                                nodesToTypeset.forEach(node => {
+                                    if (node && typeof renderMath === 'function') renderMath(node);
+                                });
+                            }, 300);
                         }
                         if (data.step === 'normal_split') {
                             addLog(data.message || "通用演示将分两步：先计算推演，再可视化演示", "#a78bfa");
@@ -504,10 +528,19 @@ export async function startAnimation() {
                             }
                         }
                         else if (data.step === 'complete') {
+                            if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
+                            if (progBar) {
+                                progBar.classList.remove('phase-start', 'phase-mid');
+                                progBar.classList.add('phase-done');
+                                progBar.style.width = '100%';
+                            }
                             if (renderLoading) renderLoading.style.display = 'none';
                             addLog((data.message || "✨ 渲染完成！视频加载中..."), "#a78bfa");
                             const part = data.part;
+                            const label = data.label || (part === 'calc' ? '计算推演' : part === 'vis' ? '可视化演示' : '查看视频解析');
                             const url = data.video_url ? `${data.video_url}?t=${new Date().getTime()}` : '';
+                            completedVideosThisRun.push({ part, label, url });
+                            /* 解题步骤中不展示「查看视频解析」链接，仅智能体消息中保留 */
                             if (part === 'calc') {
                                 if (data.code) lastGeneratedCodeCalc = data.code;
                                 setTimeout(() => {
@@ -629,9 +662,13 @@ export async function startAnimation() {
                             // 双阶段时不要 return，继续读流以接收下一阶段 complete
                         }
                         else if (data.step === 'error') {
+                            if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
+                            if (progBar) {
+                                progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
+                                progBar.classList.add('phase-error');
+                            }
                             if (renderLoading) renderLoading.style.display = 'none';
                             addLog("❌ 错误: " + (data.message || '未知错误'), "#ef4444");
-                            if (progBar) progBar.style.background = "#ef4444";
                             if (typeof showToast === 'function') showToast(data.message || '生成失败，请检查公式或稍后再试。', 'error');
                             return;
                         }
@@ -645,6 +682,11 @@ export async function startAnimation() {
 
     } catch (e) {
         console.error(e);
+        if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
+        if (progBar) {
+            progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
+            progBar.classList.add('phase-error');
+        }
         const loadingEl = document.getElementById('calc-render-loading');
         if (loadingEl) loadingEl.style.display = 'none';
         addLog("❌ 网络或请求错误: " + (e.message || '请检查服务器状态'), "#ef4444");
@@ -721,7 +763,7 @@ async function loadFormulaSelectorList() {
                     </div>
                 `;
                 container.innerHTML = listHtml + manageBtnHtml;
-                if (window.MathJax) MathJax.typesetPromise([container]);
+                if (typeof renderMath === 'function') renderMath(container);
             }
         } else {
             container.innerHTML = "加载失败";

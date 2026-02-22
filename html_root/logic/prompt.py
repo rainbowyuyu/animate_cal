@@ -10,6 +10,82 @@ def return_prompt(
         return visualization_prompt(latex_a, latex_b, **kwargs)
     elif op_desc == "通用演示":
         return for_vis_prompt(latex_a, latex_b, **kwargs)
+    elif op_desc == "完整解题演示":
+        return solution_visualization_prompt(latex_a, **kwargs)
+
+
+def solution_visualization_prompt(problem_text, **kwargs):
+    """生成「完整解题过程」的 Manim 演示：题目、各选项极限/结论、答案；可画图题目以画图为主。"""
+    return f"""
+你是一名 **Manim Community Edition（v0.18+）动画工程专家**。本任务要求根据下方给出的**完整题目与解题分析**，
+生成**完整解题方案的可视化演示**：依次展示题目、各选项及其极限（或结论）、最终答案。**能画图的题目以画图为主**（如函数图像、极限趋势），给用户直观的可视化。
+
+---
+
+## 一、任务输入（仅用于理解，不要原样输出）
+
+【完整题目与解题分析】
+{problem_text}
+
+---
+
+## 二、硬性技术约束（必须 100% 严格遵守）
+
+1. **导入与类**
+   - 必须：`from manim import *`
+   - 类名 **必须**：`GenScene`，继承自 `Scene`
+   - 所有动画 **只能** 写在 `def construct(self):` 中
+   - **防止黑屏**：画面内容必须通过 `self.play(...)` 或 `self.add(...)` 显示。若只创建 mobject 而不 play/add，会渲染出黑屏。至少在第一帧用 `self.play(Write(...))` 或 `self.add(...)` 显示题目或第一个公式。
+
+2. **MathTex 规范**
+   - 所有公式/数学文字 **必须** 使用 `MathTex`，且用 `r"..."` 原始字符串
+   - **严禁在 MathTex 中出现任何中文字符**。题目、选项说明、结论一律用英文或数学符号表示（如 "Option A", "limit = 0", "Answer: C"）。
+
+3. **布局与排版（严禁一屏挤满、严禁重叠与超出）**
+   - **禁止一屏塞满**：同一帧内不得同时展示所有选项和所有图像。必须**分阶段、分屏**展示（参考 Manim Community 的 FadeIn/FadeOut/移出再入的用法）。
+   - **选项与图一一对应、动画完整**：题目有几个选项就画几幅图（例如四个选项必须画四幅图，不得只画两幅或遗漏）。每选项单独一屏展示其公式与对应图像。
+   - **文字/公式严禁重合**：同一帧内所有文字、公式、标签之间必须留有足够间距，使用 **arrange(DOWN, buff=0.4)**、**next_to(..., buff=0.35)** 等明确错开，不得重叠、遮挡。
+   - 使用 **VGroup** 将同一逻辑块（题目或单个选项+其图）包成一组；整体用 **to_edge(UP)** 或 **move_to(ORIGIN)** 等控制在画面内。
+   - 所有文字/公式 **必须 scale(0.55～0.75)**，单屏内容少而清晰；可用 **fit_in_frame** 或整体 scale 保证不超出 frame。
+   - 禁止文字、公式堆叠或超出可视区域；禁止多选项、多图同时挤在一页。
+
+4. **图像与坐标轴（稳定、不超出屏幕）**
+   - 画图时 **必须** 使用 **Axes(x_range=[...], y_range=[...], ...)** 显式指定范围，保证曲线和文字始终在画面内。
+   - **y_range 必须有限**：例如 x->0 的极限题用 `y_range=[-0.5, 2.5, 0.5]` 或 `y_range=[0, 2, 0.5]`，禁止不设上限导致曲线冲出屏幕。
+   - **x_range**：若函数在 0 处无定义或趋于无穷，用 `x_range=[0.05, 1, 0.2]` 或 `[0.01, 1]` 等避开奇点，避免竖线冲出。
+   - 在 **plot** 中：对会趋于无穷的函数，在 lambda 内对超出合理范围的值 **return float("nan")**，这样 Manim 不会画出界；或只画有界区间。
+   - **每阶段至多 1 个选项配 1 个图**（或仅公式），避免一屏多图拥挤；下一阶段再用 FadeOut 清空或移出后展示下一项。
+
+5. **输出限制**
+   - 只输出纯 Python 代码，不要 Markdown、不要解释。背景使用默认黑色。
+
+---
+
+## 三、动画逻辑与阶段划分（严格按顺序，分阶段显示、不挤一屏）
+
+采用 **分阶段、分屏** 展示（参考 [Manim Community](https://www.manim.community/) 的 FadeIn/FadeOut/移出再入），保证每屏内容少而清晰、生成稳定：
+
+- **第一阶段**：仅展示题目。用 Write 或 FadeIn 展示题目要点（如 "Which limit exists and is finite as x -> 0?"），放在上方 to_edge(UP) 或居中，scale(0.7) 左右。self.wait(1.5)。
+- **第二阶段**：**逐项、分屏**展示**全部**选项，**选项个数与图个数一致**（例如四选项则画四幅图，不得只画两幅）。
+  - 对选项 A：用 VGroup(选项标签 MathTex + 公式 MathTex + 结论) 放在画面中部；若画图则 1 个 Axes+plot，与公式用 arrange(DOWN, buff=0.4) 排在同一 VGroup 内。**文字与公式之间用 buff 留足间距，严禁重合。** self.play(FadeIn(option_a_group)) 或 Write，self.wait(2)。
+  - **清空或移出**：self.play(FadeOut(option_a_group))，再展示选项 B（同样 VGroup：标签+公式+图）。依此类推**完整展示 C、D**（若有更多选项则每项一屏，不遗漏）。
+  - 每项展示后必须 wait(1.5～2)，再 FadeOut 再下一项；可保留题目在顶部不 FadeOut。
+- **第三阶段**：最后可单独一屏只展示「正确答案」：仅用 MathTex 标出正确选项（如 "Answer: B"）并用 GREEN 或 SurroundingRectangle 强调，self.wait(2)。
+- **能画图的题目**：**每个选项各画一幅图**，该选项与图同屏、仅此一项；下一选项另起一屏（上一项已 FadeOut）。**务必遵守二、4 的 Axes 范围与裁剪规则；务必保证文字、公式、标签不重合。**
+
+---
+
+## 四、最终自检（生成前必须满足）
+
+- 代码可直接运行，无语法错误
+- **construct() 中至少有一次 self.play(...) 或 self.add(...)，且第一帧有可见内容（避免黑屏）**
+- **同一帧内不同时展示所有选项和所有图**；采用 FadeOut 再 FadeIn 下一项的分阶段展示；**选项数与图数一致（四选项即四幅图）**
+- **文字、公式、标签之间严禁重合**；使用 arrange、next_to 的 buff 留足间距
+- 使用 arrange、to_edge、move_to 控制布局，无重叠、无超出
+- **Axes 必有固定 x_range、y_range，曲线不冲出屏幕**
+- 演示完整解题过程；可画图时每屏至多 1 选项+1 图，再切换下一项
+- MathTex 中无中文
+"""
 
 
 # --------
@@ -52,6 +128,7 @@ def formular_prompt(
 3. **动画入口**
    - 所有动画逻辑 **只能** 写在：
      `def construct(self):` 中
+   - **防止黑屏**：必须用 `self.play(...)` 或 `self.add(...)` 将内容显示到画面；若只创建 mobject 而不 play/add，会渲染出黑屏。
 
 4. **LaTeX / MathTex 规范（非常重要）**
    - 所有公式 **必须** 使用 `MathTex`
@@ -188,9 +265,10 @@ def visualization_prompt(latex_a, latex_b, **kwargs):
   class GenScene(Scene):
       def construct(self):
           ...
-````
+  ```
 
 * 所有动画逻辑 **只能** 写在 `construct` 中
+* **防止黑屏**：必须用 `self.play(...)` 或 `self.add(...)` 将 mobject 显示到画面。例如 `self.play(Write(title))` 或 `self.add(axes)`。若只创建对象而不 play/add，会渲染出黑屏。
 
 ---
 
@@ -367,6 +445,7 @@ def for_vis_prompt(latex_a, latex_b, **kwargs):
 3. **动画入口**
    - 所有动画逻辑 **只能** 写在：
      `def construct(self):` 中
+   - **防止黑屏**：必须用 `self.play(...)` 或 `self.add(...)` 将内容显示到画面；若只创建而不 play/add，会渲染出黑屏。
 
 4. **LaTeX / MathTex 规范（非常重要）**
    - 所有公式 **必须** 使用 `MathTex`

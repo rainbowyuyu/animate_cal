@@ -232,7 +232,7 @@ function renderList(formulas) {
 
     container.innerHTML = addCardHtml + listHtml;
 
-    if (window.MathJax) MathJax.typesetPromise([container]);
+    if (typeof renderMath === 'function') renderMath(container);
 }
 
 // 4. 使用公式

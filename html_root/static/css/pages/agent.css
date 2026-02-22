@@ -1069,6 +1069,34 @@
     opacity: 0.6;
 }
 
+/* 查看视频解析：与「打开功能与示例」按钮同款样式 */
+.agent-video-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0 0.2em;
+    padding: 0.5rem 0.9rem;
+    color: #fff !important;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    border-radius: 10px;
+    text-decoration: none !important;
+    font-size: 0.95rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease;
+    cursor: pointer;
+}
+.agent-video-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+    color: #fff !important;
+    text-decoration: none !important;
+}
+.agent-video-link:active {
+    transform: translateY(0);
+}
+
 .agent-bubble-user {
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(124, 58, 237, 0.12));
     border: 1px solid rgba(37, 99, 235, 0.25);
@@ -1088,6 +1116,51 @@
     overflow: hidden;
     max-width: 200px;
     max-height: 160px;
+}
+.agent-bubble-user .agent-msg-img-clickable {
+    cursor: pointer;
+}
+.agent-bubble-user .agent-msg-img-clickable:hover {
+    opacity: 0.9;
+}
+
+/* 用户上传图片点击放大预览的遮罩 */
+.agent-image-preview-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.88);
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.agent-image-preview-overlay .agent-image-preview-img {
+    max-width: 95%;
+    max-height: 95vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+.agent-image-preview-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    z-index: 1;
+    transition: background 0.2s;
+}
+.agent-image-preview-close:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
 .agent-bubble-user .agent-msg-img img {

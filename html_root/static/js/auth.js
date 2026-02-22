@@ -210,6 +210,7 @@ export async function handleLogin() {
                 Settings.loadUserSettings();
             }
             showToast("登录成功！", "success");
+            window.dispatchEvent(new CustomEvent('auth-success'));
         }  else {
             showToast(data.message || "登录失败", "error");
             refreshCaptcha('login');

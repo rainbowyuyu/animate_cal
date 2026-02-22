@@ -464,7 +464,7 @@ window.showSection = (sectionId) => {
     if (sectionId === 'calculate') {
         const mode = Settings.getCalcDefaultMode();
         const el = document.getElementById('calc-method');
-        if (el && ['normal', 'formular', 'visualization'].includes(mode)) el.value = mode;
+        if (el && ['normal', 'formular', 'visualization', 'solution'].includes(mode)) el.value = mode;
     }
     if (sectionId === 'devtools') {
         const tab = Settings.getDevtoolsDefaultTab();

@@ -16,16 +16,26 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- 第三方库 -->
-    <!-- MathJax 3 配置：改善 CHTML 渲染，减少根号/上划线等断开与错位 -->
+    <!-- 第三方库：KaTeX 全站公式渲染（与 ChatGPT / Claude / 豆包等一致，整齐正确好看） -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
-    window.MathJax = {
-        tex: { inlineMath: [['\\(', '\\)']], displayMath: [['\\[', '\\]']], processEscapes: true },
-        chtml: { scale: 1, minScale: 0.5, matchFontHeight: true },
-        options: { enableMenu: false }
+    window.KATEX_RENDER_OPTS = {
+        delimiters: [
+            { left: '$$', right: '$$', display: true },
+            { left: '$', right: '$', display: false },
+            { left: '\\(', right: '\\)', display: false },
+            { left: '\\[', right: '\\]', display: true }
+        ],
+        throwOnError: false
     };
+    function renderMath(container) {
+        if (container && window.renderMathInElement) {
+            try { window.renderMathInElement(container, window.KATEX_RENDER_OPTS); } catch (e) { console.warn('KaTeX render', e); }
+        }
+    }
     </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <!-- Driver.js (用于新手引导) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
     <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
@@ -526,6 +536,7 @@
                             <option value="normal">通用公式推演+可视化 (推荐)</option>
                             <option value="formular">公式推演</option>
                             <option value="visualization">可视化演示</option>
+                            <option value="solution">完整解题演示</option>
                             <option value="det" disabled>矩阵专项</option>
                             <option value="int" disabled>微积分专项</option>
                         </select>
@@ -546,8 +557,8 @@
                             </div>
                         </div>
 
-                        <!-- MathLive 可视化编辑 -->
-                        <div class="math-field-container main-input">
+                        <!-- MathLive 可视化编辑（可滚动，长题看全） -->
+                        <div class="math-field-container main-input" id="math-field-container-main">
                             <math-field id="math-field-main" virtual-keyboard-mode="manual" placeholder="例如 \int_0^{\frac{\pi}{2}}\frac{\sin x}{1+x^2}\,dx&lt;\int_0^{\frac{\pi}{2}}\frac{\cos x}{1+x^2}\,dx">
                                 \int_{0}^{\frac{\pi}{2}} \frac{\sin x}{1 + x^{2}} \, dx < \int_{0}^{\frac{\pi}{2}} \frac{\cos x}{1 + x^{2}} \, dx
                             </math-field>
@@ -718,7 +729,7 @@
         <!-- 4. 教学案例 Section -->
         <section id="examples" class="section">
             <h2 class="section-title">精选教学案例</h2>
-            <!-- ID 改为 examples-grid -->
+            <p class="section-subtitle">点击卡片即可全屏观看，体验公式推演与可视化演示</p>
             <div id="examples-grid" class="video-grid">
                 <!-- JS 动态加载 -->
             </div>
@@ -788,7 +799,7 @@
                             </div>
                         </div>
 
-                        <!-- 底部渲染预览 (MathJax)：固定高度、可滚动，不抢占 LaTeX 区域 -->
+                        <!-- 底部渲染预览 (KaTeX)：固定高度、可滚动，不抢占 LaTeX 区域 -->
                         <div class="dev-col dev-latex-preview-wrap">
                             <div class="dev-label">
                                 <span><i class="fa-solid fa-eye"></i> 最终渲染预览</span>
@@ -1097,6 +1108,7 @@
                         <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-shortcuts"><span class="settings-nav-text">画板快捷键</span><span class="settings-nav-short">快捷键</span></a>
                         <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-calc"><span class="settings-nav-text">动态计算</span><span class="settings-nav-short">计算</span></a>
                         <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-devtools"><span class="settings-nav-text">开发者工具</span><span class="settings-nav-short">开发</span></a>
+                        <a href="javascript:void(0)" class="settings-nav-item" data-section="settings-examples"><span class="settings-nav-text">教学案例与弹幕</span><span class="settings-nav-short">案例</span></a>
                     </nav>
                     <div class="settings-modal-body" id="settings-scroll-container">
                 <div class="settings-content-inner">
@@ -1274,8 +1286,23 @@
                                     <div class="settings-select-card-desc">仅显示动画可视化</div>
                                 </div>
                             </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="calc-default-mode" value="solution" id="calc-mode-solution" onchange="Settings.setCalcDefaultMode('solution')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">完整解题演示</div>
+                                    <div class="settings-select-card-desc">题目+各选项分屏展示与答案</div>
+                                </div>
+                            </label>
                         </div>
-                        <p class="settings-item-description">进入【动态计算】时预选的模式。</p>
+                        <p class="settings-item-description">进入【动态计算】时预选的模式；选择后计算页状态栏会同步。</p>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-select-label">数学表达式字号</label>
+                        <div class="settings-slider-row">
+                            <input type="range" id="settings-calc-math-font-size" min="0.8" max="2.2" step="0.1" value="1.1" class="settings-slider" title="小字号便于看全长题" oninput="Settings.onCalcMathFontSizeChange(this)">
+                            <span id="settings-calc-math-font-size-value" class="settings-slider-value">1.1</span>
+                        </div>
+                        <p class="settings-item-description">动态计算页公式区字号，默认小字号便于看全题目。数值单位为 rem。</p>
                     </div>
                 </div>
 
@@ -1311,6 +1338,77 @@
                     </div>
                 </div>
 
+                <!-- 教学案例与弹幕 -->
+                <div id="settings-examples" class="settings-section">
+                    <h4 class="settings-section-title">教学案例与弹幕</h4>
+                    <div class="settings-item">
+                        <div class="settings-toggle-wrapper">
+                            <label class="settings-toggle-label" for="settings-danmaku-enabled">显示弹幕</label>
+                            <label class="settings-toggle">
+                                <input type="checkbox" id="settings-danmaku-enabled" checked onchange="Settings.setDanmakuEnabled(this.checked)">
+                                <span class="settings-toggle-slider"></span>
+                            </label>
+                        </div>
+                        <p class="settings-item-description">观看教学案例视频时是否显示弹幕，也可在播放界面临时切换。</p>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-select-label">弹幕区域</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-screen" value="full" id="danmaku-screen-full" onchange="Settings.setDanmakuScreen('full')">
+                                <div class="settings-select-card-content">
+                                    <span class="settings-select-card-icon" aria-hidden="true"><i class="fa-solid fa-expand"></i></span>
+                                    <div class="settings-select-card-title">全屏</div>
+                                    <div class="settings-select-card-desc">弹幕覆盖整个画面</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-screen" value="half" id="danmaku-screen-half" onchange="Settings.setDanmakuScreen('half')">
+                                <div class="settings-select-card-content">
+                                    <span class="settings-select-card-icon" aria-hidden="true"><i class="fa-solid fa-rectangle-half"></i></span>
+                                    <div class="settings-select-card-title">半屏</div>
+                                    <div class="settings-select-card-desc">弹幕压缩在上半区域显示</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-screen" value="quarter" id="danmaku-screen-quarter" onchange="Settings.setDanmakuScreen('quarter')">
+                                <div class="settings-select-card-content">
+                                    <span class="settings-select-card-icon" aria-hidden="true"><i class="fa-solid fa-compress"></i></span>
+                                    <div class="settings-select-card-title">1/4 屏</div>
+                                    <div class="settings-select-card-desc">弹幕压缩在 1/4 区域显示</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-item-label" for="settings-danmaku-opacity">弹幕透明度 <span id="settings-danmaku-opacity-value">90</span>%</label>
+                        <input type="range" id="settings-danmaku-opacity" min="30" max="100" value="90" oninput="Settings.setDanmakuOpacity(this.value); document.getElementById('settings-danmaku-opacity-value').textContent=this.value">
+                    </div>
+                    <div class="settings-item">
+                        <label class="settings-select-label">弹幕字号</label>
+                        <div class="settings-select-cards">
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-font-size" value="small" id="danmaku-size-small" onchange="Settings.setDanmakuFontSize('small')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">小</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-font-size" value="medium" id="danmaku-size-medium" onchange="Settings.setDanmakuFontSize('medium')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">中</div>
+                                </div>
+                            </label>
+                            <label class="settings-select-card">
+                                <input type="radio" name="danmaku-font-size" value="large" id="danmaku-size-large" onchange="Settings.setDanmakuFontSize('large')">
+                                <div class="settings-select-card-content">
+                                    <div class="settings-select-card-title">大</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 占位：避免内容被底部固定栏遮挡 -->
                 <div style="height: 1px;"></div>
             </div>
@@ -1337,30 +1435,42 @@
                 <span class="close-modal" onclick="Agent.toggleFeaturesExamples()">&times;</span>
             </div>
             <div class="agent-examples-modal-body">
-                <p class="agent-examples-hint">点击示例将自动填入并执行</p>
+                <p class="agent-examples-hint">点击示例将自动填入并执行（上传图片后可用「识别」相关示例）</p>
                 <div class="agent-examples-group">
                     <span class="agent-examples-group-title">识别与公式</span>
                     <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
+                    <button type="button" class="agent-example-chip" data-prompt="只识别这张图里的公式，不用保存">仅识别（不保存）</button>
                     <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
+                    <button type="button" class="agent-example-chip" data-prompt="识别这张图里的公式并告诉我结果">识别并告诉我结果</button>
                 </div>
                 <div class="agent-examples-group">
                     <span class="agent-examples-group-title">LaTeX / 编辑器</span>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
                     <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
                     <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
+                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 里填入勾股定理 a^2+b^2=c^2">填入勾股定理 a²+b²=c²</button>
                 </div>
                 <div class="agent-examples-group">
                     <span class="agent-examples-group-title">动画与计算</span>
+                    <button type="button" class="agent-example-chip" data-prompt="打开动态计算页">打开动态计算页</button>
                     <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
                     <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
+                    <button type="button" class="agent-example-chip" data-prompt="用可视化模式画 y=x^2">可视化：画 y=x²</button>
+                    <button type="button" class="agent-example-chip" data-prompt="用完整解题演示做这道题">完整解题演示（需先上传题目图）</button>
                 </div>
                 <div class="agent-examples-group">
                     <span class="agent-examples-group-title">组合示例</span>
                     <button type="button" class="agent-example-chip" data-prompt="识别这张图并去计算页生成动画">识别图片 → 去计算页生成动画</button>
+                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并保存到我的算式再去计算">识别 → 保存到算式库 → 去计算</button>
                     <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入勾股定理 a^2+b^2=c^2 并去动态计算页做可视化">填入勾股定理并做可视化</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入 \int_0^1 x^2 dx 再去动态计算生成动画">LaTeX 填积分公式 → 动态计算生成动画</button>
                     <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入，然后告诉我完成了">打开工作台并填入 Manim 示例</button>
                 </div>
                 <div class="agent-examples-group">
                     <span class="agent-examples-group-title">开发者工具</span>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开 Manim 工作台">打开 Manim 工作台</button>
+                    <button type="button" class="agent-example-chip" data-prompt="打开拓展库">打开拓展库</button>
                     <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
                 </div>
             </div>
@@ -1507,24 +1617,138 @@
         </div>
     </div>
 
-    <!-- 沉浸式视频播放 Modal -->
-    <div id="video-modal" class="modal">
-        <div class="modal-content">
-            <!-- 头部信息栏 -->
+    <!-- 教学案例视频弹窗：关闭按钮在面板外，面板贴合站点风格 -->
+    <div id="video-modal" class="modal video-modal-overlay">
+        <button type="button" class="video-modal-close-outside" onclick="closeVideoModal()" aria-label="关闭">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="video-modal-panel">
             <div class="video-modal-header">
                 <div class="video-info">
                     <h3 id="video-modal-title">视频标题</h3>
                     <p id="video-modal-desc">视频简介...</p>
+                    <div class="video-meta-actions">
+                        <span class="video-viewer-count" id="video-viewer-count" title="当前观看人数"></span>
+                        <button type="button" id="video-like-btn" class="video-like-btn" title="点赞（登录后可用）" aria-label="点赞">
+                            <i class="fa-regular fa-thumbs-up"></i>
+                            <span id="video-like-count">0</span>
+                        </button>
+                    </div>
                 </div>
-                <span class="close-modal" onclick="closeVideoModal()">&times;</span>
             </div>
-
-            <!-- 播放器主体 -->
-            <div class="video-player-wrapper">
-                <video id="example-video-player" controls autoplay>
-                    <source src="" type="video/mp4">
-                    您的浏览器不支持视频标签。
-                </video>
+            <!-- B站式多层播放器：背景层→视频层→蒙版层→弹幕Canvas→高能条→控制栏→悬浮层→反馈层 -->
+            <div class="video-player-wrapper bilibili-player-area" id="video-player-wrapper" tabindex="0">
+                <!-- 0 背景层 -->
+                <div class="player-layer player-layer-bg" aria-hidden="true"></div>
+                <!-- 1 视频层 -->
+                <video id="example-video-player" class="player-layer player-layer-video" autoplay playsinline></video>
+                <!-- 2 防挡弹幕蒙版层（占位，后续可接蒙版数据） -->
+                <div class="player-layer player-layer-mask" id="player-layer-mask" aria-hidden="true"></div>
+                <!-- 3 弹幕渲染层 Canvas -->
+                <div class="player-layer video-danmaku-layer" id="video-danmaku-layer">
+                    <canvas id="video-danmaku-canvas"></canvas>
+                </div>
+                <!-- 4 中央大播放键 -->
+                <button type="button" class="custom-player-center-play" id="custom-player-center-play" aria-label="播放">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+                <!-- 5 UI 控制层（高能条在进度条上方，随控制栏显隐） -->
+                <div class="custom-player-controls" id="custom-player-controls">
+                    <div class="player-layer-high-energy-inline" id="player-layer-high-energy" aria-hidden="true">
+                        <svg class="high-energy-svg" id="high-energy-svg" preserveAspectRatio="none">
+                            <defs><linearGradient id="high-energy-fill" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="rgba(255,255,255,0.12)"/><stop offset="1" stop-color="rgba(255,255,255,0.35)"/></linearGradient></defs>
+                            <path id="high-energy-path" fill="url(#high-energy-fill)" stroke="none"/>
+                            <path id="high-energy-watched-path" fill="rgba(0,174,236,0.35)" stroke="none"/>
+                        </svg>
+                        <span class="high-energy-tooltip" id="high-energy-tooltip">高能预警</span>
+                    </div>
+                    <div class="custom-player-progress-wrap" id="custom-player-progress-wrap">
+                        <div class="custom-player-progress-track" id="custom-player-progress-track">
+                            <div class="custom-player-progress-loaded" id="custom-player-progress-loaded"></div>
+                            <div class="custom-player-progress-played" id="custom-player-progress-played"></div>
+                            <div class="custom-player-progress-hover" id="custom-player-progress-hover"></div>
+                        </div>
+                        <div class="custom-player-progress-tooltip" id="custom-player-progress-tooltip">
+                            <span class="custom-player-preview-time" id="custom-player-preview-time">0:00</span>
+                            <div class="custom-player-preview-box" id="custom-player-preview-box"></div>
+                        </div>
+                    </div>
+                    <div class="custom-player-bar">
+                        <div class="custom-player-left">
+                            <button type="button" class="custom-player-btn" id="custom-player-play" title="播放/暂停" aria-label="播放/暂停">
+                                <i class="fa-solid fa-play"></i>
+                            </button>
+                            <span class="custom-player-time" id="custom-player-time">0:00 / 0:00</span>
+                        </div>
+                        <div class="custom-player-right">
+                            <div class="custom-player-volume-wrap" id="custom-player-volume-wrap">
+                                <button type="button" class="custom-player-btn" id="custom-player-volume-btn" title="音量" aria-label="音量">
+                                    <i class="fa-solid fa-volume-high"></i>
+                                </button>
+                                <div class="custom-player-volume-slider-wrap" id="custom-player-volume-slider-wrap">
+                                    <input type="range" class="custom-player-volume-slider" id="custom-player-volume-slider" min="0" max="100" value="100" title="音量">
+                                </div>
+                            </div>
+                            <div class="custom-player-speed-wrap" id="custom-player-speed-wrap">
+                                <button type="button" class="custom-player-btn custom-player-speed-btn" id="custom-player-speed-btn" title="倍速">1x</button>
+                                <div class="custom-player-speed-menu" id="custom-player-speed-menu">
+                                    <button type="button" data-rate="0.5">0.5x</button>
+                                    <button type="button" data-rate="0.75">0.75x</button>
+                                    <button type="button" data-rate="1">1x</button>
+                                    <button type="button" data-rate="1.25">1.25x</button>
+                                    <button type="button" data-rate="1.5">1.5x</button>
+                                    <button type="button" data-rate="1.75">1.75x</button>
+                                    <button type="button" data-rate="2">2x</button>
+                                </div>
+                            </div>
+                            <button type="button" class="custom-player-btn" id="video-danmaku-toggle-btn" title="显示/隐藏弹幕"><i class="fa-solid fa-closed-captioning"></i></button>
+                            <button type="button" class="custom-player-btn" id="video-danmaku-screen-btn" title="弹幕区域：全屏/半屏/1/4屏">
+                                <i class="fa-solid fa-expand" id="video-danmaku-screen-icon"></i>
+                            </button>
+                            <span class="custom-player-screen-label" id="video-danmaku-screen-label">全屏</span>
+                            <button type="button" class="custom-player-btn" id="custom-player-fullscreen" title="网页全屏" aria-label="全屏">
+                                <i class="fa-solid fa-expand"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- 7 交互反馈：音量数字 Toast -->
+                <div class="player-volume-toast" id="player-volume-toast" aria-live="polite"></div>
+            </div>
+            <!-- 右键菜单（仿 B 站布局与项） -->
+            <div class="player-context-menu" id="player-context-menu" role="menu">
+                <button type="button" role="menuitem" data-action="copy"><i class="fa-solid fa-link"></i> 复制视频地址 (精准空降)</button>
+                <button type="button" role="menuitem" data-action="color"><i class="fa-solid fa-palette"></i> 视频色彩调整</button>
+                <button type="button" role="menuitem" data-action="sound"><i class="fa-solid fa-volume-high"></i> 视频音效调节</button>
+                <button type="button" role="menuitem" data-action="shortcuts"><i class="fa-solid fa-keyboard"></i> 快捷键说明</button>
+                <button type="button" role="menuitem" data-action="changelog"><i class="fa-solid fa-clock-rotate-left"></i> 更新历史</button>
+                <button type="button" role="menuitem" data-action="stats"><i class="fa-solid fa-chart-simple"></i> 视频统计信息</button>
+                <button type="button" role="menuitem" data-action="loop"><i class="fa-solid fa-repeat"></i> 循环播放</button>
+            </div>
+            <!-- Stats for nerds 面板 -->
+            <div class="player-stats-panel" id="player-stats-panel">
+                <div class="player-stats-header">
+                    <span>Stats for nerds</span>
+                    <button type="button" class="player-stats-close" id="player-stats-close" aria-label="关闭">&times;</button>
+                </div>
+                <pre class="player-stats-body" id="player-stats-body"></pre>
+            </div>
+            <div class="video-danmaku-bar">
+                <div class="video-danmaku-input-wrap" id="video-danmaku-input-wrap">
+                    <input type="text" id="video-danmaku-input" placeholder="发个友善的弹幕见证当下" maxlength="80" autocomplete="off">
+                    <a href="#" class="video-danmaku-etiquette" onclick="typeof showToast==='function'&&showToast('请友善发言，勿刷屏、剧透、引战', 'info'); return false;">弹幕礼仪 &gt;</a>
+                    <button type="button" class="action-btn secondary" id="video-danmaku-send">发送</button>
+                </div>
+                <div class="video-danmaku-login-hint" id="video-danmaku-login-hint" style="display:none;"><a href="#" onclick="typeof toggleAuthModal==='function'&&toggleAuthModal(true); return false;">登录</a>后可发弹幕</div>
+            </div>
+            <div class="video-modal-comments">
+                <div class="video-modal-comments-title"><i class="fa-regular fa-comments"></i> 评论区</div>
+                <div id="video-comments-list" class="video-comments-list"></div>
+                <div id="video-comment-form" class="video-comment-input-wrap" style="display:none;">
+                    <input type="text" id="video-comment-input" placeholder="写下你的评论…" maxlength="2000" autocomplete="off">
+                    <button type="button" class="action-btn secondary" id="video-comment-send">发送</button>
+                </div>
+                <div id="video-comment-login-hint" class="video-comment-login-hint"><a href="#" onclick="typeof toggleAuthModal==='function'&&toggleAuthModal(true); return false;">登录</a>后可发表评论</div>
             </div>
         </div>
     </div>
@@ -1631,6 +1855,8 @@
         </div>
     </div>
 
+    <!-- HLS.js：MSE 流媒体播放（.m3u8），与原生 MP4 并存 -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js" crossorigin="anonymous"></script>
     <!-- 模块化 JS 入口 -->
     <script type="module" src="js/main.js"></script>
 </body>

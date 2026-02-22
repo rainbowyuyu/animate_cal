@@ -1,0 +1,15 @@
+// 弹幕列表 Protobuf 定义（可选：追求极致时替代 JSON，体积极小）
+// 使用方式：后端用 protoc 生成 _pb2.py，GET /api/examples/danmaku?video_id=xxx&format=proto 返回序列化字节
+// 前端用 protobuf.js 加载此 proto 并解码
+
+syntax = "proto3";
+
+message DanmakuItem {
+  double time = 1;
+  string text = 2;
+  string username = 3;
+}
+
+message DanmakuList {
+  repeated DanmakuItem items = 1;
+}

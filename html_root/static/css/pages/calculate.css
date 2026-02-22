@@ -293,20 +293,22 @@
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
 }
 
-/* ========== MathLive 主输入框（以前形式：浅灰底、柔和圆角）========== */
-/* MathLive 主输入框（与 wiscomper.com 一致） */
+/* ========== MathLive 主输入框（可滚动、字号可调，长题看全）========== */
 .math-field-container.main-input {
     flex: 1;
+    min-height: 4em;
+    max-height: 220px;
     background: var(--bg-input);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 1rem;
     display: flex;
     align-items: flex-start;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: auto;
+    overflow-wrap: break-word;
     transition: all 0.3s ease;
 }
-
 .math-field-container.main-input:focus-within {
     background: var(--bg-surface);
     border-color: var(--primary-color);
@@ -340,13 +342,25 @@
 }
 
 /* 与网页 mathlive.css 一致：由 body 统一键盘变量，此处仅做布局与颜色 */
-math-field {
+#calculate .math-field-container.main-input math-field {
+    width: 100%;
+    min-height: 2.5em;
+    height: auto;
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 0;
+    color: var(--text-main);
+    --keyboard-background: var(--bg-surface);
+    --keyboard-toolbar-text-active: var(--primary-color);
+}
+#calculate math-field {
     width: 100%;
     height: 100%;
     background: transparent;
     border: none;
     outline: none;
-    font-size: 1.6rem;
+    font-size: 1.1rem; /* 默认小字号，可由设置页滑块覆盖 */
     padding: 0;
     color: var(--text-main);
     --keyboard-background: var(--bg-surface);
@@ -504,7 +518,7 @@ textarea[style*="display:none"] {
     color: #64748b;
 }
 
-/* 计算渲染中加载层：覆盖在视频区上方，请求期间一直转 */
+/* 计算渲染中加载层：柔和全屏遮罩，请求期间一直转 */
 .calc-render-loading {
     position: absolute;
     inset: 0;
@@ -512,22 +526,25 @@ textarea[style*="display:none"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.92);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.94) 0%, rgba(15, 23, 42, 0.9) 100%);
     z-index: 8;
     pointer-events: none;
+    backdrop-filter: blur(4px);
 }
 .calc-render-loading-spinner {
     font-size: 2.25rem;
-    color: #3b82f6;
+    color: #60a5fa;
     margin-bottom: 0.75rem;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.4));
 }
 .calc-render-loading-text {
     font-size: 0.9rem;
     color: #94a3b8;
     margin: 0;
+    letter-spacing: 0.03em;
 }
 
-/* 计算/可视化窗口内单独渲染加载层（居中转圈动画） */
+/* 计算/可视化窗口内单独渲染加载层（柔和遮罩 + 轻量转圈） */
 .calc-window-loading {
     position: absolute;
     inset: 0;
@@ -535,20 +552,23 @@ textarea[style*="display:none"] {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.9);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.92) 0%, rgba(15, 23, 42, 0.88) 100%);
     z-index: 5;
     pointer-events: none;
-    border-radius: 8px;
+    border-radius: 10px;
+    backdrop-filter: blur(2px);
 }
 .calc-window-loading-spinner {
     font-size: 2rem;
-    color: #38bdf8;
+    color: #67e8f9;
     margin-bottom: 0.75rem;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.35));
 }
 .calc-window-loading-text {
     font-size: 0.9rem;
     color: #94a3b8;
     margin: 0;
+    letter-spacing: 0.03em;
 }
 
 /* ========== 日志控制台（终端风格，与智能体/深色区统一）========== */
@@ -562,12 +582,17 @@ textarea[style*="display:none"] {
 }
 
 .calc-terminal-header {
-    padding: 0.75rem 1.1rem;
-    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
-    border-bottom: 1px solid #334155;
+    padding: 0.8rem 1.2rem;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.97), rgba(15, 23, 42, 0.99));
+    border-bottom: 1px solid rgba(51, 65, 85, 0.8);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    transition: border-color 0.3s ease, background 0.3s ease;
+}
+
+.calc-terminal-wrapper.is-generating .calc-terminal-header {
+    border-bottom-color: rgba(56, 189, 248, 0.2);
 }
 
 .calc-terminal-title {
@@ -585,25 +610,73 @@ textarea[style*="display:none"] {
 
 .calc-terminal-percent {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-weight: 600;
-    color: #34d399;
+    color: #a5f3fc;
+    letter-spacing: 0.04em;
+    text-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    transition: color 0.4s ease, text-shadow 0.4s ease;
 }
 
+.calc-terminal-wrapper.is-generating .calc-terminal-percent {
+    color: #67e8f9;
+    text-shadow: 0 0 16px rgba(56, 189, 248, 0.5);
+}
+
+/* 进度条轨道：柔和深色、微圆角 */
 .calc-terminal-progress-track {
-    height: 4px;
-    background: #334155;
+    flex-shrink: 0;
+    height: 6px;
+    margin: 0 1px;
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
     width: 100%;
     overflow: hidden;
-    border-radius: 2px;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
+/* 进度条填充：柔和渐变 + 光带，过渡顺滑 */
 .calc-terminal-progress-bar {
     width: 0%;
     height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), #22d3ee);
-    transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    border-radius: 2px;
+    border-radius: 6px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* 阶段色：初期-蓝，中期-紫，完成-绿，均用柔和渐变 */
+.calc-terminal-progress-bar.phase-start {
+    background: linear-gradient(90deg, #60a5fa 0%, #38bdf8 50%, #22d3ee 100%);
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.calc-terminal-progress-bar.phase-mid {
+    background: linear-gradient(90deg, #38bdf8 0%, #a78bfa 50%, #c084fc 100%);
+    box-shadow: 0 0 14px rgba(167, 139, 250, 0.35);
+}
+
+.calc-terminal-progress-bar.phase-done {
+    background: linear-gradient(90deg, #34d399 0%, #6ee7b7 50%, #5eead4 100%);
+    box-shadow: 0 0 14px rgba(52, 211, 153, 0.4);
+}
+
+.calc-terminal-progress-bar.phase-error {
+    background: linear-gradient(90deg, #f87171 0%, #fb923c 100%);
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.35);
+}
+
+/* 进度条表面轻微高光 */
+.calc-terminal-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.18) 0%, transparent 100%);
+    border-radius: 6px 6px 0 0;
+    pointer-events: none;
 }
 
 .calc-terminal-log,
@@ -631,7 +704,54 @@ textarea[style*="display:none"] {
 
 .log-entry {
     word-wrap: break-word;
-    animation: fadeIn 0.3s ease-out;
+    animation: calcLogFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes calcLogFadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* 题解内「视频解析」可点击链接 */
+.calc-video-links-wrap {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+.calc-video-links-title {
+    color: var(--text-main);
+    margin-right: 0.5rem;
+}
+/* 题解内「查看视频解析」：按钮化，点击有交互感 */
+.calc-video-link {
+    display: inline-block;
+    margin: 0 0.25em 0 0;
+    padding: 0.35em 0.85em;
+    color: #fff;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.88em;
+    font-weight: 500;
+    box-shadow: 0 2px 8px rgba(59, 130, 235, 0.35);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.calc-video-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 235, 0.45);
+    color: #fff;
+    text-decoration: none;
+}
+.calc-video-link:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(59, 130, 235, 0.4);
+}
+.calc-steps-window-inner .calc-video-link {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+}
+.calc-steps-window-inner .calc-video-link:hover {
+    color: #fff;
 }
 
 /* --- Python 代码高亮 (Atom One Dark) --- */
@@ -706,13 +826,13 @@ textarea[style*="display:none"] {
 
 .calc-stack-tab.active {
     color: #fff;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(124, 58, 237, 0.25));
-    box-shadow: 0 -2px 0 0 rgba(59, 130, 246, 0.4);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.32), rgba(124, 58, 237, 0.22));
+    box-shadow: 0 -2px 0 0 rgba(59, 130, 246, 0.35);
 }
 
 .calc-stack-tab.active:hover {
     color: #fff;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(124, 58, 237, 0.3));
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.38), rgba(124, 58, 237, 0.28));
 }
 
 .calc-stack-windows {
@@ -725,18 +845,18 @@ textarea[style*="display:none"] {
 .calc-stack-window {
     position: absolute;
     inset: 10px;
-    border-radius: 12px;
-    background: #1e293b;
-    border: 1px solid #334155;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-    transition: z-index 0.2s, transform 0.2s, box-shadow 0.25s ease, border-color 0.25s ease;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #1e293b 0%, #172033 100%);
+    border: 1px solid rgba(51, 65, 85, 0.7);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition: z-index 0.2s, transform 0.2s, box-shadow 0.35s ease, border-color 0.35s ease;
     z-index: 1;
 }
 
 .calc-stack-window.active {
     z-index: 2;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(56, 189, 248, 0.08);
-    border-color: #475569;
+    border-color: rgba(71, 85, 105, 0.9);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 /* 解题步骤窗口优先级更高，确保不被其他窗口的加载层遮挡 */
 .calc-stack-window-steps.active {
@@ -747,11 +867,12 @@ textarea[style*="display:none"] {
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 8px;
+    border-radius: 10px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    background: rgba(15, 23, 42, 0.4);
 }
 
 /* 解题步骤独立窗口：整窗仅展示步骤内容，可滚动；深色背景下高对比、步骤醒目 */
@@ -762,6 +883,7 @@ textarea[style*="display:none"] {
 }
 .calc-steps-window-inner .calc-steps-content {
     min-height: 0;
+    overflow: visible; /* 仅外层 .calc-steps-window-inner 滚动，避免双滚动条 */
     color: #e2e8f0;
     font-size: 1rem;
     line-height: 1.75;
@@ -843,19 +965,18 @@ textarea[style*="display:none"] {
     color: #f1f5f9;
     font-weight: 700;
 }
-/* MathJax 在解题步骤窗口中的颜色（深色底上的浅色公式） */
-.calc-steps-window-inner .mjx-math,
-.calc-steps-window-inner .MathJax {
+/* KaTeX 在解题步骤窗口中的颜色（深色底上的浅色公式） */
+.calc-steps-window-inner .katex {
     color: #f1f5f9 !important;
 }
-.calc-steps-window-inner mjx-container {
+.calc-steps-window-inner .katex .katex-html {
     color: #f1f5f9;
 }
-.calc-steps-window-inner mjx-container svg {
+.calc-steps-window-inner .katex svg {
     fill: #f1f5f9;
 }
-.calc-steps-window-inner mjx-container path,
-.calc-steps-window-inner mjx-container line {
+.calc-steps-window-inner .katex path,
+.calc-steps-window-inner .katex line {
     stroke: #f1f5f9;
 }
 
@@ -864,7 +985,8 @@ textarea[style*="display:none"] {
     width: 100%;
     min-height: 0;
     object-fit: contain;
-    background: #000;
+    background: #0a0e1a;
+    border-radius: 0 0 10px 10px;
 }
 
 .calc-window-placeholder {
@@ -876,26 +998,28 @@ textarea[style*="display:none"] {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
-    font-size: 0.9rem;
+    color: #94a3b8;
+    font-size: 0.92rem;
+    font-weight: 500;
     z-index: 1;
     gap: 0;
+    letter-spacing: 0.02em;
 }
 
-/* 等待渲染的点点点动画（上下浮动循环） */
+/* 等待渲染的点点点动画（柔和呼吸感） */
 .calc-window-placeholder .loading-dots {
     display: inline-flex;
     align-items: center;
-    gap: 2px;
-    margin-left: 4px;
+    gap: 4px;
+    margin-left: 6px;
 }
 
 .calc-window-placeholder .loading-dots .dot {
     display: inline-block;
     font-size: 1.2em;
     line-height: 1;
-    animation: dotFloat 1.4s ease-in-out infinite;
-    color: #94a3b8;
+    animation: dotFloatSoft 1.8s ease-in-out infinite;
+    color: #a5b4c4;
 }
 
 .calc-window-placeholder .loading-dots .dot:nth-child(1) {
@@ -917,6 +1041,18 @@ textarea[style*="display:none"] {
     }
     50% {
         transform: translateY(-8px);
+        opacity: 1;
+    }
+}
+
+/* 占位区点点：更柔和、节奏更慢 */
+@keyframes dotFloatSoft {
+    0%, 100% {
+        transform: translateY(0);
+        opacity: 0.7;
+    }
+    50% {
+        transform: translateY(-4px);
         opacity: 1;
     }
 }

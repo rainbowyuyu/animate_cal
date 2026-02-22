@@ -27,7 +27,7 @@ function getStepLabel(step) {
     if (step.trigger === 'generate') parts.push('生成动画');
     if (step.save_to_formulas) parts.push('保存到我的算式');
     if (step.section === 'calculate' && step.operation) {
-        const modeNames = { normal: '通用推演', formular: '公式推演', visualization: '可视化' };
+        const modeNames = { normal: '通用推演', formular: '公式推演', visualization: '可视化', solution: '完整解题演示' };
         parts.push(modeNames[step.operation] || step.operation);
     }
     const action = parts.length ? `（${parts.join('、')}）` : '';
@@ -62,6 +62,47 @@ function fileToBase64(file) {
     });
 }
 
+/** 对助手回复中的 LaTeX 进行 KaTeX 渲染（在容器已插入 DOM 后调用，与 ChatGPT/Claude/豆包一致） */
+function typesetAgentMath(container) {
+    if (!container) return;
+    if (typeof renderMath === 'function') renderMath(container);
+}
+
+/** 将纯文本回复转为可展示的 HTML（保留 $...$ / $$...$$ 供 KaTeX 渲染） */
+function replyTextToHtml(text) {
+    if (!text || !text.trim()) return '';
+    return escapeHtml(text.trim()).replace(/\n/g, '<br>');
+}
+
+/** 流式将文本写入 element，完成后可选执行 LaTeX 渲染与回调。返回 Promise。 */
+function streamTextInto(element, fullText, options = {}) {
+    const chunkSize = options.chunkSize ?? 2;
+    const intervalMs = options.intervalMs ?? 35;
+    const onDone = options.onDone;
+    if (!element || fullText == null) {
+        if (onDone) onDone();
+        return Promise.resolve();
+    }
+    let index = 0;
+    const len = fullText.length;
+    return new Promise((resolve) => {
+        const tick = () => {
+            if (index >= len) {
+                if (onDone) onDone();
+                resolve();
+                return;
+            }
+            const end = Math.min(index + chunkSize, len);
+            const chunk = fullText.slice(index, end);
+            index = end;
+            element.appendChild(document.createTextNode(chunk));
+            scrollMessagesToBottom();
+            setTimeout(tick, intervalMs);
+        };
+        tick();
+    });
+}
+
 /** 规范化为 MathLive 可解析的 LaTeX */
 function sanitizeLatexForMathlive(latex) {
     if (latex == null || typeof latex !== 'string') return '';
@@ -77,12 +118,31 @@ function sanitizeLatexForMathlive(latex) {
     return s;
 }
 
-/** 追加用户消息到聊天区域（有头像时使用用户头像） */
+/** 点击用户消息中的图片时放大预览 */
+function openAgentImagePreview(src) {
+    if (!src) return;
+    let overlay = document.getElementById('agent-image-preview-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'agent-image-preview-overlay';
+        overlay.className = 'agent-image-preview-overlay';
+        overlay.innerHTML = '<button type="button" class="agent-image-preview-close" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button><img alt="预览" class="agent-image-preview-img">';
+        overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.closest('.agent-image-preview-close')) overlay.style.display = 'none'; });
+        overlay.querySelector('.agent-image-preview-img').addEventListener('click', (e) => e.stopPropagation());
+        overlay.querySelector('.agent-image-preview-close').addEventListener('click', (e) => { e.stopPropagation(); overlay.style.display = 'none'; });
+        document.body.appendChild(overlay);
+    }
+    const img = overlay.querySelector('.agent-image-preview-img');
+    if (img) img.src = src;
+    overlay.style.display = 'flex';
+}
+
+/** 追加用户消息到聊天区域（有头像时使用用户头像）；用户上传的图片可点击预览 */
 function appendUserMessage(text, imageDataUrl) {
     const el = getMessagesEl();
     if (!el) return;
     const bubbleContent = imageDataUrl
-        ? `<p>${escapeHtml(text || '')}</p><div class="agent-msg-img"><img src="${escapeHtml(imageDataUrl)}" alt=""></div>`
+        ? `<p>${escapeHtml(text || '')}</p><div class="agent-msg-img agent-msg-img-clickable" title="点击放大预览"><img src="${escapeHtml(imageDataUrl)}" alt=""></div>`
         : `<p>${escapeHtml(text || '')}</p>`;
     const avatarUrl = getCurrentUserAvatarUrl();
     const avatarHtml = avatarUrl
@@ -92,6 +152,10 @@ function appendUserMessage(text, imageDataUrl) {
     div.className = 'agent-message agent-message-user';
     div.innerHTML = `<div class="agent-avatar agent-avatar-user">${avatarHtml}</div><div class="agent-bubble agent-bubble-user">${bubbleContent}</div>`;
     el.appendChild(div);
+    if (imageDataUrl) {
+        const imgWrap = div.querySelector('.agent-msg-img');
+        if (imgWrap) imgWrap.addEventListener('click', () => openAgentImagePreview(imageDataUrl));
+    }
     animateMessageAppear(div.querySelector('.agent-bubble-user'));
     scrollMessagesToBottom();
 }
@@ -306,10 +370,9 @@ function applyStepContent(step) {
                     const sanitized = sanitizeLatexForMathlive(toFill);
                     if (mf && mf.setValue) mf.setValue(sanitized);
                     if (source) source.value = sanitized;
-                    if (window.MathJax && document.getElementById('dev-latex-preview')) {
+                    if (typeof renderMath === 'function' && document.getElementById('dev-latex-preview')) {
                         const preview = document.getElementById('dev-latex-preview');
-                        if (preview) preview.innerHTML = `\\[ ${sanitized} \\]`;
-                        try { window.MathJax.typesetPromise([preview]); } catch (_) {}
+                        if (preview) { preview.innerHTML = `\\[ ${sanitized} \\]`; renderMath(preview); }
                     }
                 }, 150);
             }
@@ -327,9 +390,10 @@ function applyStepContent(step) {
             const code = document.getElementById('latex-code-main');
             const method = document.getElementById('calc-method');
             if (step.formula) {
-                const sanitized = sanitizeLatexForMathlive(step.formula);
-                if (mf && mf.setValue) mf.setValue(sanitized);
-                if (code) code.value = sanitized;
+                // 整题（完整解题演示）时填入整题结构化文字，不做单公式 LaTeX 清洗；单公式推演/可视化时再做清洗
+                const toFill = step.operation === 'solution' ? step.formula.trim() : sanitizeLatexForMathlive(step.formula);
+                if (mf && mf.setValue) mf.setValue(toFill);
+                if (code) code.value = toFill;
             }
             if (method && step.operation) method.value = step.operation || 'normal';
             if (step.trigger === 'generate' && typeof window.startAnimation === 'function') {
@@ -485,7 +549,7 @@ export async function clearChat() {
                 <ul>
                     <li>把公式做成动画、打开 LaTeX 编辑器并填入内容</li>
                     <li>只进行识别、识别图片后去计算页生成动画</li>
-                    <li>上传或粘贴图片后说「识别这张图」</li>
+                    <li>上传或粘贴题目/算式图片，让我<strong>解题并调用网站工具</strong>生成 LaTeX→Manim 演示（如选择题、求极限、无穷小量等）</li>
                 </ul>
                 <p>直接输入需求，支持粘贴剪贴板图片后发送。</p>
             </div>
@@ -592,6 +656,11 @@ export function initAgent() {
     window.addEventListener('auth-state-change', refreshAgentGate);
 
     document.addEventListener('click', (e) => {
+        if (e.target.closest('.agent-video-link')) {
+            e.preventDefault();
+            showSection('calculate');
+            if (typeof showToast === 'function') showToast('已跳转到动态计算页，可查看题解与视频', 'info');
+        }
         const chip = e.target.closest('.agent-example-chip');
         if (!chip || !chip.dataset.prompt) return;
         const promptEl = getPromptEl();
@@ -610,19 +679,39 @@ export function initAgent() {
     });
 }
 
+/** 从对话区取上一轮用户与助手各一句（少量上下文，不长） */
+function getLastAgentContext() {
+    const messagesEl = getMessagesEl();
+    if (!messagesEl) return { last_user_message: '', last_assistant_message: '' };
+    const children = Array.from(messagesEl.children);
+    let lastUser = '', lastAssistant = '';
+    for (let i = children.length - 1; i >= 0; i--) {
+        if (children[i].classList.contains('agent-message-assistant')) {
+            lastAssistant = (children[i].querySelector('.agent-bubble-assistant')?.innerText ?? '').trim().slice(0, 280);
+            if (i > 0 && children[i - 1].classList.contains('agent-message-user')) {
+                lastUser = (children[i - 1].querySelector('.agent-bubble-user')?.innerText ?? '').trim().slice(0, 280);
+            }
+            break;
+        }
+    }
+    return { last_user_message: lastUser || undefined, last_assistant_message: lastAssistant || undefined };
+}
+
 /** 执行智能体请求（可被重新调用） */
-async function executeAgentRequest(prompt, image_base64) {
+async function executeAgentRequest(prompt, image_base64, lastUser, lastAssistant) {
     appendUserMessage(prompt, image_base64 || null);
     const btn = getSubmitBtn();
     if (btn) btn.disabled = true;
 
     appendAssistantMessage('<div class="agent-loading-dots"><span></span><span></span><span></span></div>');
 
+    const context = lastUser !== undefined && lastAssistant !== undefined ? { last_user_message: lastUser, last_assistant_message: lastAssistant } : getLastAgentContext();
+
     try {
         const res = await fetch('/api/agent/execute', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, image_base64 })
+            body: JSON.stringify({ prompt, image_base64, ...context })
         });
         const data = await res.json();
 
@@ -632,50 +721,109 @@ async function executeAgentRequest(prompt, image_base64) {
             const steps = Array.isArray(data.steps) && data.steps.length > 0 ? data.steps : [];
             const first = steps[0];
             const isChatOnly = steps.length === 1 && first && first.section === 'chat' && first.reply;
+            const hasToolCall = !isChatOnly && steps.length > 0;
+            const replyText = (first && first.reply && first.reply.trim()) || (steps.find(s => s.reply && s.reply.trim()) || {}).reply || '';
+
+            function attachBubbleClick(bubble) {
+                if (!bubble) return;
+                bubble.classList.add('agent-bubble-clickable');
+                bubble.setAttribute('data-execute', JSON.stringify(data));
+                bubble.setAttribute('title', '点击重新执行');
+                bubble.addEventListener('click', () => { reExecuteFromMessage(data); });
+            }
+
+            function buildStepDescHtml() {
+                if (steps.length > 1) {
+                    return `<p class="agent-step-desc">已按 <strong>${steps.length}</strong> 步执行：</p><ol class="agent-steps-list">${steps.map((s, i) => `<li>${escapeHtml(getStepLabel(s))}</li>`).join('')}</ol>`;
+                }
+                const s = first || {};
+                const name = SECTION_NAMES[s.section] || s.section;
+                let m = `已打开「${name}」`;
+                if (s.section === 'calculate' && s.operation) {
+                    const modeNames = { normal: '通用公式推演+可视化', formular: '公式推演', visualization: '可视化演示', solution: '完整解题演示' };
+                    m += `，已选择「${modeNames[s.operation] || s.operation}」`;
+                }
+                if (s.trigger === 'generate') m += '，已自动开始生成动画';
+                    else if (s.trigger === 'recognize') m += '，识别结果已填入';
+                if (s.fill_manim_code) m += '，已填入 Manim 代码';
+                if (s.save_to_formulas) m += '，已保存到我的算式';
+                if (s.trigger === 'generate') return `<p class="agent-step-desc">${escapeHtml(m)}，<a href="#" class="agent-video-link">查看视频解析</a>。</p>`;
+                return `<p class="agent-step-desc">${escapeHtml(m + '。')}</p>`;
+            }
 
             if (isChatOnly) {
-                const replyHtml = first.reply.split('\n').map(line => `<p>${escapeHtml(line)}</p>`).join('');
+                const streamContainer = document.createElement('div');
+                streamContainer.className = 'agent-reply-content markdown-body';
                 if (lastBubble) {
-                    lastBubble.innerHTML = replyHtml;
-                    if (lastBubble.parentElement) {
-                        lastBubble.classList.add('agent-bubble-clickable');
-                        lastBubble.setAttribute('data-execute', JSON.stringify(data));
-                        lastBubble.setAttribute('title', '点击重新执行');
-                        lastBubble.addEventListener('click', () => { reExecuteFromMessage(data); });
-                    }
-                    animateMessageAppear(lastBubble);
+                    lastBubble.innerHTML = '';
+                    lastBubble.appendChild(streamContainer);
+                    attachBubbleClick(lastBubble);
                 } else {
-                    appendAssistantMessage(replyHtml, data);
+                    const wrap = document.createElement('div');
+                    wrap.className = 'agent-bubble agent-bubble-assistant';
+                    wrap.appendChild(streamContainer);
+                    appendAssistantMessage('', data);
+                    const last = getMessagesEl() && getMessagesEl().querySelector('.agent-message-assistant:last-child .agent-bubble-assistant');
+                    if (last) { last.innerHTML = ''; last.appendChild(streamContainer); attachBubbleClick(last); }
                 }
+                await streamTextInto(streamContainer, first.reply, { onDone: () => {
+                    const html = (window.marked && typeof window.marked.parse === 'function')
+                        ? window.marked.parse(first.reply)
+                        : replyTextToHtml(first.reply);
+                    streamContainer.innerHTML = html;
+                    typesetAgentMath(streamContainer);
+                } });
+                animateMessageAppear(streamContainer);
             } else {
-                let msgHtml;
-                if (steps.length > 1) {
-                    msgHtml = `<p>已按 <strong>${steps.length}</strong> 步执行：</p><ol class="agent-steps-list">${steps.map((s, i) => `<li>${escapeHtml(getStepLabel(s))}</li>`).join('')}</ol>`;
-                } else {
-                    const s = first || {};
-                    const name = SECTION_NAMES[s.section] || s.section;
-                    let m = `已打开「${name}」`;
-                    if (s.section === 'calculate' && s.operation) {
-                        const modeNames = { normal: '通用公式推演+可视化', formular: '公式推演', visualization: '可视化演示' };
-                        m += `，已选择「${modeNames[s.operation] || s.operation}」`;
-                    }
-                    if (s.trigger === 'generate') m += '，已自动开始生成动画';
-                    else if (s.trigger === 'recognize') m += '，识别结果已填入';
-                    if (s.fill_manim_code) m += '，已填入 Manim 代码';
-                    if (s.save_to_formulas) m += '，已保存到我的算式';
-                    msgHtml = `<p>${escapeHtml(m + '。')}</p>`;
-                }
+                const streamContainer = document.createElement('div');
+                streamContainer.className = 'agent-reply-content markdown-body';
+                const stepDescWrap = document.createElement('div');
+                stepDescWrap.className = 'agent-step-desc-wrap';
+                stepDescWrap.innerHTML = buildStepDescHtml();
+                const toolHintWrap = document.createElement('div');
+                toolHintWrap.className = 'agent-tool-hint';
+                toolHintWrap.style.cssText = 'margin-top:8px;padding:8px 12px;background:var(--agent-tool-hint-bg,rgba(59,130,246,0.12));border-radius:8px;color:var(--agent-tool-hint-color,#3b82f6);font-size:0.9em;';
+                toolHintWrap.textContent = '即将跳转并调用工具，请稍候…';
+
+                toolHintWrap.style.display = 'none';
                 if (lastBubble) {
-                    lastBubble.innerHTML = msgHtml;
-                    lastBubble.classList.add('agent-bubble-clickable');
-                    lastBubble.setAttribute('data-execute', JSON.stringify(data));
-                    lastBubble.setAttribute('title', '点击重新执行');
-                    lastBubble.addEventListener('click', () => { reExecuteFromMessage(data); });
-                    animateMessageAppear(lastBubble);
+                    lastBubble.innerHTML = '';
+                    lastBubble.appendChild(streamContainer);
+                    lastBubble.appendChild(stepDescWrap);
+                    if (hasToolCall) lastBubble.appendChild(toolHintWrap);
+                    attachBubbleClick(lastBubble);
                 } else {
-                    appendAssistantMessage(msgHtml, data);
+                    appendAssistantMessage('', data);
+                    const last = getMessagesEl() && getMessagesEl().querySelector('.agent-message-assistant:last-child .agent-bubble-assistant');
+                    if (last) {
+                        last.innerHTML = '';
+                        last.appendChild(streamContainer);
+                        last.appendChild(stepDescWrap);
+                        if (hasToolCall) last.appendChild(toolHintWrap);
+                        attachBubbleClick(last);
+                    }
                 }
-                applyAgentResult(data);
+
+                const textToStream = replyText || '';
+                if (textToStream) {
+                    await streamTextInto(streamContainer, textToStream, { onDone: () => {
+                        const html = (window.marked && typeof window.marked.parse === 'function')
+                            ? window.marked.parse(textToStream)
+                            : replyTextToHtml(textToStream);
+                        streamContainer.innerHTML = html;
+                        typesetAgentMath(streamContainer);
+                    } });
+                } else {
+                    stepDescWrap.style.marginTop = '0';
+                }
+                animateMessageAppear(streamContainer);
+
+                if (hasToolCall) {
+                    toolHintWrap.style.display = 'block';
+                    if (typeof showToast === 'function') showToast('即将跳转并调用工具，请稍候…', 'info');
+                    await delay(2500);
+                    applyAgentResult(data);
+                }
             }
         } else {
             // 错误消息也保存请求数据以便重新执行
@@ -732,14 +880,15 @@ export async function execute() {
     const promptEl = getPromptEl();
     const fileInput = getFileInput();
 
-    const prompt = (promptEl && promptEl.value) ? promptEl.value.trim() : '';
-    if (!prompt) {
-        if (typeof showToast === 'function') showToast('请先输入需求描述', 'error');
+    let prompt = (promptEl && promptEl.value) ? promptEl.value.trim() : '';
+    const file = (fileInput && fileInput.files && fileInput.files[0]) || _attachedFile;
+    if (!prompt && !file) {
+        if (typeof showToast === 'function') showToast('请输入需求描述或上传/粘贴图片', 'error');
         return;
     }
+    if (!prompt && file) prompt = '请根据这张图片的内容进行操作（识别、解题或生成演示）。';
 
     let image_base64 = null;
-    const file = (fileInput && fileInput.files && fileInput.files[0]) || _attachedFile;
     if (file) {
         try {
             image_base64 = await fileToBase64(file);
@@ -753,6 +902,6 @@ export async function execute() {
     if (promptEl) promptEl.value = '';
     clearAttachedImage();
 
-    // 执行请求
-    await executeAgentRequest(prompt, image_base64);
+    const { last_user_message, last_assistant_message } = getLastAgentContext();
+    await executeAgentRequest(prompt, image_base64, last_user_message, last_assistant_message);
 }

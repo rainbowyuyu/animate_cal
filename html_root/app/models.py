@@ -68,6 +68,8 @@ class ManimCodeModel(BaseModel):
 class AgentRequest(BaseModel):
     prompt: str
     image_base64: Optional[str] = None
+    last_user_message: Optional[str] = None
+    last_assistant_message: Optional[str] = None
 
 
 class ExampleVideo(BaseModel):

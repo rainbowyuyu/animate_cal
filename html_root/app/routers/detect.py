@@ -46,7 +46,7 @@ def _run_manim_subprocess_sync(cmd_list, cwd, put_fn):
 
 
 def generate_manim_prompt(latex_a, latex_b, operation):
-    op_desc = {"formular": "公式推演", "visualization": "可视化演示", "normal": "通用演示"}.get(operation, "数学展示")
+    op_desc = {"formular": "公式推演", "visualization": "可视化演示", "normal": "通用演示", "solution": "完整解题演示"}.get(operation, "数学展示")
     return return_prompt(op_desc, latex_a, latex_b)
 
 
@@ -95,7 +95,11 @@ async def generate_animation_stream(data: CalcModel):
         try:
             text_prompt = (
                 f"用户输入的数学表达式或题目为：{data.matrixA}\n\n"
-                "请给出该题目的解题步骤：包括化简、计算过程与结论，分条简要输出。不要输出任何代码，只输出文字解题步骤。"
+                "请按以下**结构化格式**输出解题步骤，便于阅读与排版：\n"
+                "1. 先写 **题目** 或 **题目要点** 一段概括。\n"
+                "2. 若有选项（如 A/B/C/D），按 **A项**、**B项**、**C项**、**D项** 分段，每段内写该选项的极限或结论（行内公式用 $...$，独立公式用 $$...$$）。\n"
+                "3. 最后写 **结论** 或 **答案**，明确正确选项与理由。\n"
+                "要求：分条、分项清晰，不要大段连写。**同一行内的整段公式必须放在一对 $ $ 内**，例如 $\\\\lim_{{x\\\\to 0}}\\\\frac{{x+\\\\cos x}}{{x}}$，不要将分子、分母或极限符号拆到不同行，避免 LaTeX 与文字错位。不要输出任何代码。"
             )
             text_completion = client.chat.completions.create(
                 model="qwen-plus",

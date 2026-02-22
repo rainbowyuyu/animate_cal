@@ -40,6 +40,11 @@ let recordingAction = null;
 const AGENT_ENTER_SEND_KEY = 'agent_enter_send';
 const DETECT_DEFAULT_INPUT_KEY = 'detect_default_input';
 const CALC_DEFAULT_MODE_KEY = 'calc_default_mode';
+/** 数学表达式字号（rem），默认 1.1（小字号便于看全长题） */
+const CALC_MATH_FONT_SIZE_KEY = 'calc_math_font_size';
+const CALC_MATH_FONT_SIZE_MIN = 0.8;
+const CALC_MATH_FONT_SIZE_MAX = 2.2;
+const CALC_MATH_FONT_SIZE_DEFAULT = 1.1;
 const DEVTOOLS_DEFAULT_TAB_KEY = 'devtools_default_tab';
 /** 手机版锁定画板：开启后画板区域仅可滑动不可书写 */
 export const CANVAS_LOCK_MOBILE_KEY = 'canvas_lock_mobile';
@@ -74,9 +79,29 @@ export function getCalcDefaultMode() {
     return v || 'normal';
 }
 export function setCalcDefaultMode(value) {
-    const allowed = ['normal', 'formular', 'visualization'];
+    const allowed = ['normal', 'formular', 'visualization', 'solution'];
     localStorage.setItem(CALC_DEFAULT_MODE_KEY, allowed.includes(value) ? value : 'normal');
     persistAfterChange();
+}
+
+export function getCalcMathFontSize() {
+    const v = parseFloat(localStorage.getItem(CALC_MATH_FONT_SIZE_KEY), 10);
+    if (Number.isFinite(v) && v >= CALC_MATH_FONT_SIZE_MIN && v <= CALC_MATH_FONT_SIZE_MAX) return v;
+    return CALC_MATH_FONT_SIZE_DEFAULT;
+}
+export function setCalcMathFontSize(value) {
+    const n = Number(value);
+    const clamped = Number.isFinite(n)
+        ? Math.max(CALC_MATH_FONT_SIZE_MIN, Math.min(CALC_MATH_FONT_SIZE_MAX, n))
+        : CALC_MATH_FONT_SIZE_DEFAULT;
+    localStorage.setItem(CALC_MATH_FONT_SIZE_KEY, String(clamped));
+    persistAfterChange();
+}
+
+/** 将数学表达式字号应用到页面 #math-field-main（若存在） */
+export function applyCalcMathFontSizeToPage() {
+    const mf = document.getElementById('math-field-main');
+    if (mf) mf.style.fontSize = getCalcMathFontSize() + 'rem';
 }
 
 export function getDevtoolsDefaultTab() {
@@ -99,6 +124,67 @@ export function setCanvasLockMobile(value) {
         localStorage.setItem(CANVAS_LOCK_MOBILE_KEY, value ? 'true' : 'false');
         persistAfterChange();
     } catch (_) {}
+}
+
+/** 教学案例弹幕设置 */
+const DANMAKU_ENABLED_KEY = 'danmaku_enabled';
+const DANMAKU_OPACITY_KEY = 'danmaku_opacity';
+const DANMAKU_FONT_SIZE_KEY = 'danmaku_font_size';
+const DANMAKU_SCREEN_KEY = 'danmaku_screen';
+
+export function getDanmakuEnabled() {
+    try {
+        return localStorage.getItem(DANMAKU_ENABLED_KEY) !== 'false';
+    } catch (_) { return true; }
+}
+export function setDanmakuEnabled(value) {
+    try {
+        localStorage.setItem(DANMAKU_ENABLED_KEY, value ? 'true' : 'false');
+        persistAfterChange();
+    } catch (_) {}
+}
+
+export function getDanmakuOpacity() {
+    const v = parseInt(localStorage.getItem(DANMAKU_OPACITY_KEY), 10);
+    return (Number.isFinite(v) && v >= 30 && v <= 100) ? v / 100 : 0.9;
+}
+export function setDanmakuOpacity(value) {
+    const n = Math.min(100, Math.max(30, parseInt(value, 10) || 90));
+    localStorage.setItem(DANMAKU_OPACITY_KEY, String(n));
+    const el = document.getElementById('settings-danmaku-opacity');
+    if (el) el.value = n;
+    const label = document.getElementById('settings-danmaku-opacity-value');
+    if (label) label.textContent = n;
+    persistAfterChange();
+}
+
+export function getDanmakuFontSize() {
+    const v = localStorage.getItem(DANMAKU_FONT_SIZE_KEY);
+    return (v === 'small' || v === 'large') ? v : 'medium';
+}
+export function setDanmakuFontSize(value) {
+    const v = (value === 'small' || value === 'large') ? value : 'medium';
+    localStorage.setItem(DANMAKU_FONT_SIZE_KEY, v);
+    ['small', 'medium', 'large'].forEach(s => {
+        const el = document.getElementById('danmaku-size-' + s);
+        if (el) el.checked = (s === v);
+    });
+    persistAfterChange();
+}
+
+const DANMAKU_SCREEN_VALUES = ['full', 'half', 'quarter'];
+export function getDanmakuScreen() {
+    const v = localStorage.getItem(DANMAKU_SCREEN_KEY);
+    return DANMAKU_SCREEN_VALUES.includes(v) ? v : 'full';
+}
+export function setDanmakuScreen(value) {
+    const v = DANMAKU_SCREEN_VALUES.includes(value) ? value : 'full';
+    localStorage.setItem(DANMAKU_SCREEN_KEY, v);
+    DANMAKU_SCREEN_VALUES.forEach(mode => {
+        const el = document.getElementById('danmaku-screen-' + mode);
+        if (el) el.checked = (mode === v);
+    });
+    persistAfterChange();
 }
 
 export function getHeroEffectMode() {
@@ -137,9 +223,14 @@ export function getFullSettings() {
         shortcuts,
         detect_default_input: getDetectDefaultInput(),
         calc_default_mode: getCalcDefaultMode(),
+        calc_math_font_size: getCalcMathFontSize(),
         devtools_default_tab: getDevtoolsDefaultTab(),
         canvas_lock_mobile: getCanvasLockMobile(),
-        hero_effect_mode: getHeroEffectMode()
+        hero_effect_mode: getHeroEffectMode(),
+        danmaku_enabled: getDanmakuEnabled(),
+        danmaku_opacity: getDanmakuOpacity(),
+        danmaku_font_size: getDanmakuFontSize(),
+        danmaku_screen: getDanmakuScreen()
     };
     try {
         const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
@@ -176,10 +267,13 @@ export function applySettings(obj) {
             const sel = document.getElementById('settings-detect-default-input');
             if (sel) sel.value = obj.detect_default_input;
         }
-        if (['normal', 'formular', 'visualization'].includes(obj.calc_default_mode)) {
+        if (['normal', 'formular', 'visualization', 'solution'].includes(obj.calc_default_mode)) {
             localStorage.setItem(CALC_DEFAULT_MODE_KEY, obj.calc_default_mode);
-            const sel = document.getElementById('settings-calc-default-mode');
-            if (sel) sel.value = obj.calc_default_mode;
+            syncCalcDefaultMode();
+        }
+        if (typeof obj.calc_math_font_size === 'number' && obj.calc_math_font_size >= CALC_MATH_FONT_SIZE_MIN && obj.calc_math_font_size <= CALC_MATH_FONT_SIZE_MAX) {
+            localStorage.setItem(CALC_MATH_FONT_SIZE_KEY, String(obj.calc_math_font_size));
+            syncCalcMathFontSize();
         }
         if (['latex', 'manim', 'rainbow'].includes(obj.devtools_default_tab)) {
             localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, obj.devtools_default_tab);
@@ -205,14 +299,33 @@ export function applySettings(obj) {
             localStorage.setItem(HERO_EFFECT_MODE_KEY, obj.hero_effect_mode);
             const sel = document.getElementById('settings-hero-effect-mode');
             if (sel) sel.value = obj.hero_effect_mode;
-            // 触发重新初始化Hero效果
-            if (window.initHeroTextGlow) {
-                setTimeout(() => {
-                    window.initHeroTextGlow();
-                }, 100);
-            }
+            if (window.initHeroTextGlow) setTimeout(() => window.initHeroTextGlow(), 100);
         }
-        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, devtools_default_tab, canvas_lock_mobile, hero_effect_mode, ...rest } = obj;
+        if (typeof obj.danmaku_enabled === 'boolean') {
+            localStorage.setItem(DANMAKU_ENABLED_KEY, obj.danmaku_enabled ? 'true' : 'false');
+            const cb = document.getElementById('settings-danmaku-enabled');
+            if (cb) cb.checked = obj.danmaku_enabled;
+        }
+        if (typeof obj.danmaku_opacity === 'number' && obj.danmaku_opacity >= 0 && obj.danmaku_opacity <= 1) {
+            const n = Math.round(obj.danmaku_opacity * 100);
+            localStorage.setItem(DANMAKU_OPACITY_KEY, String(n));
+            const el = document.getElementById('settings-danmaku-opacity');
+            if (el) el.value = n;
+            const label = document.getElementById('settings-danmaku-opacity-value');
+            if (label) label.textContent = n;
+        }
+        if (obj.danmaku_font_size === 'small' || obj.danmaku_font_size === 'medium' || obj.danmaku_font_size === 'large') {
+            localStorage.setItem(DANMAKU_FONT_SIZE_KEY, obj.danmaku_font_size);
+            ['small', 'medium', 'large'].forEach(s => {
+                const el = document.getElementById('danmaku-size-' + s);
+                if (el) el.checked = (s === obj.danmaku_font_size);
+            });
+        }
+        if (DANMAKU_SCREEN_VALUES.includes(obj.danmaku_screen)) {
+            localStorage.setItem(DANMAKU_SCREEN_KEY, obj.danmaku_screen);
+            setDanmakuScreen(obj.danmaku_screen);
+        }
+        const { theme, agent_enter_send, shortcuts: _, detect_default_input, calc_default_mode, calc_math_font_size: _cf, devtools_default_tab, canvas_lock_mobile, hero_effect_mode, danmaku_enabled, danmaku_opacity, danmaku_font_size, danmaku_screen, ...rest } = obj;
         if (Object.keys(rest).length > 0) {
             const extra = JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY) || '{}');
             Object.assign(extra, rest);
@@ -413,18 +526,45 @@ function syncCalcDefaultMode() {
     const normalRadio = document.getElementById('calc-mode-normal');
     const formularRadio = document.getElementById('calc-mode-formular');
     const visualizationRadio = document.getElementById('calc-mode-visualization');
-    
+    const solutionRadio = document.getElementById('calc-mode-solution');
+
     if (normalRadio) normalRadio.checked = (value === 'normal');
     if (formularRadio) formularRadio.checked = (value === 'formular');
     if (visualizationRadio) visualizationRadio.checked = (value === 'visualization');
-    
+    if (solutionRadio) solutionRadio.checked = (value === 'solution');
+
+    // 同步计算页下拉框（状态栏）
+    const calcMethodSelect = document.getElementById('calc-method');
+    if (calcMethodSelect && ['normal', 'formular', 'visualization', 'solution'].includes(value)) {
+        calcMethodSelect.value = value;
+    }
+
     // 更新卡片选中状态
-    [normalRadio, formularRadio, visualizationRadio].forEach(radio => {
+    [normalRadio, formularRadio, visualizationRadio, solutionRadio].forEach(radio => {
         if (radio) {
             const card = radio.closest('.settings-select-card');
             if (card) card.classList.toggle('selected', radio.checked);
         }
     });
+}
+
+function syncCalcMathFontSize() {
+    const value = getCalcMathFontSize();
+    const slider = document.getElementById('settings-calc-math-font-size');
+    const valueEl = document.getElementById('settings-calc-math-font-size-value');
+    if (slider) slider.value = value;
+    if (valueEl) valueEl.textContent = String(value);
+    applyCalcMathFontSizeToPage();
+}
+
+/** 设置页「数学表达式字号」滑块变更时调用 */
+export function onCalcMathFontSizeChange(sliderEl) {
+    const v = parseFloat(sliderEl?.value, 10);
+    if (!Number.isFinite(v)) return;
+    setCalcMathFontSize(v);
+    const valueEl = document.getElementById('settings-calc-math-font-size-value');
+    if (valueEl) valueEl.textContent = String(getCalcMathFontSize());
+    applyCalcMathFontSizeToPage();
 }
 
 function syncDevtoolsDefaultTab() {
@@ -450,7 +590,27 @@ function syncCanvasLockMobileCheckbox() {
     if (cb) cb.checked = getCanvasLockMobile();
 }
 
-const SETTINGS_SECTION_IDS = ['settings-appearance', 'settings-profile', 'settings-agent', 'settings-detect', 'settings-shortcuts', 'settings-calc', 'settings-devtools'];
+const SETTINGS_SECTION_IDS = ['settings-appearance', 'settings-profile', 'settings-agent', 'settings-detect', 'settings-shortcuts', 'settings-calc', 'settings-devtools', 'settings-examples'];
+
+function syncDanmakuSettings() {
+    const cb = document.getElementById('settings-danmaku-enabled');
+    if (cb) cb.checked = getDanmakuEnabled();
+    const opacityVal = Math.round(getDanmakuOpacity() * 100);
+    const opacityEl = document.getElementById('settings-danmaku-opacity');
+    if (opacityEl) opacityEl.value = opacityVal;
+    const opacityLabel = document.getElementById('settings-danmaku-opacity-value');
+    if (opacityLabel) opacityLabel.textContent = opacityVal;
+    const size = getDanmakuFontSize();
+    ['small', 'medium', 'large'].forEach(s => {
+        const el = document.getElementById('danmaku-size-' + s);
+        if (el) el.checked = (s === size);
+    });
+    const screen = getDanmakuScreen();
+    DANMAKU_SCREEN_VALUES.forEach(mode => {
+        const el = document.getElementById('danmaku-screen-' + mode);
+        if (el) el.checked = (screen === mode);
+    });
+}
 
 function initSettingsNav() {
     const container = document.getElementById('settings-scroll-container');
@@ -532,6 +692,7 @@ export function initSettings() {
     syncAgentEnterSendCheckbox();
     syncDetectDefaultInput();
     syncCalcDefaultMode();
+    syncCalcMathFontSize();
     syncDevtoolsDefaultTab();
     syncHeroEffectMode();
     syncDetectDefaultInput();
@@ -591,11 +752,14 @@ export function openSettings(anchor) {
     syncAgentEnterSendCheckbox();
     syncDetectDefaultInput();
     syncCalcDefaultMode();
+    syncCalcMathFontSize();
     syncDevtoolsDefaultTab();
     syncHeroEffectMode();
+    syncDanmakuSettings();
+    syncCanvasLockMobileCheckbox();
     onOpenSettings();
     toggleModal('settings-modal', true);
-    const scrollMap = { shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile' };
+    const scrollMap = { shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile', examples: 'settings-examples' };
     if (scrollMap[anchor]) {
         requestAnimationFrame(() => {
             const sectionId = scrollMap[anchor];
@@ -667,12 +831,14 @@ export function resetDefaults() {
     setAgentEnterSend(true);
     localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, 'draw');
     localStorage.setItem(CALC_DEFAULT_MODE_KEY, 'normal');
+    localStorage.setItem(CALC_MATH_FONT_SIZE_KEY, String(CALC_MATH_FONT_SIZE_DEFAULT));
     localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, 'latex');
     setCanvasLockMobile(false);
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();
     syncDetectDefaultInput();
     syncCalcDefaultMode();
+    syncCalcMathFontSize();
     syncDevtoolsDefaultTab();
     syncHeroEffectMode();
     syncDetectDefaultInput();

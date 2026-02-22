@@ -27,27 +27,45 @@
     display: block;
 }
 
-/* ========== LaTeX 预览全局优化：减少根号/上划线断开与错位 ========== */
-/* MathJax CHTML 输出：允许公式完整绘制，避免 overflow 裁剪导致笔画断开 */
-mjx-container,
-mjx-container[jax="CHTML"] {
+/* ========== 全站 LaTeX：KaTeX 渲染（与 ChatGPT / Claude / 豆包一致，整齐正确好看）========== */
+.katex {
+    font-size: 1em !important;
     overflow: visible !important;
-    display: inline-block !important;
-    vertical-align: middle;
 }
-#dev-latex-preview .mjx-chtml,
-#dev-latex-preview mjx-container,
-.calc-steps-window-inner .mjx-chtml,
-.calc-steps-window-inner mjx-container,
-.markdown-body .mjx-chtml,
-.markdown-body mjx-container {
+.katex-display {
     overflow: visible !important;
     max-width: 100%;
 }
-/* 数学字体抗锯齿，使笔画更连贯 */
-.MathJax,
-.mjx-chtml,
-mjx-container {
+/* 行内公式与文字基线对齐：vertical-align 正值为上移、负值为下移，用正值把公式抬到与行内文字对齐 */
+.calc-steps-content p .katex,
+.calc-steps-content li .katex,
+.calc-steps-window-inner p .katex,
+.agent-reply-content .katex,
+.agent-bubble-assistant p .katex {
+    display: inline !important;
+    vertical-align: 0em !important; /* 与行内文字基线对齐 */
+    white-space: nowrap;
+}
+#dev-latex-preview .katex,
+.calc-steps-window-inner .katex,
+.markdown-body .katex {
+    overflow: visible !important;
+    max-width: 100%;
+}
+/* 所有行内公式统一上移与文字基线对齐（非块级公式） */
+.katex:not(.katex-display) {
+    vertical-align: 0em !important;
+}
+.calc-steps-content p,
+.calc-steps-content li,
+.calc-steps-window-inner p,
+.agent-reply-content,
+.agent-bubble-assistant p {
+    line-height: 1.7;
+    overflow: visible;
+}
+.katex,
+.katex * {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

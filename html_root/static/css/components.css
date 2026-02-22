@@ -323,7 +323,7 @@ textarea:focus {
 
 /* 登录/注册弹窗需叠在设置等弹窗之上（从设置里点「保存」未登录时弹出） */
 #auth-modal {
-    z-index: 2100;
+    z-index: 10002;
 }
 
 /* 文档弹窗（隐私政策、服务协议等）叠在登录界面上层，从登录/注册内打开时可见 */
@@ -533,6 +533,26 @@ textarea:focus {
     color: var(--text-secondary);
     line-height: 1.5;
     margin-top: 0.75rem;
+}
+
+.settings-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+.settings-slider {
+    flex: 1;
+    min-width: 0;
+    height: 6px;
+    accent-color: var(--primary-color);
+}
+.settings-slider-value {
+    font-variant-numeric: tabular-nums;
+    min-width: 2.5rem;
+    text-align: right;
+    color: var(--text-main);
+    font-size: 0.95rem;
 }
 
 /* 信息展示项 */
@@ -773,6 +793,18 @@ textarea:focus {
     color: var(--text-main);
     font-size: 0.9rem;
     transition: color 0.3s ease, font-weight 0.3s ease;
+}
+
+.settings-select-card-icon {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.settings-select-card input[type="radio"]:checked ~ .settings-select-card-content .settings-select-card-icon,
+.settings-select-card input[type="radio"]:checked + .settings-select-card-content .settings-select-card-icon {
+    color: var(--primary-color);
 }
 
 .settings-select-card-title {
@@ -1335,13 +1367,13 @@ textarea:focus {
     fill: rgba(15, 23, 42, 0.75) !important; /* 深蓝灰色遮罩 */
 }
 
-/* ========== Toast 轻提示（登录/注册等反馈） ========== */
+/* ========== Toast 轻提示（登录/注册等反馈，始终最上层） ========== */
 #toast-container {
     position: fixed;
     top: 24px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 10000;
+    z-index: 2147483647;
     display: flex;
     flex-direction: column;
     align-items: center;
