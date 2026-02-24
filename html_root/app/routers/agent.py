@@ -38,6 +38,83 @@ def sanitize_latex_for_mathlive(latex: str) -> str:
     return s.strip()
 
 
+def _classify_intent(text: str) -> dict:
+    """
+    基于关键词的轻量级意图识别模块：
+    - 不直接决定步骤，但给出 role / 页面 / 模式 的强提示，供大模型参考。
+    """
+    t = (text or "").strip()
+    lower = t.lower()
+    intent = {
+        "role": "none",                # student | teacher | creator | developer | none
+        "prefer_detect": False,        # 是否倾向智能识别页
+        "prefer_detect_only": False,   # 是否更像“只识别不跳转”
+        "save_to_formulas": False,     # 是否强调“识别并保存到我的算式”
+        "prefer_calculate": False,     # 是否强调动态计算 / 去计算
+        "prefer_examples": False,      # 是否强调教学案例 / 视频学习
+        "prefer_devtools_latex": False,
+        "prefer_devtools_manim": False,
+        "prefer_solution_mode": False,      # 更像“整题解题演示”
+        "prefer_visualization_mode": False, # 更像“可视化动画演示”
+    }
+    if not t:
+        return intent
+
+    # 角色识别（与首页「按角色快速开始」保持一致语义）
+    if "学生" in t:
+        intent["role"] = "student"
+    elif "老师" in t or "教师" in t:
+        intent["role"] = "teacher"
+    elif "创作者" in t or "up主" in t or ("视频" in t and ("b站" in t or "短视频" in t or "抖音" in t)):
+        intent["role"] = "creator"
+    elif "开发者" in t or "程序员" in t or "写代码" in t:
+        intent["role"] = "developer"
+
+    # 操作类关键词
+    if "只识别" in t:
+        intent["prefer_detect"] = True
+        intent["prefer_detect_only"] = True
+    if "识别并保存" in t or "识别后保存" in t or "保存到我的算式" in t:
+        intent["prefer_detect"] = True
+        intent["save_to_formulas"] = True
+    if "识别" in t and not intent["prefer_detect_only"] and "保存" not in t and "去计算" not in t and "生成" not in t:
+        intent["prefer_detect"] = True
+
+    if "去计算" in t or "动态计算" in t or "计算页" in t or "计算页面" in t:
+        intent["prefer_calculate"] = True
+
+    if "生成可视化动画" in t or "可视化" in t or "做成动画" in t or "生成动画" in t:
+        intent["prefer_calculate"] = True
+        intent["prefer_visualization_mode"] = True
+
+    if "完整解题演示" in t or "完整解题" in t or "做一遍题解" in t or "帮我把这道题解出来" in t or "详细解答这道题" in t:
+        intent["prefer_calculate"] = True
+        intent["prefer_solution_mode"] = True
+
+    if "latex" in lower or "tex" in lower or "latex 编辑器" in t:
+        intent["prefer_devtools_latex"] = True
+    if "manim" in lower or "云端渲染" in t or "工作台" in t or "开发者工具" in t:
+        intent["prefer_devtools_manim"] = True
+
+    if "教学案例" in t or "案例" in t or "视频课" in t or "课程视频" in t:
+        intent["prefer_examples"] = True
+
+    # 角色 → 默认偏好
+    role = intent["role"]
+    if role == "student":
+        intent["prefer_examples"] = True or intent["prefer_examples"]
+        intent["prefer_calculate"] = True or intent["prefer_calculate"]
+    elif role == "teacher":
+        intent["prefer_examples"] = True or intent["prefer_examples"]
+        intent["prefer_devtools_manim"] = True or intent["prefer_devtools_manim"]
+    elif role == "creator":
+        intent["prefer_devtools_manim"] = True or intent["prefer_devtools_manim"]
+    elif role == "developer":
+        intent["prefer_devtools_manim"] = True or intent["prefer_devtools_manim"]
+
+    return intent
+
+
 # 网站对外可调用的工具列表，供智能体或外部 Agent（如 function calling）按名称调用
 AGENT_TOOLS = [
     {
@@ -118,10 +195,14 @@ async def agent_execute(data: AgentRequest):
             + (f"助手回复：{data.last_assistant_message}。" if data.last_assistant_message else "")
             + "\n\n"
         )
+
+    intent_hint = _classify_intent(data.prompt or "")
+    intent_hint_json = json.dumps(intent_hint, ensure_ascii=False)
     prompt_for_llm = (
         "本网站包含以下功能页面：detect=智能识别（手写/上传识别公式）、calculate=动态计算（输入公式生成动画）、"
         "devtools=开发者工具（含 LaTeX 可视化编辑器、LaTeX 源码、Manim 工作台/云端渲染、Rainbow 拓展库）、my-formulas=我的算式、examples=教学案例、help=帮助。"
         "网站核心能力：将 LaTeX 算式转为 Manim 动画演示（公式推演、可视化等），可被智能体调用来解题并演示。\n\n"
+        + f"【服务器意图预判】{intent_hint_json}。除非用户在当前轮明确提出相反要求，否则请优先依据该预判选择 section/operation/devtool/steps。\n\n"
         + context_prefix
         + "当前用户说：" + data.prompt + "\n\n"
         + ("用户上传了图片，识别到的公式为：" + latex_from_image + "。若需用到公式请以此为准。" if latex_from_image else "用户未上传图片，若需公式请从描述或题目中提取 LaTeX。")
@@ -144,6 +225,11 @@ async def agent_execute(data: AgentRequest):
         ' ④ **整题（完整解题演示）**：section=calculate, operation=solution, formula=**整题**结构化文字（题目描述+选项 A/B/C/D 的 LaTeX+各选项极限或结论+正确答案如 Answer: C），trigger=generate。**输入到计算页的必须是整题内容，不能只填一个公式。**'
         ' ⑤ **单公式推演/可视化**：section=calculate, formula=该式的 LaTeX, operation=formular 或 visualization, trigger=generate。'
         ' ⑥ 若需对多个选项分别做单公式演示，可输出 steps：每步 section=calculate, formula=该选项 LaTeX, operation=formular 或 visualization, trigger=generate。'
+        '\n\n【角色化使用：按角色快速开始】当用户说“我是学生/老师/创作者/开发者”并提出学习或创作目标时，请优先返回多步 steps，并实际调用页面：'
+        ' (学生) 至少两步：第一步 section="examples"（推荐 1～2 个适合的教学案例，可在 reply 里说明推荐理由）；第二步 section="calculate"，选 operation=visualization 或 formular，根据用户要看的知识点填入代表性公式 formula 并 trigger="generate"。如用户还提到“时间戳笔记”“错题本”，请在 reply 中用 1～3 条建议说明如何在教学案例页添加时间戳笔记、如何把题目转成练习题并再次唤起智能体。'
+        ' (老师) 至少三步：可以先 section="detect" 或 "calculate" 用于从板书/LaTeX 中得到公式，然后 section="devtools"（devtool="manim" 或 "latex"）填入示例代码或整题 LaTeX，最后 section="examples" 引导如何保存/整理为课件或课包；每步的说明写在 reply 中简要概括。'
+        ' (创作者) 优先 section="devtools" devtool="manim" 并在 fill_manim_code 中给出一段可直接运行的 Manim 脚本，trigger="none"；然后在 reply 中给出 15～30 秒视频的大纲和分镜建议。'
+        ' (开发者) 优先打开开发者工具：第一步 section="devtools" devtool="rainbow" 或 "manim"，帮助用户载入或编写示例脚本；如用户提到“组件卡片”“可复用模块”，在 reply 中说明推荐的脚本结构与如何整理为组件。'
         '\n\n动态计算页演示模式：operation 选 normal|formular|visualization|solution（solution=完整解题过程，此时 formula 为整题文字；其余为单公式 LaTeX）。'
         '\n\nformula：当 operation=solution 时为整题结构化文字（可含多行、多选项）；当 operation 为 formular/visualization/normal 时为标准内联 LaTeX，不要 \\[ \\]、$$、\\begin{equation}。fill_latex 仅用于 LaTeX 编辑器，标准内联 LaTeX。'
         '\n\n请只输出一个 JSON。单步格式：{"section":"...", "devtool":"latex|manim|rainbow"(可选), "formula":"", "fill_latex":"", "fill_manim_code":"", "operation":"normal|formular|visualization", "trigger":"generate|recognize|none", "reply":"回复"(chat 或解题时可写结论)}。'

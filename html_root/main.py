@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 # 注册路由（各功能模块在 app 包内）
-from app.routers import auth, user, formulas, animation_scripts, detect, examples, devtools, agent
+from app.routers import auth, user, formulas, animation_scripts, detect, examples, devtools, agent, search
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(user.router, prefix="/api")
@@ -30,6 +30,7 @@ app.include_router(detect.router, prefix="/api")
 app.include_router(examples.router, prefix="/api")
 app.include_router(devtools.router, prefix="/api")
 app.include_router(agent.router, prefix="/api")
+app.include_router(search.router, prefix="/api")
 
 # 静态资源
 app.mount("/css", StaticFiles(directory="static/css"), name="css")

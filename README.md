@@ -164,7 +164,7 @@ html_root/
 
 - **作者**: rainbow_yu
 - **网站**: [智算视界](https://wiscomper.com/)
-- **Email**: rainbowyu619@gmail.com
+- **Email**: rainbowyu619@wiscomper.cn
 
 ---
 

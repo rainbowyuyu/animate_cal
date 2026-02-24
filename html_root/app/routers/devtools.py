@@ -11,7 +11,7 @@ from typing import Optional
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 
-from ..config import VIDEOS_DIR
+from ..config import VIDEOS_DIR, client, api_key
 from ..models import ManimCodeModel
 
 logger = logging.getLogger(__name__)
@@ -247,3 +247,44 @@ async def run_manim_stream_endpoint(data: ManimCodeModel):
             yield f"data: {json.dumps({'type': 'error', 'message': str(e).strip() or repr(e)}, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@router.post("/generate_video_copy")
+async def generate_video_copy(data: ManimCodeModel):
+    """
+    根据 Manim 代码调用大模型生成视频文案（标题 + 简介 + 章节建议），
+    供开发者工具「总结视频脚本内容」功能使用。
+    """
+    code = (data.code or "").strip()
+    if not code:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "代码不能为空"})
+
+    # 限制长度，避免上下文过长
+    snippet = code[:4000]
+
+    # 未配置大模型时给出降级文案，避免前端直接报错
+    if not api_key or client is None:
+        line_count = len(code.splitlines())
+        fallback = f"本脚本为 Manim 动画示例（约 {line_count} 行代码），用于数学/几何演示。"
+        return {"status": "success", "copy": fallback}
+
+    prompt = (
+        "你是一名为 Manim 动画写简要说明的助手。下面是一段 Manim Python 代码，请用一两句话概括这段脚本在演示什么（例如：画了什么图、做了哪种动画、涉及什么知识点），用于在脚本库中区分不同脚本。\n\n"
+        "要求：\n"
+        "- 输出 1～3 句简短说明即可，不需要标题、简介、章节等完整文案；\n"
+        "- 使用 Markdown，可分段或用列表，但保持简洁；\n"
+        "- 只输出说明内容，不要解释思路。\n\n"
+        "Manim 代码：\n"
+        "```python\n" + snippet + "\n```"
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model="qwen-plus",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = completion.choices[0].message.content.strip()
+        return {"status": "success", "copy": text}
+    except Exception as e:
+        logger.error(f"generate_video_copy error: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": "生成视频文案时出错：" + str(e)})

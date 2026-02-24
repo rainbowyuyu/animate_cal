@@ -229,6 +229,26 @@ export function startTutorial() {
     loadDriverScript(runTutorial);
 }
 
+// --- 按角色快速开始：仅观看操作流程（不强制使用智能体） ---
+
+export function startRoleGuide(role) {
+    function run(driverFn) {
+        if (!driverFn) {
+            if (typeof showToast === 'function') showToast('引导库未加载，请刷新后重试', 'error');
+            else if (typeof showAlert === 'function') showAlert('引导库未加载，请刷新后重试', "提示");
+            return;
+        }
+        injectDriverStyles();
+        runRoleTour(driverFn, role);
+    }
+    const driverFn = getDriver();
+    if (driverFn) {
+        run(driverFn);
+        return;
+    }
+    loadDriverScript(run);
+}
+
 function runDriverTour(driverFn) {
 
     const tour = driverFn({
@@ -409,6 +429,181 @@ function runDriverTour(driverFn) {
         }
     });
 
+    tour.drive();
+}
+
+function runRoleTour(driverFn, role) {
+    const stepsByRole = {
+        student: [
+            {
+                element: '.role-start-section',
+                popover: {
+                    title: '👩‍🎓 我是学生：从这里开始',
+                    description: '这一行是「按角色快速开始」。你可以根据自己的身份选择不同路线：学生适合从【教学案例】+【动态计算】开始，先看例题再做可视化推演。',
+                    side: 'bottom',
+                    align: 'start'
+                },
+                onHighlightStarted: (el) => goToAndScroll('home', el)
+            },
+            {
+                element: '#examples .section-title',
+                popover: {
+                    title: '1. 先看教学案例',
+                    description: '在「教学案例」中选一个你关心的知识点，点击卡片即可全屏播放，并支持时间戳笔记与弹幕互动。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => goToAndScroll('examples', el)
+            },
+            {
+                element: '#examples-grid',
+                popover: {
+                    title: '2. 在例题里做笔记',
+                    description: '播放时可以添加「时间戳笔记」，系统会记住你看到的关键步骤，后续还能一键把笔记转成练习题。',
+                    side: 'top'
+                },
+                onHighlightStarted: (el) => goToAndScroll('examples', el)
+            },
+            {
+                element: '#calculate .section-title',
+                popover: {
+                    title: '3. 用动态计算复盘',
+                    description: '看完例题后，切到「动态计算」，把公式导入进来，选择【公式推演】或【可视化演示】，生成属于你自己的动画讲解。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => goToAndScroll('calculate', el)
+            }
+        ],
+        teacher: [
+            {
+                element: '.role-start-section',
+                popover: {
+                    title: '👨‍🏫 我是老师：课包路线',
+                    description: '你可以把一节课拆成多个「教学案例」，再通过【我的课件】分组形成课包，反复使用。',
+                    side: 'bottom',
+                    align: 'start'
+                },
+                onHighlightStarted: (el) => goToAndScroll('home', el)
+            },
+            {
+                element: '#detect .section-title',
+                popover: {
+                    title: '1. 从板书/讲义识别公式',
+                    description: '在「智能识别」中上传板书或讲义截图，把公式快速转成 LaTeX，检查后保存到「我的算式」。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => goToAndScroll('detect', el)
+            },
+            {
+                element: '#devtools .tools-list',
+                popover: {
+                    title: '2. 在 Manim 工作台生成课堂动画',
+                    description: '进入「开发者工具」，选择 Manim 工作台，从算式库或 Rainbow 拓展里导入脚本，生成课堂用动画视频。',
+                    side: 'right'
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            {
+                element: '#examples .examples-filter-tabs',
+                popover: {
+                    title: '3. 把视频加入课件包',
+                    description: '在「教学案例」中播放刚才生成的视频，点击播放页里的「加入课件包」。之后在筛选栏选择「我的课件」即可看到整套课包。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => goToAndScroll('examples', el)
+            }
+        ],
+        creator: [
+            {
+                element: '.role-start-section',
+                popover: {
+                    title: '🎬 内容创作者：短视频流水线',
+                    description: '适合做数学/科普短视频：一边写脚本，一边预览效果，并可导出弹幕发布包。',
+                    side: 'bottom',
+                    align: 'start'
+                },
+                onHighlightStarted: (el) => goToAndScroll('home', el)
+            },
+            {
+                element: '#devtools .tools-list',
+                popover: {
+                    title: '1. 进入 Manim 工作台 / Rainbow 组件',
+                    description: '在「开发者工具」中选择 Manim 工作台或 Rainbow 拓展组件，快速加载现成脚本再做改动。',
+                    side: 'right'
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            {
+                element: '#devtools #dev-manim',
+                popover: {
+                    title: '2. 编写或调整脚本并渲染',
+                    description: '在编辑器里调整脚本细节，使用快捷键 Ctrl+Enter 预览动画，直到画面满足你的讲解需求。',
+                    side: 'left'
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            {
+                element: '#examples .section-title',
+                popover: {
+                    title: '3. 在教学案例中预览成片',
+                    description: '将脚本生成的视频保存为教学案例，使用自定义播放器查看弹幕、进度和关键帧，再导出「发布包」上传至 B 站等平台。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => goToAndScroll('examples', el)
+            }
+        ],
+        developer: [
+            {
+                element: '.role-start-section',
+                popover: {
+                    title: '👨‍💻 开发者：组件化你的 Manim 代码',
+                    description: '如果你更习惯写代码，可以把常用的 Manim 脚本整理成可复用组件，在站内一键载入与改编。',
+                    side: 'bottom',
+                    align: 'start'
+                },
+                onHighlightStarted: (el) => goToAndScroll('home', el)
+            },
+            {
+                element: '#devtools .tools-list',
+                popover: {
+                    title: '1. 在开发者工具管理脚本',
+                    description: '使用「Manim 工作台」编写和调试脚本，保存到动画脚本库后，可在多处一键导入使用。',
+                    side: 'right'
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            {
+                element: '#devtools .tools-list button[onclick*=\"rainbow\"]',
+                popover: {
+                    title: '2. 参考 Rainbow 扩展组件',
+                    description: '在 Rainbow 拓展区浏览示例组件，学习推荐的脚本结构与参数设计，然后按同样方式整理自己的组件。',
+                    side: 'right'
+                },
+                onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            {
+                element: '#my-formulas',
+                popover: {
+                    title: '3. 与算式/课件联动',
+                    description: '将脚本与「我的算式」及「课件包」联动：算式 → 动画脚本 → 教学案例，形成完整的开发-教学闭环。',
+                    side: 'top'
+                },
+                onHighlightStarted: (el) => goToAndScroll('my-formulas', el)
+            }
+        ]
+    };
+
+    const steps = stepsByRole[role] || stepsByRole.student;
+    const tour = driverFn({
+        showProgress: true,
+        animate: true,
+        allowClose: true,
+        doneBtnText: "我知道了",
+        nextBtnText: "下一步",
+        prevBtnText: "上一步",
+        progressText: "步骤 {{current}} / {{total}}",
+        popoverClass: 'driverjs-theme',
+        steps
+    });
     tour.drive();
 }
 

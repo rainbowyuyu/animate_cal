@@ -392,6 +392,29 @@
     margin-bottom: 0.25rem;
 }
 
+.agent-step-desc-wrap {
+    position: relative;
+}
+.agent-save-template-btn {
+    margin-top: 0.5rem;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+.agent-save-template-btn:hover:not(:disabled) {
+    background: rgba(37, 99, 235, 0.14);
+    border-color: var(--primary-color);
+}
+.agent-save-template-btn:disabled {
+    cursor: default;
+    opacity: 0.8;
+}
+
 .agent-main {
     flex: 1;
     display: flex;

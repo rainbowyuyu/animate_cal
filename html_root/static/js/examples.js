@@ -1,15 +1,33 @@
 // static/js/examples.js — 教学案例：B 站风预览、点赞、评论与弹幕（登录后可发）
-import { toggleModal } from './ui.js';
+import { toggleModal, toggleAuthModal, showToast } from './ui.js';
 import * as Settings from './settings.js';
+
+let examplesFilterMode = 'all';
+let examplesTag = '';
+let allTagsSet = new Set();
+let examplesFilterTabsInited = false;
+
+function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 export async function loadExamples() {
     const grid = document.getElementById('examples-grid');
     if (!grid) return;
 
+    const filterTab = document.querySelector('.examples-filter-tab.active');
+    const filterMode = (filterTab && filterTab.dataset.filter) || 'all';
+    const tagSelect = document.getElementById('examples-tag-select');
+    const tag = (tagSelect && tagSelect.value) || '';
+
     grid.innerHTML = '<div class="video-grid-loading"><i class="fa-solid fa-spinner"></i>加载案例中...</div>';
 
+    const params = new URLSearchParams();
+    if (filterMode !== 'all') params.set('filter_mode', filterMode);
+    if (tag) params.set('tag', tag);
+    const qs = params.toString();
+    const url = '/api/examples' + (qs ? '?' + qs : '');
+
     try {
-        const res = await fetch('/api/examples', { credentials: 'include' });
+        const res = await fetch(url, { credentials: 'include' });
         const text = await res.text();
         let data;
         try {
@@ -18,7 +36,16 @@ export async function loadExamples() {
             data = { status: 'error', message: res.ok ? '响应格式错误' : (text && text.length < 200 ? text : '服务异常(500)，请查看控制台或访问 /api/examples/health 排查') };
         }
         if (data.status === 'success') {
-            renderExampleCards(data.data);
+            const videos = data.data || [];
+            if (filterMode === 'all' && !tag && Array.isArray(videos)) {
+                videos.forEach(v => { (v.tags || []).forEach(t => allTagsSet.add(String(t))); });
+                if (tagSelect) {
+                    const cur = tagSelect.value;
+                    tagSelect.innerHTML = '<option value="">全部</option>' + Array.from(allTagsSet).sort().map(t => '<option value="' + escapeAttr(t) + '">' + escapeHtml(t) + '</option>').join('');
+                    if (cur) tagSelect.value = cur;
+                }
+            }
+            renderExampleCards(videos);
             if (data.error) {
                 grid.innerHTML = grid.innerHTML + '<div class="video-grid-error" style="margin-top:0.5rem;"><i class="fa-solid fa-info-circle"></i> ' + escapeHtml(data.error) + '</div>';
             }
@@ -31,6 +58,86 @@ export async function loadExamples() {
         grid.innerHTML = '<div class="video-grid-error"><i class="fa-solid fa-wifi"></i>网络错误，请检查网络后重试</div>';
     }
 }
+
+function initExamplesFilterTabs() {
+    if (examplesFilterTabsInited) return;
+    examplesFilterTabsInited = true;
+    document.querySelectorAll('.examples-filter-tab').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const mode = (btn.dataset && btn.dataset.filter) || 'all';
+            if (mode === 'favorites' || mode === 'watch_later' || mode === 'courseware') {
+                try {
+                    const res = await fetch('/api/user/me', { credentials: 'include' });
+                    const me = await res.json();
+                    if (!me || me.status !== 'success' || !me.username) {
+                        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+                        if (typeof showToast === 'function') showToast('登录后可查看我的收藏、稍后看和课件包', 'info');
+                        return;
+                    }
+                } catch (_) {
+                    if (typeof showToast === 'function') showToast('网络错误，请稍后重试', 'error');
+                    return;
+                }
+            }
+            document.querySelectorAll('.examples-filter-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadExamples();
+        });
+    });
+    const tagSelect = document.getElementById('examples-tag-select');
+    if (tagSelect) tagSelect.addEventListener('change', () => loadExamples());
+
+    const createCourseBtn = document.getElementById('examples-create-course-btn');
+    if (createCourseBtn) {
+        createCourseBtn.addEventListener('click', () => openCoursePackModal());
+    }
+
+    // 创建课包弹窗：智能体 / 手动流程
+    const agentBtn = document.getElementById('course-pack-modal-agent-btn');
+    if (agentBtn) {
+        agentBtn.addEventListener('click', () => {
+            if (typeof closeCoursePackModal === 'function') closeCoursePackModal();
+            if (window.Agent && typeof window.Agent.startRoleFlow === 'function') {
+                window.Agent.startRoleFlow('teacher');
+            } else if (typeof showSection === 'function') {
+                showSection('agent');
+            }
+        });
+    }
+    const manualBtn = document.getElementById('course-pack-modal-manual-btn');
+    if (manualBtn) {
+        manualBtn.addEventListener('click', () => {
+            if (typeof closeCoursePackModal === 'function') closeCoursePackModal();
+            if (typeof showSection === 'function') showSection('examples');
+            if (typeof showToast === 'function') showToast('请按步骤：智能识别/我的算式 → Manim 工作台 → 教学案例中加入课件包', 'info');
+        });
+    }
+    document.querySelectorAll('.course-pack-step-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const step = link.getAttribute('data-course-pack-step');
+            if (!step || typeof showSection !== 'function') return;
+            if (typeof closeCoursePackModal === 'function') closeCoursePackModal();
+            showSection(step === 'my-formulas' ? 'my-formulas' : step);
+            if (step === 'devtools' && typeof window.switchDevTool === 'function') window.switchDevTool('manim');
+        });
+    });
+}
+
+/** 教师：打开创建课包说明弹窗（入口统一在教学案例页） */
+function openCoursePackModal() {
+    const modal = document.getElementById('course-pack-modal');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => modal.classList.add('show'));
+}
+window.closeCoursePackModal = function () {
+    const modal = document.getElementById('course-pack-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => { modal.style.display = 'none'; }, 300);
+};
 
 function formatDuration(sec) {
     if (sec == null || !Number.isFinite(sec) || sec < 0) return '';
@@ -48,7 +155,13 @@ function renderExampleCards(videos) {
     if (!grid) return;
 
     if (!Array.isArray(videos) || videos.length === 0) {
-        grid.innerHTML = '<div class="video-grid-empty"><i class="fa-solid fa-film"></i>暂无视频案例</div>';
+        const filterTab = document.querySelector('.examples-filter-tab.active');
+        const isCourseware = filterTab && (filterTab.dataset.filter === 'courseware');
+        grid.innerHTML = isCourseware
+            ? '<div class="video-grid-empty video-grid-empty-courseware"><i class="fa-solid fa-chalkboard-user"></i>暂无课件包<p class="video-grid-empty-hint">点击「创建课包」将公式→动画打包成课堂案例，并生成课堂链接</p><button type="button" class="action-btn secondary" id="examples-create-course-btn-inline">创建课包</button></div>'
+            : '<div class="video-grid-empty"><i class="fa-solid fa-film"></i>暂无视频案例</div>';
+        const inlineBtn = document.getElementById('examples-create-course-btn-inline');
+        if (inlineBtn) inlineBtn.onclick = () => document.getElementById('examples-create-course-btn')?.click();
         return;
     }
 
@@ -86,6 +199,9 @@ function renderExampleCards(videos) {
         const durationLabel = v.duration_sec != null ? formatDuration(v.duration_sec) : '';
         const likeCount = Math.max(0, parseInt(v.like_count, 10) || 0);
         const durationBadge = durationLabel ? ('<span class="video-duration-badge">' + escapeHtml(durationLabel) + '</span>') : '';
+        const fav = v.user_favorited ? ' fa-solid' : ' fa-regular';
+        const watch = v.user_watch_later ? ' fa-solid' : ' fa-regular';
+        const tagsList = Array.isArray(v.tags) && v.tags.length ? v.tags.slice(0, 4).map(t => '<span class="video-card-tag">' + escapeHtml(String(t)) + '</span>').join('') : '';
         return [
             '<div class="video-card" data-video-url="' + urlAttr + '" data-video-id="' + videoId + '" data-video-title="' + titleAttr + '" data-video-desc="' + descAttr + '" data-video-sprite="' + spriteAttr + '" data-video-duration="' + durationSec + '" data-video-sprite-cols="' + spriteCols + '" data-video-sprite-rows="' + spriteRows + '" data-video-hls="' + hlsAttr + '" data-video-mask="' + maskAttr + '" data-video-high-energy="' + highEnergyAttr + '">',
             '  <div class="thumbnail video-preview-container">',
@@ -93,8 +209,12 @@ function renderExampleCards(videos) {
             '    <div class="play-overlay"><i class="fa-solid fa-play-circle"></i></div>',
             durationBadge,
             '    <div class="video-card-meta"><span><i class="fa-regular fa-thumbs-up"></i> ' + likeCount + '</span></div>',
+            '    <div class="video-card-actions" onclick="event.stopPropagation()">',
+            '      <button type="button" class="video-card-action-btn' + (v.user_favorited ? ' active' : '') + '" data-action="favorite" data-video-id="' + videoId + '" title="收藏"><i class="' + fav + ' fa-star"></i></button>',
+            '      <button type="button" class="video-card-action-btn' + (v.user_watch_later ? ' active' : '') + '" data-action="watch_later" data-video-id="' + videoId + '" title="稍后看"><i class="' + watch + ' fa-clock"></i></button>',
+            '    </div>',
             '  </div>',
-            '  <div class="info"><h4>' + title + '</h4><p>' + description + '</p></div>',
+            '  <div class="info"><h4>' + title + '</h4><p>' + description + '</p>' + (tagsList ? '<div class="video-card-tags">' + tagsList + '</div>' : '') + '</div>',
             '</div>'
         ].join('');
     }).join('');
@@ -102,6 +222,16 @@ function renderExampleCards(videos) {
     if (!grid.dataset.delegateBound) {
         grid.dataset.delegateBound = '1';
         grid.addEventListener('click', (e) => {
+            const actionBtn = e.target.closest('.video-card-action-btn');
+            if (actionBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                const videoId = actionBtn.dataset.videoId;
+                const action = actionBtn.dataset.action;
+                if (action === 'favorite') toggleFavoriteOnCard(videoId, actionBtn);
+                else if (action === 'watch_later') toggleWatchLaterOnCard(videoId, actionBtn);
+                return;
+            }
             const card = e.target.closest('.video-card');
             if (card) {
                 const durationSec = card.getAttribute('data-video-duration');
@@ -129,9 +259,67 @@ function renderExampleCards(videos) {
             }
         });
     }
+    initExamplesFilterTabs();
+}
+
+async function toggleFavoriteOnCard(videoId, btn) {
+    try {
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const me = await meRes.json();
+        if (me.status !== 'success' || !me.username) {
+            toggleAuthModal(true);
+            return;
+        }
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('请先登录', 'error');
+        return;
+    }
+    const isActive = btn.classList.contains('active');
+    const method = isActive ? 'DELETE' : 'POST';
+    const url = isActive ? '/api/examples/favorites?video_id=' + encodeURIComponent(videoId) : '/api/examples/favorites';
+    const body = method === 'POST' ? JSON.stringify({ video_id: videoId }) : undefined;
+    try {
+        const res = await fetch(url, { method, credentials: 'include', headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {}, body });
+        const data = await res.json();
+        if (data.status === 'success') {
+            btn.classList.toggle('active', !!data.user_favorited);
+            btn.querySelector('i').className = (data.user_favorited ? 'fa-solid' : 'fa-regular') + ' fa-star';
+            if (typeof showToast === 'function') showToast(data.user_favorited ? '已收藏' : '已取消收藏', 'success');
+        } else if (data.message && typeof showToast === 'function') showToast(data.message, 'error');
+    } catch (_) { if (typeof showToast === 'function') showToast('网络错误', 'error'); }
+}
+
+async function toggleWatchLaterOnCard(videoId, btn) {
+    try {
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const me = await meRes.json();
+        if (me.status !== 'success' || !me.username) {
+            toggleAuthModal(true);
+            return;
+        }
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('请先登录', 'error');
+        return;
+    }
+    const isActive = btn.classList.contains('active');
+    const method = isActive ? 'DELETE' : 'POST';
+    const url = isActive ? '/api/examples/watch-later?video_id=' + encodeURIComponent(videoId) : '/api/examples/watch-later';
+    const body = method === 'POST' ? JSON.stringify({ video_id: videoId }) : undefined;
+    try {
+        const res = await fetch(url, { method, credentials: 'include', headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {}, body });
+        const data = await res.json();
+        if (data.status === 'success') {
+            btn.classList.toggle('active', !!data.user_watch_later);
+            btn.querySelector('i').className = (data.user_watch_later ? 'fa-solid' : 'fa-regular') + ' fa-clock';
+            if (typeof showToast === 'function') showToast(data.user_watch_later ? '已加入稍后看' : '已移除', 'success');
+        } else if (data.message && typeof showToast === 'function') showToast(data.message, 'error');
+    } catch (_) { if (typeof showToast === 'function') showToast('网络错误', 'error'); }
 }
 
 let currentVideoId = '';
+let currentVideoTitle = '';
+/** 续播时间（秒），用于复习推荐「继续观看」 */
+let currentVideoResumeTime = 0;
 let danmakuList = [];
 const danmakuShownCountRef = { value: 0 };
 let heartbeatTimerId = null;
@@ -413,6 +601,93 @@ function createDanmakuCanvasManager() {
 
 let danmakuCanvasManager = null;
 
+function loadVideoNotes(videoId) {
+    const listEl = document.getElementById('video-notes-list');
+    if (!listEl) return;
+    listEl.innerHTML = '<div class="video-comment-item" style="color:rgba(255,255,255,0.5);">加载中…</div>';
+    fetch('/api/examples/notes?video_id=' + encodeURIComponent(videoId), { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status !== 'success' || !Array.isArray(data.data)) {
+                listEl.innerHTML = '<div class="video-comment-item" style="color:rgba(255,255,255,0.5);">暂无笔记</div>';
+                return;
+            }
+            const items = data.data;
+            if (items.length === 0) {
+                listEl.innerHTML = '<div class="video-comment-item" style="color:rgba(255,255,255,0.5);">暂无笔记，点击下方添加</div>';
+                return;
+            }
+            listEl.innerHTML = items.map(n => {
+                const t = Number(n.time_sec);
+                const timeStr = formatDuration(t);
+                const fullContent = (n.content || '').trim();
+                const content = fullContent.slice(0, 80) + (fullContent.length > 80 ? '…' : '');
+                const contentAttr = escapeAttr(fullContent.slice(0, 500));
+                const titleAttr = escapeAttr(currentVideoTitle || '');
+                return '<div class="video-note-item" data-time="' + t + '" data-content="' + contentAttr + '" data-time-sec="' + t + '" data-video-title="' + titleAttr + '" role="button" tabindex="0">' +
+                    '<span class="video-note-time">' + escapeHtml(timeStr) + '</span><span class="video-note-content">' + escapeHtml(content) + '</span>' +
+                    '<button type="button" class="video-note-to-exercise-btn" title="根据此笔记让智能体出一道同类练习题"><i class="fa-solid fa-pen-to-square"></i></button></div>';
+            }).join('');
+            listEl.querySelectorAll('.video-note-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (e.target.closest('.video-note-to-exercise-btn')) return;
+                    const player = document.getElementById('example-video-player');
+                    const time = parseFloat(el.dataset.time, 10);
+                    if (player && Number.isFinite(time)) { player.currentTime = time; player.play().catch(() => {}); }
+                });
+            });
+            listEl.querySelectorAll('.video-note-to-exercise-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const item = btn.closest('.video-note-item');
+                    if (!item) return;
+                    const content = (item.dataset.content || '').trim();
+                    const timeSec = item.dataset.timeSec || '0';
+                    const videoTitle = (item.dataset.videoTitle || '').trim();
+                    const timeStr = item.querySelector('.video-note-time') ? item.querySelector('.video-note-time').textContent : timeSec;
+                    const prompt = '请根据以下学习笔记出一道同类数学练习题（含步骤与答案），以 Markdown 格式回复。\n\n笔记内容：' + (content || '(无)') + '\n视频时间点：' + timeStr + (videoTitle ? '\n视频：' + videoTitle : '');
+                    if (window.Agent && typeof window.Agent.prefillAndShow === 'function') window.Agent.prefillAndShow(prompt);
+                    else if (typeof showToast === 'function') showToast('请刷新页面后重试', 'info');
+                });
+            });
+        })
+        .catch(() => { listEl.innerHTML = '<div class="video-comment-item" style="color:rgba(255,255,255,0.5);">加载失败</div>'; });
+}
+
+let videoNotesBound = false;
+function bindVideoNotesOnce() {
+    if (videoNotesBound) return;
+    videoNotesBound = true;
+    const noteInput = document.getElementById('video-note-input');
+    const noteSend = document.getElementById('video-note-send');
+    if (!noteSend || !noteInput) return;
+    noteSend.addEventListener('click', () => {
+        const content = noteInput.value ? noteInput.value.trim() : '';
+        if (!content || !currentVideoId) return;
+        const player = document.getElementById('example-video-player');
+        const timeSec = player && Number.isFinite(player.currentTime) ? player.currentTime : 0;
+        noteSend.disabled = true;
+        fetch('/api/examples/notes', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ video_id: currentVideoId, time_sec: timeSec, content })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    noteInput.value = '';
+                    loadVideoNotes(currentVideoId);
+                    if (typeof showToast === 'function') showToast('笔记已添加', 'success');
+                } else if (data.message && typeof showToast === 'function') showToast(data.message, 'error');
+            })
+            .catch(() => { if (typeof showToast === 'function') showToast('网络错误', 'error'); })
+            .finally(() => { noteSend.disabled = false; });
+    });
+    noteInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') noteSend.click(); });
+}
+
 function loadComments(videoId) {
     const listEl = document.getElementById('video-comments-list');
     if (!listEl) return;
@@ -448,6 +723,28 @@ function escapeHtml(str) {
 
 /** 弹幕分段时长（秒），与后端 segment 一致 */
 const DANMAKU_SEGMENT_SECONDS = 360;
+
+/** 本地错题本存储键（仅存于当前浏览器） */
+const WRONGBOOK_STORAGE_KEY = 'wcp_examples_wrongbook_v1';
+
+function getWrongbookList() {
+    try {
+        const raw = localStorage.getItem(WRONGBOOK_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function setWrongbookList(list) {
+    try {
+        localStorage.setItem(WRONGBOOK_STORAGE_KEY, JSON.stringify(Array.isArray(list) ? list : []));
+    } catch (_) {
+        // 本地存储失败时静默忽略
+    }
+}
 
 function loadDanmaku(videoId, onLoaded) {
     danmakuList = [];
@@ -531,10 +828,14 @@ function updateModalAuthUI(loggedIn) {
     const commentHint = document.getElementById('video-comment-login-hint');
     const danmakuWrap = document.getElementById('video-danmaku-input-wrap');
     const danmakuHint = document.getElementById('video-danmaku-login-hint');
+    const noteForm = document.getElementById('video-note-form');
+    const noteHint = document.getElementById('video-note-login-hint');
     if (commentForm) commentForm.style.display = loggedIn ? 'flex' : 'none';
     if (commentHint) commentHint.style.display = loggedIn ? 'none' : 'block';
     if (danmakuWrap) danmakuWrap.style.display = loggedIn ? 'flex' : 'none';
     if (danmakuHint) danmakuHint.style.display = loggedIn ? 'none' : 'block';
+    if (noteForm) noteForm.style.display = loggedIn ? 'flex' : 'none';
+    if (noteHint) noteHint.style.display = loggedIn ? 'none' : 'block';
 }
 
 if (typeof window !== 'undefined') {
@@ -927,6 +1228,165 @@ function mergeWatchedSegment(start, end) {
     watchedSegments = merged;
 }
 
+/** 复习推荐：显示「从 x:xx 继续观看」并绑定继续按钮 */
+function updateResumeRecommendUI() {
+    const block = document.getElementById('video-resume-recommend');
+    const textEl = document.getElementById('video-resume-text');
+    const btn = document.getElementById('video-resume-btn');
+    const player = document.getElementById('example-video-player');
+    if (!block || !textEl || !btn) return;
+    if (currentVideoResumeTime > 0 && player && player.duration && currentVideoResumeTime < player.duration - 2) {
+        block.style.display = 'flex';
+        textEl.textContent = '上次观看到 ' + formatDuration(Math.floor(currentVideoResumeTime)) + '，';
+        btn.onclick = () => {
+            if (player && Number.isFinite(currentVideoResumeTime)) {
+                player.currentTime = currentVideoResumeTime;
+                player.play().catch(() => {});
+            }
+        };
+    } else {
+        block.style.display = 'none';
+    }
+}
+
+/** 更新「已观看约 xx%」摘要文案 */
+function updateVideoProgressSummary() {
+    const el = document.getElementById('video-progress-summary');
+    const player = document.getElementById('example-video-player');
+    if (!el || !player || !Number.isFinite(player.duration) || player.duration <= 0) {
+        if (el) el.textContent = '';
+        return;
+    }
+    const dur = player.duration;
+    let watched = 0;
+    for (const [s, e] of watchedSegments) {
+        watched += Math.max(0, e - s);
+    }
+    const pct = Math.max(0, Math.min(100, (watched / dur) * 100));
+    el.textContent = `已观看约 ${pct.toFixed(0)}%`;
+}
+
+/** 将当前时间点加入本地错题本（仅当前浏览器可见） */
+function addCurrentTimeToWrongbook() {
+    if (!currentVideoId) return;
+    const player = document.getElementById('example-video-player');
+    const titleEl = document.getElementById('video-modal-title');
+    const noteInput = document.getElementById('video-note-input');
+    const time = player && Number.isFinite(player.currentTime) ? Math.max(0, Math.floor(player.currentTime)) : 0;
+    const title = (titleEl && titleEl.innerText) ? titleEl.innerText.trim() : '';
+    const content = (noteInput && noteInput.value) ? noteInput.value.trim() : '';
+    const list = getWrongbookList();
+    const key = `${currentVideoId}-${time}-${content || ''}`;
+    if (list.some(item => item.key === key)) {
+        if (typeof showToast === 'function') showToast('该时间点已在错题本中', 'info');
+        return;
+    }
+    list.push({
+        key,
+        video_id: currentVideoId,
+        title,
+        time_sec: time,
+        note: content,
+        created_at: Date.now()
+    });
+    setWrongbookList(list);
+    if (typeof showToast === 'function') showToast('已加入本地错题本', 'success');
+}
+
+/** 创作者：导出发布包（标题+弹幕+字幕模板 JSON，供 B 站等平台使用） */
+function exportPublishPack() {
+    if (!currentVideoId) return;
+    const titleEl = document.getElementById('video-modal-title');
+    const descEl = document.getElementById('video-modal-desc');
+    const title = (titleEl && titleEl.innerText) ? titleEl.innerText.trim() : '';
+    const description = (descEl && descEl.innerText) ? descEl.innerText.trim() : '';
+    fetch('/api/v1/danmaku/list?video_id=' + encodeURIComponent(currentVideoId), { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            const list = (data.code === 0 && Array.isArray(data.data)) ? data.data : [];
+            const danmaku = list.map(d => {
+                const [time, mode, color, author, text] = Array.isArray(d) ? d : [d.time, 1, 16777215, d.username, d.text];
+                return { time: Number(time), mode: mode || 1, color: color || 16777215, author: author || '', text: text || '' };
+            });
+            const pack = {
+                title,
+                description,
+                video_id: currentVideoId,
+                export_time: new Date().toISOString(),
+                danmaku,
+                subtitle_template: []
+            };
+            const blob = new Blob([JSON.stringify(pack, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'publish_' + (currentVideoId || 'video') + '_' + Date.now() + '.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            if (typeof showToast === 'function') showToast('发布包已下载', 'success');
+        })
+        .catch(() => { if (typeof showToast === 'function') showToast('获取弹幕失败', 'error'); });
+}
+
+/** 教师：将当前视频加入课件包（自动为用户创建默认课件包） */
+async function addCurrentVideoToCoursePack() {
+    if (!currentVideoId) return;
+
+    // 登录校验
+    try {
+        const meRes = await fetch('/api/user/me', { credentials: 'include' });
+        const me = await meRes.json();
+        if (!me || me.status !== 'success' || !me.username) {
+            if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+            else if (typeof showToast === 'function') showToast('请先登录', 'error');
+            return;
+        }
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('请先登录', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/examples/course-pack/add', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ video_id: currentVideoId })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            if (typeof showToast === 'function') {
+                showToast('已加入「我的课件」分组，可在筛选栏选择「我的课件」查看', 'success');
+            }
+        } else if (data.message && typeof showToast === 'function') {
+            showToast(data.message, 'error');
+        }
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('网络错误', 'error');
+    }
+}
+
+/** 查看当前视频的本地错题记录 */
+function showWrongbookForCurrentVideo() {
+    if (!currentVideoId) return;
+    const list = getWrongbookList().filter(item => item.video_id === currentVideoId);
+    if (!list.length) {
+        if (typeof showToast === 'function') showToast('当前视频还没有本地错题记录', 'info');
+        return;
+    }
+    const sorted = list.slice().sort((a, b) => (a.time_sec || 0) - (b.time_sec || 0));
+    const lines = sorted.map(item => {
+        const tStr = formatDuration(item.time_sec || 0);
+        const note = (item.note || '').slice(0, 60);
+        return `[${tStr}] ${note || '(未填写笔记，可在上方补充)'}`;
+    });
+    const text = lines.join('\n');
+    if (typeof showAlert === 'function') {
+        showAlert(text, '本视频的错题记录（本地）');
+    } else {
+        alert(text);
+    }
+}
+
 function bindHighEnergyBar() {
     const player = document.getElementById('example-video-player');
     const barEl = document.getElementById('player-layer-high-energy');
@@ -1003,6 +1463,7 @@ function bindHighEnergyBar() {
             const t = player.currentTime;
             if (Number.isFinite(t) && t >= 0) mergeWatchedSegment(Math.max(0, t - 2), t);
             draw();
+            updateVideoProgressSummary();
         });
     }
     const ro = new ResizeObserver(draw);
@@ -1051,6 +1512,7 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
         const base = videoSrc.split('/').pop() || '';
         currentVideoId = base.replace(/\.(mp4|m3u8)$/i, '');
     } else currentVideoId = '';
+    currentVideoTitle = title || '';
 
     currentSpriteUrl = options.spriteUrl || '';
     currentSpriteCols = Math.max(1, options.spriteCols || 10);
@@ -1058,14 +1520,14 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
     currentSpriteDuration = options.durationSec != null && Number.isFinite(options.durationSec) ? options.durationSec : 0;
     currentHighEnergyData = Array.isArray(options.highEnergy) ? options.highEnergy : [];
 
+    const initialTime = options.initialTime != null && Number.isFinite(options.initialTime) ? options.initialTime : null;
     const applyConfig = (videoSrcFromConfig, lastPlayTime, fallbackSrc) => {
-        setWatchedSegmentsFromLastProgress(lastPlayTime);
+        const startTime = initialTime != null ? initialTime : (lastPlayTime > 0 && Number.isFinite(lastPlayTime) ? lastPlayTime : 0);
+        setWatchedSegmentsFromLastProgress(startTime);
         if (player) {
             setVideoSource(player, videoSrcFromConfig, { hlsUrl: options.hlsUrl });
             const onReady = () => {
-                if (lastPlayTime > 0 && Number.isFinite(lastPlayTime)) {
-                    player.currentTime = lastPlayTime;
-                }
+                if (startTime > 0) player.currentTime = startTime;
                 player.play().catch(() => {});
             };
             if (player.readyState >= 2) onReady();
@@ -1087,13 +1549,20 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
         .then(r => r.json())
         .then(data => {
             if (data && data.code === 0 && data.data && data.data.video_src) {
-                applyConfig(data.data.video_src, data.data.last_play_time ?? 0, data.data.fallback_src || null);
+                const lastPlay = initialTime != null ? initialTime : (data.data.last_play_time ?? 0);
+                if (initialTime == null && lastPlay > 0) currentVideoResumeTime = lastPlay;
+                else currentVideoResumeTime = 0;
+                applyConfig(data.data.video_src, lastPlay, data.data.fallback_src || null);
             } else {
-                applyConfig(videoSrc, 0, null);
+                currentVideoResumeTime = 0;
+                applyConfig(videoSrc, initialTime != null ? initialTime : 0, null);
             }
+            updateResumeRecommendUI();
         })
         .catch(() => {
-            applyConfig(videoSrc, 0, null);
+            currentVideoResumeTime = 0;
+            applyConfig(videoSrc, initialTime != null ? initialTime : 0, null);
+            updateResumeRecommendUI();
         });
     if (titleEl) titleEl.innerText = title;
     if (descEl) descEl.innerText = desc || "暂无简介";
@@ -1209,6 +1678,110 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
         };
     }
 
+    let userFavorited = false;
+    let userWatchLater = false;
+    fetch('/api/user/me', { credentials: 'include' })
+        .then(r => r.json())
+        .then(me => {
+            if (me.status === 'success' && me.username) {
+                return Promise.all([
+                    fetch('/api/examples/favorites', { credentials: 'include' }).then(r => r.json()),
+                    fetch('/api/examples/watch-later', { credentials: 'include' }).then(r => r.json())
+                ]).then(([favRes, wlRes]) => {
+                    const favList = (favRes.status === 'success' && favRes.data) ? favRes.data : [];
+                    const wlList = (wlRes.status === 'success' && wlRes.data) ? wlRes.data : [];
+                    userFavorited = favList.some(x => x.video_id === currentVideoId);
+                    userWatchLater = wlList.some(x => x.video_id === currentVideoId);
+                    updateModalFavoriteWatchLaterUI(userFavorited, userWatchLater);
+                });
+            } else {
+                updateModalFavoriteWatchLaterUI(false, false);
+            }
+        })
+        .catch(() => updateModalFavoriteWatchLaterUI(false, false));
+
+    function updateModalFavoriteWatchLaterUI(fav, wl) {
+        const favBtn = document.getElementById('video-favorite-btn');
+        const wlBtn = document.getElementById('video-watch-later-btn');
+        if (favBtn) {
+            favBtn.classList.toggle('active', fav);
+            const icon = favBtn.querySelector('i');
+            if (icon) icon.className = fav ? 'fa-solid fa-star' : 'fa-regular fa-star';
+            favBtn.onclick = () => {
+                fetch('/api/user/me', { credentials: 'include' }).then(r => r.json()).then(me => {
+                    if (me.status !== 'success' || !me.username) { if (typeof toggleAuthModal === 'function') toggleAuthModal(true); return Promise.reject(new Error('未登录')); }
+                    const method = fav ? 'DELETE' : 'POST';
+                    const url = fav ? '/api/examples/favorites?video_id=' + encodeURIComponent(currentVideoId) : '/api/examples/favorites';
+                    return fetch(url, { method, credentials: 'include', headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {}, body: method === 'POST' ? JSON.stringify({ video_id: currentVideoId }) : undefined }).then(r => r.json());
+                }).then(data => {
+                    if (data && data.status === 'success') {
+                        userFavorited = !!data.user_favorited;
+                        updateModalFavoriteWatchLaterUI(userFavorited, userWatchLater);
+                        if (typeof showToast === 'function') showToast(data.user_favorited ? '已收藏' : '已取消收藏', 'success');
+                    } else if (data && data.message && typeof showToast === 'function') {
+                        showToast(data.message, 'error');
+                    }
+                }).catch(() => { if (typeof showToast === 'function') showToast('网络错误或请先登录', 'error'); });
+            };
+        }
+        if (wlBtn) {
+            wlBtn.classList.toggle('active', wl);
+            const icon = wlBtn.querySelector('i');
+            if (icon) icon.className = wl ? 'fa-solid fa-clock' : 'fa-regular fa-clock';
+            wlBtn.onclick = () => {
+                fetch('/api/user/me', { credentials: 'include' }).then(r => r.json()).then(me => {
+                    if (me.status !== 'success' || !me.username) { if (typeof toggleAuthModal === 'function') toggleAuthModal(true); return Promise.reject(new Error('未登录')); }
+                    const method = wl ? 'DELETE' : 'POST';
+                    const url = wl ? '/api/examples/watch-later?video_id=' + encodeURIComponent(currentVideoId) : '/api/examples/watch-later';
+                    return fetch(url, { method, credentials: 'include', headers: method === 'POST' ? { 'Content-Type': 'application/json' } : {}, body: method === 'POST' ? JSON.stringify({ video_id: currentVideoId }) : undefined }).then(r => r.json());
+                }).then(data => {
+                    if (data && data.status === 'success') {
+                        userWatchLater = !!data.user_watch_later;
+                        updateModalFavoriteWatchLaterUI(userFavorited, userWatchLater);
+                        if (typeof showToast === 'function') showToast(data.user_watch_later ? '已加入稍后看' : '已移除', 'success');
+                    } else if (data && data.message && typeof showToast === 'function') {
+                        showToast(data.message, 'error');
+                    }
+                }).catch(() => { if (typeof showToast === 'function') showToast('网络错误或请先登录', 'error'); });
+            };
+        }
+    }
+
+    const shareBtn = document.getElementById('video-share-btn');
+    if (shareBtn) {
+        shareBtn.onclick = () => {
+            const t = player && Number.isFinite(player.currentTime) ? Math.floor(player.currentTime) : 0;
+            const url = location.origin + location.pathname + '?section=examples&video=' + encodeURIComponent(currentVideoId) + (t > 0 ? '&t=' + t : '');
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => { if (typeof showToast === 'function') showToast('链接已复制（含当前时间点）', 'success'); }).catch(() => { prompt('复制链接：', url); });
+            } else { prompt('复制链接：', url); }
+        };
+    }
+
+    loadVideoNotes(currentVideoId);
+    updateVideoProgressSummary();
+
+    // 绑定学习闭环按钮
+    const wrongBtn = document.getElementById('video-mark-wrong-btn');
+    const openWrongBtn = document.getElementById('video-open-wrongbook-btn');
+    if (wrongBtn) {
+        wrongBtn.onclick = () => addCurrentTimeToWrongbook();
+    }
+    if (openWrongBtn) {
+        openWrongBtn.onclick = () => showWrongbookForCurrentVideo();
+    }
+
+    // 创作者 / 教师：导出发布包 & 加入课件包
+    const exportPublishBtn = document.getElementById('video-export-publish-btn');
+    if (exportPublishBtn) {
+        exportPublishBtn.onclick = () => exportPublishPack();
+    }
+    const addCoursePackBtn = document.getElementById('video-add-course-pack-btn');
+    if (addCoursePackBtn) {
+        addCoursePackBtn.onclick = () => addCurrentVideoToCoursePack();
+    }
+    bindVideoNotesOnce();
+
     fetch('/api/user/me', { credentials: 'include' })
         .then(r => r.status === 200 ? r.json() : null)
         .then(data => {
@@ -1296,6 +1869,30 @@ function bindCommentAndDanmakuOnce() {
     if (commentInput) commentInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendComment(); });
     if (danmakuSend) danmakuSend.addEventListener('click', sendDanmaku);
     if (danmakuInput) danmakuInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendDanmaku(); });
+}
+
+/** 根据 video_id 打开视频（用于直达链接）。可选 initialTime 秒。 */
+export function playExampleByVideoId(videoId, initialTime) {
+    if (!videoId) return;
+    fetch('/api/examples', { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status !== 'success' || !Array.isArray(data.data)) return;
+            const v = data.data.find(x => (x.video_id || x.filename?.replace(/\.mp4$/i, '')) === videoId);
+            if (!v) return;
+            const opts = {
+                spriteUrl: v.sprite_url,
+                durationSec: v.duration_sec,
+                spriteCols: v.sprite_cols || 10,
+                spriteRows: v.sprite_rows || 10,
+                hlsUrl: v.hls_url,
+                maskUrl: v.mask_url,
+                highEnergy: Array.isArray(v.high_energy) ? v.high_energy : undefined,
+                initialTime: initialTime != null && Number.isFinite(Number(initialTime)) ? Number(initialTime) : undefined
+            };
+            playExample(v.url || '', v.title || '', v.description || '', v.video_id || videoId, opts);
+        })
+        .catch(() => {});
 }
 
 export function closeVideoModal() {

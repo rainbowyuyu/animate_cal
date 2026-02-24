@@ -21,14 +21,24 @@ export function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active-section'));
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
 
-    const target = document.getElementById(sectionId);
-    if(target) target.classList.add('active-section');
+    // 若传入的 sectionId 无法在页面中找到，对应 section 将找不到，导致整页空白。
+    // 为了增强容错，这里增加「兜底到首页」的逻辑：当找不到目标 section 时，退回到 home。
+    let effectiveId = sectionId;
+    let target = document.getElementById(sectionId);
+    if (!target) {
+        const homeSection = document.getElementById('home');
+        if (homeSection) {
+            target = homeSection;
+            effectiveId = 'home';
+        }
+    }
+    if (target) target.classList.add('active-section');
 
-    // 高亮导航按钮
+    // 高亮导航按钮（使用有效的 section id）
     const navBtns = document.querySelectorAll('.nav-btn');
     navBtns.forEach(btn => {
         const onclickVal = btn.getAttribute('onclick');
-        if(onclickVal && onclickVal.includes(`'${sectionId}'`)) {
+        if (onclickVal && onclickVal.includes(`'${effectiveId}'`)) {
             btn.classList.add('active');
         }
     });

@@ -560,6 +560,24 @@ export async function clearChat() {
 }
 
 export function initAgent() {
+    // 将 HTML 里 onclick="Agent.xxx()" 需要的全部方法挂到 window.Agent（不再用 main 的 window.Agent=Agent，避免只读模块命名空间）
+    window.Agent = window.Agent || {};
+    window.Agent.execute = execute;
+    window.Agent.clearChat = clearChat;
+    window.Agent.toggleSidebar = toggleSidebar;
+    window.Agent.closeSidebarMobile = closeSidebarMobile;
+    window.Agent.openSidebarMobile = openSidebarMobile;
+    window.Agent.toggleFeaturesExamples = toggleFeaturesExamples;
+    window.Agent.clearAttachedImage = clearAttachedImage;
+    window.Agent.updateImagePreview = updateImagePreview;
+    window.Agent.getAttachedFile = getAttachedFile;
+    window.Agent.openTemplatesModal = openTemplatesModal;
+    window.Agent.closeTemplatesModal = closeTemplatesModal;
+    window.Agent.runTemplateById = runTemplate;
+    window.Agent.startRoleFlow = startRoleFlow;
+    window.Agent.prefillAndShow = prefillAndShow;
+    window.typesetAgentMath = typesetAgentMath;
+
     const input = getFileInput();
     const promptEl = getPromptEl();
     const sidebar = document.getElementById('agent-sidebar');
@@ -679,6 +697,110 @@ export function initAgent() {
     });
 }
 
+/** 按角色快速开始：从首页入口一键唤起智能体并用对应提示词模板真正执行 */
+export function startRoleFlow(role) {
+    const promptEl = getPromptEl();
+    // 先切到智能体页
+    showSection('agent');
+    const templates = {
+        student: '我是学生，想用「教学案例 + 动态计算」来学数学。请帮我：\n1）根据我的学习阶段推荐 2～3 个适合的教学案例；\n2）任选其中一个案例，从视频中挑出一个关键公式，帮我在「动态计算」页做一次可视化推演；\n3）顺便告诉我怎样用时间戳笔记和错题本复习这一类题。',
+        teacher: '我是老师，想把一节课的板书/讲义变成可复用的「课件案例」。请帮我：\n1）先问我本节课的主题和难点；\n2）给出 1 条从「识别 → 动态计算 → Manim 工作台 → 教学案例」的推荐流水线；\n3）示范一套流程（可用你站内自带的公式）并告诉我如何保存成下次可直接调用的“课件套餐”。',
+        creator: '我是内容创作者，想用这里做数学/科普短视频。请帮我：\n1）问我想讲的主题和平台（例如 B 站 / 短视频）；\n2）推荐一段合适的公式或画面，并在 Manim 工作台里生成可直接跑的视频脚本；\n3）根据生成的脚本，给出 15～30 秒视频的大纲与分镜建议，方便我再加工上传。',
+        developer: '我是开发者，想把自己的数学/Manim 代码做成可复用的小组件。请帮我：\n1）在 Rainbow / Manim 工作台中选一个示例模块，带我跑通一次；\n2）告诉我这个站点推荐的脚本结构与最佳实践；\n3）指导我如何把自己的脚本整理成「组件卡片」，方便以后一键载入和分享。'
+    };
+    const text = templates[role] || templates.student;
+    setTimeout(() => {
+        if (promptEl) {
+            promptEl.value = text;
+            promptEl.focus();
+        }
+        if (!getCurrentUser()) {
+            toggleAuthModal(true);
+            if (typeof showToast === 'function') showToast('登录后将自动按该角色提示词执行', 'info');
+            return;
+        }
+        // 已登录：自动执行，真实使用对应提示词模板完成内容
+        if (typeof showToast === 'function') showToast('已按角色开始执行', 'success');
+        execute();
+    }, 200);
+}
+
+const AGENT_TEMPLATES_KEY = 'agent_automation_templates';
+
+/** 将当前对话步骤存为模板（写入 localStorage，仅前端） */
+function saveAgentTemplate(prompt, steps, btnEl) {
+    if (!prompt && (!steps || steps.length === 0)) {
+        if (typeof showToast === 'function') showToast('无内容可保存为模板', 'error');
+        return;
+    }
+    const name = (prompt.slice(0, 28) || '未命名') + (prompt.length > 28 ? '…' : '');
+    const list = JSON.parse(localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]');
+    const id = 'tpl_' + Date.now();
+    list.push({ id, name, prompt, steps: steps || [], createdAt: Date.now() });
+    localStorage.setItem(AGENT_TEMPLATES_KEY, JSON.stringify(list));
+    if (typeof showToast === 'function') showToast('已存为模板，可在侧栏「从模板运行」中使用', 'success');
+    if (btnEl) {
+        btnEl.textContent = '已保存';
+        btnEl.disabled = true;
+    }
+}
+
+/** 预填提示词并打开智能体（供笔记转练习题、跨页跳转等调用） */
+export function prefillAndShow(promptText) {
+    showSection('agent');
+    const promptEl = getPromptEl();
+    setTimeout(() => {
+        if (promptEl) {
+            promptEl.value = (promptEl.value ? promptEl.value + '\n\n' : '') + (promptText || '');
+            promptEl.focus();
+        }
+        if (!getCurrentUser()) toggleAuthModal(true);
+    }, 150);
+}
+
+/** 从模板运行：跳转到「我的算式」的智能体模板库，用户在其中选择并点击「使用」即可执行 */
+function openTemplatesModal() {
+    if (typeof showSection === 'function') showSection('my-formulas');
+    if (window.Formulas && typeof window.Formulas.switchFormulasSubTab === 'function') {
+        window.Formulas.switchFormulasSubTab('templates');
+    }
+    if (typeof closeSidebarMobile === 'function') closeSidebarMobile();
+}
+function closeTemplatesModal() {
+    const modal = document.getElementById('agent-templates-modal');
+    if (!modal) return;
+    modal.classList.remove('show');
+    setTimeout(() => { modal.style.display = 'none'; }, 200);
+}
+/** 从模板预填并执行：自动切到智能体，已登录则直接运行 */
+function runTemplate(id) {
+    const list = JSON.parse(localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]');
+    const t = list.find((x) => x.id === id);
+    if (!t || !t.prompt) return;
+    if (typeof showSection === 'function') showSection('agent');
+    const promptEl = getPromptEl();
+    if (promptEl) {
+        promptEl.value = t.prompt;
+        promptEl.focus();
+    }
+    closeTemplatesModal();
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    if (!user) {
+        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+        if (typeof showToast === 'function') showToast('已预填模板内容，请登录后点击发送或修改后发送', 'info');
+        return;
+    }
+    if (typeof showToast === 'function') showToast('已按模板开始执行', 'success');
+    execute();
+}
+
+// 将按角色快速开始挂到全局，供首页按钮调用
+window.Agent = window.Agent || {};
+window.Agent.startRoleFlow = startRoleFlow;
+window.Agent.prefillAndShow = prefillAndShow;
+window.Agent.openTemplatesModal = openTemplatesModal;
+window.Agent.closeTemplatesModal = closeTemplatesModal;
+
 /** 从对话区取上一轮用户与助手各一句（少量上下文，不长） */
 function getLastAgentContext() {
     const messagesEl = getMessagesEl();
@@ -780,6 +902,17 @@ async function executeAgentRequest(prompt, image_base64, lastUser, lastAssistant
                 const stepDescWrap = document.createElement('div');
                 stepDescWrap.className = 'agent-step-desc-wrap';
                 stepDescWrap.innerHTML = buildStepDescHtml();
+                const saveTemplateBtn = document.createElement('button');
+                saveTemplateBtn.type = 'button';
+                saveTemplateBtn.className = 'agent-save-template-btn';
+                saveTemplateBtn.textContent = '存为模板';
+                saveTemplateBtn.title = '将本次提示词与步骤保存为自动化模板，下次可快速触发';
+                saveTemplateBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const userPrompt = (data && data.prompt) || (stepDescWrap.closest('.agent-message-assistant')?.previousElementSibling?.querySelector('.agent-bubble-user')?.innerText?.trim()) || '';
+                    saveAgentTemplate(userPrompt, steps, saveTemplateBtn);
+                });
+                stepDescWrap.appendChild(saveTemplateBtn);
                 const toolHintWrap = document.createElement('div');
                 toolHintWrap.className = 'agent-tool-hint';
                 toolHintWrap.style.cssText = 'margin-top:8px;padding:8px 12px;background:var(--agent-tool-hint-bg,rgba(59,130,246,0.12));border-radius:8px;color:var(--agent-tool-hint-color,#3b82f6);font-size:0.9em;';
@@ -881,12 +1014,14 @@ export async function execute() {
     const fileInput = getFileInput();
 
     let prompt = (promptEl && promptEl.value) ? promptEl.value.trim() : '';
+    const fileCount = (fileInput && fileInput.files) ? fileInput.files.length : (_attachedFile ? 1 : 0);
     const file = (fileInput && fileInput.files && fileInput.files[0]) || _attachedFile;
     if (!prompt && !file) {
         if (typeof showToast === 'function') showToast('请输入需求描述或上传/粘贴图片', 'error');
         return;
     }
     if (!prompt && file) prompt = '请根据这张图片的内容进行操作（识别、解题或生成演示）。';
+    if (fileCount > 1) prompt = (prompt || '').trim() + (prompt ? '\n\n' : '') + `（共上传 ${fileCount} 张，当前仅处理第 1 张）`;
 
     let image_base64 = null;
     if (file) {

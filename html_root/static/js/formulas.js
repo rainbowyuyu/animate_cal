@@ -332,6 +332,8 @@ export async function submitFormulaEdit() {
 let formulasMonacoEditor = null;
 let currentScriptId = null; // 编辑中的脚本 id，null 表示新建
 
+const AGENT_TEMPLATES_KEY = 'agent_automation_templates';
+
 export function switchFormulasSubTab(tab) {
     document.querySelectorAll('.formulas-sub-tab').forEach(btn => btn.classList.remove('active'));
     const btn = document.querySelector(`.formulas-sub-tab[data-tab="${tab}"]`);
@@ -339,14 +341,70 @@ export function switchFormulasSubTab(tab) {
 
     const formulasPanel = document.getElementById('formulas-panel');
     const scriptsPanel = document.getElementById('scripts-panel');
+    const templatesPanel = document.getElementById('templates-panel');
     if (tab === 'formulas') {
         if (formulasPanel) formulasPanel.style.display = 'block';
         if (scriptsPanel) scriptsPanel.style.display = 'none';
-    } else {
+        if (templatesPanel) templatesPanel.style.display = 'none';
+    } else if (tab === 'scripts') {
         if (formulasPanel) formulasPanel.style.display = 'none';
         if (scriptsPanel) scriptsPanel.style.display = 'block';
+        if (templatesPanel) templatesPanel.style.display = 'none';
         loadAnimationScripts();
+    } else if (tab === 'templates') {
+        if (formulasPanel) formulasPanel.style.display = 'none';
+        if (scriptsPanel) scriptsPanel.style.display = 'none';
+        if (templatesPanel) templatesPanel.style.display = 'block';
+        loadAgentTemplates();
     }
+}
+
+function loadAgentTemplates() {
+    const listEl = document.getElementById('formulas-agent-templates-list');
+    if (!listEl) return;
+    const list = [];
+    try {
+        const raw = localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]';
+        list.push(...JSON.parse(raw));
+    } catch (e) {
+        listEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">读取模板失败</div>';
+        return;
+    }
+    if (list.length === 0) {
+        listEl.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1;">
+                <i class="fa-solid fa-bookmark" style="font-size:2rem; color:var(--primary-color); margin-bottom:0.5rem;"></i>
+                <p>暂无智能体模板</p>
+                <p style="font-size:0.9rem; color:var(--text-secondary);">在「智能体」对话中执行任务后，点击回复中的「存为模板」，即可在此一键复用。</p>
+                <button type="button" class="action-btn secondary" onclick="showSection(\'agent\')"><i class="fa-solid fa-robot"></i> 去智能体</button>
+            </div>`;
+        return;
+    }
+    const cards = list.slice().reverse().map(t => {
+        const name = (t.name || '未命名').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const preview = (t.prompt || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').trim().slice(0, 120) + ((t.prompt || '').length > 120 ? '…' : '');
+        const createdAt = t.createdAt ? new Date(t.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
+        const id = (t.id || '').replace(/"/g, '&quot;');
+        return `
+        <div class="formula-card">
+            <div class="formula-preview formula-preview-copy" style="font-size:0.85rem; white-space:pre-wrap; text-align:left;">${preview || '（无提示词）'}</div>
+            <div class="formula-meta">
+                <span class="formula-note" title="${name}">${name}</span>
+                ${createdAt ? `<small style="color:var(--text-secondary);">${createdAt}</small>` : ''}
+                <div class="formula-actions">
+                    <button class="action-btn secondary agent-template-use-btn" type="button" data-template-id="${id}"><i class="fa-solid fa-play"></i> 使用</button>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    listEl.innerHTML = cards;
+    listEl.querySelectorAll('.agent-template-use-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-template-id');
+            if (typeof showSection === 'function') showSection('agent');
+            if (window.Agent && typeof window.Agent.runTemplateById === 'function') window.Agent.runTemplateById(id);
+        });
+    });
 }
 
 export async function loadAnimationScripts() {
@@ -364,7 +422,7 @@ export async function loadAnimationScripts() {
         return;
     }
 
-    listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+    listEl.innerHTML = '<div class="formulas-loading" style="text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
     try {
         const res = await fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`);
         const data = await res.json();
@@ -393,25 +451,58 @@ function renderScriptsList(scripts) {
         return;
     }
 
-    const cards = scripts.map(s => {
+    const getVideoCopy = (typeof window !== 'undefined' && window.DevTools && typeof window.DevTools.getVideoCopyForScript === 'function')
+        ? window.DevTools.getVideoCopyForScript.bind(window.DevTools) : () => '';
+    const marked = window.marked && typeof window.marked.parse === 'function' ? window.marked : null;
+    const typesetMath = typeof window.typesetAgentMath === 'function' ? window.typesetAgentMath : null;
+
+    /** 将总结文案压成简短文本（仅在没有 marked 时使用） */
+    function toPreviewLine(text, maxLen) {
+        if (!text || !text.trim()) return '';
+        const line = text.replace(/\s+/g, ' ').trim();
+        return line.length > maxLen ? line.slice(0, maxLen) + '…' : line;
+    }
+
+    const cardFrag = document.createDocumentFragment();
+    scripts.forEach(s => {
         const note = (s.note || '未命名').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const preview = (s.code_preview || s.code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 120) + (s.code_preview && s.code_preview.length > 120 ? '...' : '');
-        return `
-        <div class="formula-card">
-            <div class="formula-preview" style="font-size:0.8rem; font-family:monospace; white-space:pre-wrap; text-align:left; justify-content:flex-start;">
-                ${preview}
-            </div>
-            <div class="formula-meta">
-                <span class="formula-note" title="${note}">${note}</span>
-                <div class="formula-actions">
-                    <button class="btn-icon" title="在云端工作台编辑" onclick="Formulas.editScriptInWorkbench(${s.id})"><i class="fa-solid fa-pen-to-square"></i></button>
-                    <button class="btn-icon" title="在云端工作台运行" onclick="Formulas.runScriptInWorkbench(${s.id})"><i class="fa-solid fa-play"></i></button>
-                    <button class="btn-icon delete" title="删除" onclick="Formulas.deleteScript(${s.id})"><i class="fa-solid fa-trash"></i></button>
-                </div>
-            </div>
-        </div>`;
-    }).join('');
-    listEl.innerHTML = addCard + cards;
+        const videoCopy = getVideoCopy(s.id);
+        const card = document.createElement('div');
+        card.className = 'formula-card';
+        const previewDiv = document.createElement('div');
+        if (videoCopy && marked) {
+            // 与「导入 → 我的脚本」保持一致：正常 Markdown 多行渲染，但卡片内限制高度
+            previewDiv.className = 'formula-preview formula-preview-copy markdown-body';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; max-height:140px; overflow:hidden;';
+            const safeCopy = videoCopy.slice(0, 1500);
+            previewDiv.innerHTML = marked.parse(safeCopy);
+            if (typesetMath) typesetMath(previewDiv);
+        } else if (videoCopy) {
+            // 无 marked 时的降级：仍然单行截断，但不做富文本渲染
+            previewDiv.className = 'formula-preview formula-preview-copy';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;';
+            previewDiv.textContent = toPreviewLine(videoCopy, 200) || '（无摘要）';
+        } else {
+            previewDiv.className = 'formula-preview';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; overflow:hidden; white-space:pre-wrap;';
+            const codePreview = (s.code_preview || s.code || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 120) + (s.code_preview && s.code_preview.length > 120 ? '...' : '');
+            previewDiv.textContent = codePreview || '（无预览）';
+        }
+        const meta = document.createElement('div');
+        meta.className = 'formula-meta';
+        meta.innerHTML = `
+            <span class="formula-note" title="${note}">${note}</span>
+            <div class="formula-actions">
+                <button class="btn-icon" title="在云端工作台编辑" onclick="Formulas.editScriptInWorkbench(${s.id})"><i class="fa-solid fa-pen-to-square"></i></button>
+                <button class="btn-icon" title="在云端工作台运行" onclick="Formulas.runScriptInWorkbench(${s.id})"><i class="fa-solid fa-play"></i></button>
+                <button class="btn-icon delete" title="删除" onclick="Formulas.deleteScript(${s.id})"><i class="fa-solid fa-trash"></i></button>
+            </div>`;
+        card.appendChild(previewDiv);
+        card.appendChild(meta);
+        cardFrag.appendChild(card);
+    });
+    listEl.innerHTML = addCard;
+    listEl.appendChild(cardFrag);
 }
 
 export async function openScriptDetail(id) {

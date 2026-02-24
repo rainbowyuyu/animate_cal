@@ -18,18 +18,99 @@ import * as MathLiveKeyboard from './mathlive/mathlive-keyboard.js';
 import * as MathLiveMenu from './mathlive/mathlive-menu.js';
 import * as MathLiveLocale from './mathlive/mathlive-locale.js';
 
+// 将常用 UI 能力挂到 window，便于各处统一使用（如 Toast）
+window.showToast = UI.showToast;
+
 // 1. 解析URL参数的工具函数（通用可复用）
 function getUrlParams() {
   const params = {};
   // 获取URL中?后的参数部分，若无则返回空对象
   const search = window.location.search.slice(1);
   if (!search) return params;
-  // 分割参数并解析为键值对
+  // 分割参数并解析为键值对（支持 decodeURIComponent）
   search.split('&').forEach(item => {
     const [key, value] = item.split('=');
-    params[key] = value || '';
+    try {
+      params[key] = value ? decodeURIComponent(value.replace(/\+/g, ' ')) : '';
+    } catch (_) {
+      params[key] = value || '';
+    }
   });
   return params;
+}
+
+let navSearchTimer = null;
+function initNavSearch() {
+  const input = document.getElementById('nav-search-input');
+  const dropdown = document.getElementById('nav-search-dropdown');
+  if (!input || !dropdown) return;
+  const wrap = input.closest('.nav-search-wrap');
+  if (wrap) wrap.style.position = 'relative';
+  input.addEventListener('input', () => {
+    clearTimeout(navSearchTimer);
+    const q = (input.value || '').trim();
+    dropdown.style.display = 'none';
+    dropdown.innerHTML = '';
+    if (q.length < 1) return;
+    navSearchTimer = setTimeout(() => {
+      fetch('/api/search?q=' + encodeURIComponent(q), { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.status !== 'success') return;
+          const parts = [];
+          if (Array.isArray(data.formulas) && data.formulas.length) {
+            parts.push('<div class="nav-search-group"><span class="nav-search-group-title">我的算式</span>');
+            data.formulas.slice(0, 5).forEach(f => {
+              const note = (f.note || '').slice(0, 30);
+              parts.push('<div class="nav-search-item" data-type="formula" data-id="' + (f.id || '') + '" data-latex="' + escapeAttr((f.latex || '').slice(0, 200)) + '"><i class="fa-solid fa-square-root-variable"></i> ' + escapeHtml(note || (f.latex || '').slice(0, 40)) + '</div>');
+            });
+            parts.push('</div>');
+          }
+          if (Array.isArray(data.scripts) && data.scripts.length) {
+            parts.push('<div class="nav-search-group"><span class="nav-search-group-title">动画脚本</span>');
+            data.scripts.slice(0, 5).forEach(s => {
+              parts.push('<div class="nav-search-item" data-type="script" data-id="' + (s.id || '') + '"><i class="fa-brands fa-python"></i> ' + escapeHtml((s.note || '脚本').slice(0, 40)) + '</div>');
+            });
+            parts.push('</div>');
+          }
+          if (Array.isArray(data.examples) && data.examples.length) {
+            parts.push('<div class="nav-search-group"><span class="nav-search-group-title">教学案例</span>');
+            data.examples.slice(0, 5).forEach(e => {
+              parts.push('<div class="nav-search-item" data-type="example" data-video-id="' + escapeAttr(e.video_id || '') + '"><i class="fa-solid fa-film"></i> ' + escapeHtml((e.title || '').slice(0, 40)) + '</div>');
+            });
+            parts.push('</div>');
+          }
+          if (parts.length === 0) {
+            dropdown.innerHTML = '<div class="nav-search-empty">未找到相关结果</div>';
+          } else {
+            dropdown.innerHTML = parts.join('');
+            dropdown.querySelectorAll('.nav-search-item').forEach(el => {
+              el.addEventListener('click', () => {
+                const type = el.dataset.type;
+                if (type === 'formula') {
+                  const latex = el.dataset.latex || '';
+                  if (latex) { window.showSection('calculate'); setTimeout(() => { const field = document.getElementById('math-field-main'); if (field) field.setValue(latex); }, 150); }
+                } else if (type === 'script') {
+                  window.showSection('devtools');
+                  if (window.switchDevTool) window.switchDevTool('manim');
+                } else if (type === 'example') {
+                  const vid = el.dataset.videoId;
+                  if (vid) { window.showSection('examples'); setTimeout(() => Examples.playExampleByVideoId(vid), 300); }
+                }
+                dropdown.style.display = 'none';
+                input.value = '';
+              });
+            });
+          }
+          dropdown.style.display = 'block';
+        })
+        .catch(() => {});
+    }, 280);
+  });
+  input.addEventListener('blur', () => { setTimeout(() => { dropdown.style.display = 'none'; }, 180); });
+  document.addEventListener('click', (e) => { if (dropdown && input && !dropdown.contains(e.target) && !input.contains(e.target)) dropdown.style.display = 'none'; });
+  function escapeHtml(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+  function escapeAttr(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 }
 
 function initCanvasLockButton() {
@@ -119,11 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // 若存在section参数，执行showSection
       if (params.section) {
         showSection(params.section);
+        if (params.section === 'examples' && params.video) {
+          setTimeout(() => Examples.playExampleByVideoId(params.video, params.t), 400);
+        }
       }
       // 若存在devtool参数，执行switchDevTool
       if (params.devtool) {
         switchDevTool(params.devtool);
       }
+    initNavSearch();
 
     // 新增功能条：若用户曾关闭则不再显示
     if (localStorage.getItem('agent_banner_closed')) {
@@ -503,7 +588,8 @@ window.openSettings = Settings.openSettings;
 window.closeSettings = () => UI.toggleModal('settings-modal', false);
 window.startRecording = Settings.startRecording;
 window.resetDefaults = Settings.resetDefaults;
-window.startTutorial = Tutorial.startTutorial;
+    window.startTutorial = Tutorial.startTutorial;
+    window.startRoleGuide = Tutorial.startRoleGuide;
 
 // 新增挂载
 window.openEditModal = Formulas.openEditModal;
@@ -563,10 +649,11 @@ window.showPrompt = UI.showPrompt;
 
 // 挂载切换函数给 HTML 按钮使用
 window.toggleTheme = Theme.toggleTheme;
+window.toggleModal = UI.toggleModal;
 
 // 挂载全局 开发者工具（inline onclick 需用 DevTools.xxx）
 window.DevTools = DevTools;
-window.Agent = Agent;
+// 不覆盖 window.Agent：agent.js 已自行挂载可扩展的 window.Agent 及 openTemplatesModal 等（若写 window.Agent = Agent 会变成只读的模块命名空间，无法添加方法）
 window.switchDevTool = DevTools.switchDevTool;
 window.runDevManim = DevTools.runDevManim;
 window.copyDevLatex = DevTools.copyDevLatex;

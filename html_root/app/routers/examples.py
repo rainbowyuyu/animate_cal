@@ -167,6 +167,48 @@ def _ensure_tables(cursor):
             PRIMARY KEY (user_id, video_id)
         )
     """)
+    run("""
+        CREATE TABLE IF NOT EXISTS user_favorites (
+            user_id VARCHAR(64) NOT NULL,
+            video_id VARCHAR(128) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, video_id)
+        )
+    """)
+    run("""
+        CREATE TABLE IF NOT EXISTS watch_later (
+            user_id VARCHAR(64) NOT NULL,
+            video_id VARCHAR(128) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (user_id, video_id)
+        )
+    """)
+    run("""
+        CREATE TABLE IF NOT EXISTS example_video_notes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id VARCHAR(64) NOT NULL,
+            video_id VARCHAR(128) NOT NULL,
+            time_sec DOUBLE NOT NULL DEFAULT 0,
+            content TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    run("""
+        CREATE TABLE IF NOT EXISTS course_packs (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id VARCHAR(64) NOT NULL,
+            name VARCHAR(128) NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    run("""
+        CREATE TABLE IF NOT EXISTS course_pack_videos (
+            pack_id INT NOT NULL,
+            video_id VARCHAR(128) NOT NULL,
+            sort_order INT DEFAULT 0,
+            PRIMARY KEY (pack_id, video_id)
+        )
+    """)
 
 
 @router.get("/examples/health")
@@ -231,7 +273,11 @@ async def examples_health():
 
 
 @router.get("/examples")
-async def get_examples(request: Request):
+async def get_examples(
+    request: Request,
+    tag: Optional[str] = Query(None, max_length=64),
+    filter_mode: Optional[str] = Query(None, description="all|favorites|watch_later"),
+):
     try:
         auth_session = request.cookies.get("auth_session") if request else None
         username = _username_from_session(auth_session)
@@ -273,6 +319,8 @@ async def get_examples(request: Request):
                             he_list = [int(x) for x in high_energy if isinstance(x, (int, float))][:200]
                         except (TypeError, ValueError):
                             sprite_cols, sprite_rows, he_list = 10, 10, []
+                        tags_raw = meta.get("tags")
+                        tags_list = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else []
                         videos.append({
                             "filename": file,
                             "video_id": video_id,
@@ -287,16 +335,45 @@ async def get_examples(request: Request):
                             "hls_url": meta.get("hls_url", ""),
                             "mask_url": meta.get("mask_url", ""),
                             "high_energy": he_list,
+                            "tags": tags_list,
                         })
             except OSError as e:
                 logger.warning(f"Storage listdir error: {e}")
 
+        if tag:
+            tag_lower = tag.strip().lower()
+            videos = [v for v in videos if tag_lower in [str(t).lower() for t in v.get("tags", [])]]
+
         conn = None
         cursor = None
+        fav_ids: Set[str] = set()
+        watch_later_ids: Set[str] = set()
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
             _ensure_tables(cursor)
+            if username:
+                cursor.execute("SELECT video_id FROM user_favorites WHERE user_id = %s", (username,))
+                fav_ids = {row["video_id"] for row in cursor.fetchall()}
+                cursor.execute("SELECT video_id FROM watch_later WHERE user_id = %s", (username,))
+                watch_later_ids = {row["video_id"] for row in cursor.fetchall()}
+                if filter_mode == "favorites":
+                    videos = [v for v in videos if v["video_id"] in fav_ids]
+                elif filter_mode == "watch_later":
+                    videos = [v for v in videos if v["video_id"] in watch_later_ids]
+                elif filter_mode == "courseware":
+                    # 教师：我的课件包（从 course_pack_videos 筛选）
+                    pack_video_ids = set()
+                    try:
+                        cursor.execute(
+                            "SELECT cpv.video_id FROM course_pack_videos cpv "
+                            "INNER JOIN course_packs cp ON cp.id = cpv.pack_id AND cp.user_id = %s",
+                            (username or "",),
+                        )
+                        pack_video_ids = {row["video_id"] for row in cursor.fetchall()}
+                    except Exception:
+                        pass
+                    videos = [v for v in videos if v["video_id"] in pack_video_ids]
             for v in videos:
                 vid = v["video_id"]
                 cursor.execute("SELECT COUNT(*) AS c FROM example_video_likes WHERE video_id = %s", (vid,))
@@ -306,11 +383,15 @@ async def get_examples(request: Request):
                 if username:
                     cursor.execute("SELECT 1 FROM example_video_likes WHERE video_id = %s AND user_id = %s", (vid, username))
                     v["user_has_liked"] = cursor.fetchone() is not None
+                v["user_favorited"] = vid in fav_ids
+                v["user_watch_later"] = vid in watch_later_ids
         except Exception as e:
             logger.warning(f"Examples likes query: {e}")
             for v in videos:
-                v["like_count"] = 0
-                v["user_has_liked"] = False
+                v["like_count"] = v.get("like_count", 0)
+                v["user_has_liked"] = v.get("user_has_liked", False)
+                v["user_favorited"] = v.get("video_id") in fav_ids
+                v["user_watch_later"] = v.get("video_id") in watch_later_ids
         finally:
             if cursor:
                 cursor.close()
@@ -638,6 +719,323 @@ async def post_like(body: LikeBody, auth_session: Optional[str] = Cookie(None)):
         return {"status": "success", "like_count": count, "user_has_liked": user_has_liked}
     except Exception as e:
         logger.error(f"post_like: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# --- 收藏 / 稍后看 / 笔记 ---
+class VideoIdBody(BaseModel):
+    video_id: str
+
+
+class NoteCreate(BaseModel):
+    video_id: str
+    time_sec: float
+    content: str
+
+
+@router.get("/examples/favorites")
+async def get_favorites(auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return {"status": "success", "data": []}
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("SELECT video_id, created_at FROM user_favorites WHERE user_id = %s ORDER BY created_at DESC", (username,))
+        rows = cursor.fetchall()
+        out = [{"video_id": r["video_id"], "created_at": time.mktime(r["created_at"].timetuple()) if r.get("created_at") and hasattr(r["created_at"], "timetuple") else None} for r in rows]
+        return {"status": "success", "data": out}
+    except Exception as e:
+        logger.error(f"get_favorites: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.post("/examples/favorites")
+async def post_favorite(body: VideoIdBody, auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    video_id = (body.video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("INSERT IGNORE INTO user_favorites (user_id, video_id) VALUES (%s, %s)", (username, video_id))
+        conn.commit()
+        return {"status": "success", "user_favorited": True}
+    except Exception as e:
+        logger.error(f"post_favorite: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.delete("/examples/favorites")
+async def delete_favorite(video_id: str = Query(..., max_length=128), auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    video_id = (video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("DELETE FROM user_favorites WHERE user_id = %s AND video_id = %s", (username, video_id))
+        conn.commit()
+        return {"status": "success", "user_favorited": False}
+    except Exception as e:
+        logger.error(f"delete_favorite: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.get("/examples/watch-later")
+async def get_watch_later(auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return {"status": "success", "data": []}
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("SELECT video_id, created_at FROM watch_later WHERE user_id = %s ORDER BY created_at DESC", (username,))
+        rows = cursor.fetchall()
+        out = [{"video_id": r["video_id"], "created_at": time.mktime(r["created_at"].timetuple()) if r.get("created_at") and hasattr(r["created_at"], "timetuple") else None} for r in rows]
+        return {"status": "success", "data": out}
+    except Exception as e:
+        logger.error(f"get_watch_later: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.post("/examples/watch-later")
+async def post_watch_later(body: VideoIdBody, auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    video_id = (body.video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("INSERT IGNORE INTO watch_later (user_id, video_id) VALUES (%s, %s)", (username, video_id))
+        conn.commit()
+        return {"status": "success", "user_watch_later": True}
+    except Exception as e:
+        logger.error(f"post_watch_later: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.delete("/examples/watch-later")
+async def delete_watch_later(video_id: str = Query(..., max_length=128), auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    video_id = (video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("DELETE FROM watch_later WHERE user_id = %s AND video_id = %s", (username, video_id))
+        conn.commit()
+        return {"status": "success", "user_watch_later": False}
+    except Exception as e:
+        logger.error(f"delete_watch_later: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+# --- 课件包（教师：我的课件） ---
+@router.post("/examples/course-pack/add")
+async def add_to_course_pack(body: VideoIdBody, auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+
+    video_id = (body.video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+
+        # 获取或创建当前用户的默认课件包
+        cursor.execute(
+            "SELECT id FROM course_packs WHERE user_id = %s ORDER BY id ASC LIMIT 1",
+            (username,),
+        )
+        row = cursor.fetchone()
+        pack_id = row["id"] if row else None
+        if not pack_id:
+            cursor.execute(
+                "INSERT INTO course_packs (user_id, name) VALUES (%s, %s)",
+                (username, "我的课件包"),
+            )
+            pack_id = cursor.lastrowid
+
+        # 将视频加入课件包（忽略重复）
+        cursor.execute(
+            "INSERT IGNORE INTO course_pack_videos (pack_id, video_id, sort_order) VALUES (%s, %s, %s)",
+            (pack_id, video_id, 0),
+        )
+        conn.commit()
+        return {"status": "success", "in_course_pack": True}
+    except Exception as e:
+        logger.error(f"add_to_course_pack: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.get("/examples/notes")
+async def get_notes(video_id: str = Query(..., max_length=128), auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return {"status": "success", "data": []}
+    video_id = (video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute(
+            "SELECT id, video_id, time_sec, content, created_at FROM example_video_notes WHERE user_id = %s AND video_id = %s ORDER BY time_sec ASC",
+            (username, video_id),
+        )
+        rows = cursor.fetchall()
+        out = []
+        for r in rows:
+            created = r.get("created_at")
+            out.append({
+                "id": r["id"],
+                "video_id": r["video_id"],
+                "time_sec": float(r.get("time_sec", 0)),
+                "content": r.get("content", ""),
+                "created_at": time.mktime(created.timetuple()) if created and hasattr(created, "timetuple") else None,
+            })
+        return {"status": "success", "data": out}
+    except Exception as e:
+        logger.error(f"get_notes: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.post("/examples/notes")
+async def post_note(body: NoteCreate, auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    video_id = (body.video_id or "").strip()[:128]
+    if not video_id:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "缺少 video_id"})
+    content = (body.content or "").strip()
+    if not content or len(content) > 2000:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "笔记内容 1～2000 字"})
+    time_sec = max(0, float(body.time_sec))
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute(
+            "INSERT INTO example_video_notes (user_id, video_id, time_sec, content) VALUES (%s, %s, %s, %s)",
+            (username, video_id, time_sec, content),
+        )
+        conn.commit()
+        nid = cursor.lastrowid
+        return {"status": "success", "data": {"id": nid, "video_id": video_id, "time_sec": time_sec, "content": content}}
+    except Exception as e:
+        logger.error(f"post_note: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+
+@router.delete("/examples/notes/{note_id}")
+async def delete_note(note_id: int, auth_session: Optional[str] = Cookie(None)):
+    username = _username_from_session(auth_session)
+    if not username:
+        return JSONResponse(status_code=401, content={"status": "error", "message": "请先登录"})
+    conn = None
+    cursor = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        _ensure_tables(cursor)
+        cursor.execute("DELETE FROM example_video_notes WHERE id = %s AND user_id = %s", (note_id, username))
+        conn.commit()
+        return {"status": "success"}
+    except Exception as e:
+        logger.error(f"delete_note: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
     finally:
         if cursor:

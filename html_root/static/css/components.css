@@ -26,6 +26,88 @@
     box-shadow: var(--shadow-sm);
 }
 
+.nav-search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input, #f1f5f9);
+    padding: 4px 12px 4px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border-color, #e2e8f0);
+    min-height: 36px;
+}
+[data-theme="dark"] .nav-search-wrap {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+}
+.nav-search-icon {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+.nav-search-input {
+    outline: none;
+    border: none !important;
+    background: transparent !important;
+    width: 150px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+.nav-search-input::placeholder {
+    color: var(--text-secondary);
+}
+.nav-search-input:focus {
+    box-shadow: none;
+}
+.nav-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 6px;
+    padding: 8px 0;
+    font-size: 0.9rem;
+    min-width: 280px;
+    max-height: 320px;
+    overflow-y: auto;
+    background: var(--bg-surface, #ffffff) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.04);
+    z-index: 1001;
+}
+[data-theme="dark"] .nav-search-dropdown {
+    background: var(--bg-surface) !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+}
+.nav-search-group-title {
+    display: block;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.nav-search-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-main);
+}
+.nav-search-item:hover {
+    background: var(--bg-secondary);
+}
+.nav-search-empty {
+    padding: 12px;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
 .login-btn {
     background: var(--text-main);
     color: var(--text-inverse);

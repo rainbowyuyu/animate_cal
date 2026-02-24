@@ -40,6 +40,86 @@
     line-height: 1.6;
 }
 
+/* ========== 筛选栏：全部 / 收藏 / 稍后看 + 标签（与导航/网页风格一致）========== */
+.examples-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.examples-filter-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-input);
+    padding: 4px;
+    border-radius: 99px;
+    border: 1px solid var(--border-color);
+}
+.examples-filter-tab {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 99px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.examples-filter-tab:hover {
+    color: var(--primary-color);
+    background: var(--bg-surface);
+}
+.examples-filter-tab.active {
+    color: var(--primary-color);
+    background: var(--bg-surface);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+.examples-filter-tab i {
+    font-size: 0.9em;
+}
+.examples-tag-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.examples-tag-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.examples-tag-select {
+    padding: 8px 12px;
+    padding-right: 28px;
+    border-radius: 99px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.examples-tag-select:hover,
+.examples-tag-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
 /* ========== 视频网格（B 站卡片流）========== */
 .video-grid {
     display: grid;
@@ -237,6 +317,72 @@
     animation: examplesSpin 0.9s linear infinite;
 }
 
+.video-grid-empty-courseware {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+.video-grid-empty-courseware .video-grid-empty-hint {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0 1rem;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.examples-create-course-btn {
+    margin-top: 0.5rem;
+}
+
+/* 创建课包弹窗：智能体 + 手动流程 */
+.course-pack-modal-content {
+    max-width: 520px;
+}
+.course-pack-modal-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+}
+.course-pack-modal-divider::before,
+.course-pack-modal-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+.course-pack-manual-steps {
+    padding: 0.75rem 0 0;
+}
+.course-pack-manual-intro {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem;
+    line-height: 1.5;
+}
+.course-pack-manual-list {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.course-pack-manual-list li {
+    margin-bottom: 0.35rem;
+}
+.course-pack-step-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+.course-pack-step-link:hover {
+    text-decoration: underline;
+}
+
 @keyframes examplesSpin {
     to { transform: rotate(360deg); }
 }
@@ -361,6 +507,19 @@
     align-items: center;
     gap: 0.5rem;
     margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+.video-meta-actions-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.video-meta-actions-sep {
+    width: 1px;
+    height: 1.25rem;
+    background: var(--border-color);
+    margin: 0 0.15rem;
+    flex-shrink: 0;
 }
 
 .video-viewer-count {
@@ -409,6 +568,179 @@
 
 .video-like-btn i {
     font-size: 1rem;
+}
+
+.video-meta-actions .video-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.video-meta-actions .video-action-btn:hover,
+.video-meta-actions .video-action-btn.active {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.08);
+}
+.video-meta-actions .video-action-btn i { font-size: 1rem; }
+
+.video-card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 2;
+}
+.video-card-action-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+}
+.video-card-action-btn:hover,
+.video-card-action-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+}
+.video-card-action-btn i { font-size: 0.9rem; }
+.video-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 6px;
+}
+.video-card-tag {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+.video-note-form {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+.video-note-item {
+    cursor: pointer;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+}
+.video-note-item:hover { background: var(--bg-secondary); }
+.video-note-time { flex-shrink: 0; color: var(--primary-color); }
+.video-note-content { flex: 1; word-break: break-word; }
+.video-note-item { display: flex; align-items: center; gap: 6px; }
+.video-note-to-exercise-btn {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border: none;
+    border-radius: 6px;
+    background: rgba(37, 99, 235, 0.15);
+    color: var(--primary-color);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s, color 0.2s;
+}
+.video-note-to-exercise-btn:hover {
+    background: rgba(37, 99, 235, 0.3);
+    color: var(--primary-color);
+}
+.video-resume-recommend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+}
+.video-resume-text { font-size: 0.9rem; color: var(--text-secondary); }
+.video-creator-export { padding: 0.25rem 0; }
+.video-modal-notes-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--text-main);
+}
+.video-notes-list { max-height: 120px; overflow: auto; }
+
+/* 学习闭环：进度 + 本地错题本 */
+.video-modal-study {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+}
+
+.video-modal-study-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 0.35rem;
+}
+
+.video-modal-study-title i {
+    color: var(--primary-color);
+}
+
+.video-modal-study-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+}
+
+.video-progress-summary {
+    color: var(--text-secondary);
+}
+
+.video-study-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.video-study-actions .action-btn.tertiary {
+    background: transparent;
+    border: 1px dashed var(--border-color);
+    color: var(--text-secondary);
+}
+
+.video-study-hint {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+    .video-study-actions {
+        flex-direction: column;
+    }
 }
 
 /* ========== 自制播放器（B站/抖音风格） ========== */

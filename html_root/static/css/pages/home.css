@@ -478,3 +478,160 @@
     border-radius: 4px;
 }
 .feature-card { position: relative; }
+
+/* --- 按角色快速开始 --- */
+.role-start-section {
+    margin-top: 3rem;
+    padding: 1.75rem 1.75rem 2rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    background: var(--bg-glass);
+    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: fadeInUp 0.8s ease-out 0.5s backwards;
+}
+
+.role-start-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.role-start-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.role-start-subtitle {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.role-start-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.9rem;
+}
+
+.role-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border-radius: 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.01);
+    color: inherit;
+    text-align: left;
+    cursor: default;
+    transition: all 0.25s ease-out;
+}
+
+[data-theme="dark"] .role-card {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.role-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 10px 25px -10px rgba(37, 99, 235, 0.35);
+    transform: translateY(-2px);
+    background: var(--bg-surface);
+}
+
+.role-card-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 30% 30%, rgba(59,130,246,0.7), rgba(30,64,175,0.3));
+    color: #fff;
+    box-shadow: 0 8px 18px -8px rgba(37, 99, 235, 0.8);
+}
+
+.role-card-icon i {
+    font-size: 1.1rem;
+}
+
+.role-card-body h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.role-card-body p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.role-card-actions {
+    margin-top: 0.65rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.role-action-btn {
+    border-radius: 999px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.8rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease-out;
+}
+
+.role-action-btn.primary {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.6);
+}
+
+.role-action-btn.primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px -8px rgba(37, 99, 235, 0.75);
+}
+
+.role-action-btn.ghost {
+    border-color: rgba(148, 163, 184, 0.6);
+    color: var(--text-secondary);
+    background: rgba(15,23,42,0.02);
+}
+
+.role-action-btn.ghost:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(37,99,235,0.06);
+}
+
+.role-action-btn i {
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .role-start-section {
+        padding: 1.25rem 1.25rem 1.5rem;
+        margin-top: 2.25rem;
+    }
+    .role-start-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+    }
+}

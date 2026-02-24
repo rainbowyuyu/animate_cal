@@ -338,6 +338,96 @@ export async function runDevManim() {
     }
 }
 
+// 当前工作台脚本的最新视频文案摘要（仅前端存储，用于列表预览）
+let currentVideoCopy = '';
+
+/** 创作者：总结当前 Manim 脚本，生成视频文案（标题 + 简介 + 章节建议），结果以弹窗形式展示 */
+export async function generateVideoCopy() {
+    const code = monacoEditor ? monacoEditor.getValue() : '';
+    if (!code || !code.trim()) {
+        if (typeof showToast === 'function') showToast('请先编写或导入脚本', 'info');
+        return;
+    }
+    const modalId = 'video-copy-modal';
+    const modal = document.getElementById(modalId);
+    const contentEl = modal && modal.querySelector('.video-copy-content');
+    const btnSave = modal && modal.querySelector('.video-copy-save-btn');
+    if (!modal || !contentEl || !btnSave) {
+        if (typeof showToast === 'function') showToast('页面缺少视频文案弹窗容器', 'error');
+        return;
+    }
+    contentEl.innerHTML = '<div class="formulas-loading" style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 正在生成视频文案，请稍候…</div>';
+    btnSave.disabled = true;
+
+    toggleModal(modalId, true);
+
+    try {
+        const res = await fetch('/api/devtools/generate_video_copy', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (data.status !== 'success' || !data.copy) {
+            contentEl.innerHTML = `<p style="color:#ef4444;">生成失败：${(data && data.message) || '未知错误'}</p>`;
+            return;
+        }
+        currentVideoCopy = data.copy;
+        if (window.marked && typeof window.marked.parse === 'function') {
+            contentEl.innerHTML = `<div class="markdown-body agent-reply-content">${window.marked.parse(currentVideoCopy)}</div>`;
+            if (typeof window.typesetAgentMath === 'function') window.typesetAgentMath(contentEl);
+        } else {
+            contentEl.innerHTML = `<pre style="white-space:pre-wrap; font-family:inherit;">${currentVideoCopy}</pre>`;
+        }
+        btnSave.disabled = false;
+    } catch (e) {
+        console.error(e);
+        contentEl.innerHTML = `<p style="color:#ef4444;">生成视频文案时出错：${e.message || e}</p>`;
+    }
+}
+
+/** 将当前视频文案与脚本 ID 关联存入 localStorage，供「我的脚本」和动画脚本库预览使用 */
+export function saveCurrentVideoCopyForScript(scriptId) {
+    if (!scriptId || !currentVideoCopy) return;
+    try {
+        const key = 'animation_script_video_copies';
+        const raw = localStorage.getItem(key) || '{}';
+        const map = JSON.parse(raw);
+        map[String(scriptId)] = currentVideoCopy;
+        localStorage.setItem(key, JSON.stringify(map));
+    } catch (e) {
+        console.warn('保存视频文案到 localStorage 失败', e);
+    }
+}
+
+export function getVideoCopyForScript(scriptId) {
+    try {
+        const key = 'animation_script_video_copies';
+        const raw = localStorage.getItem(key) || '{}';
+        const map = JSON.parse(raw);
+        return map && map[String(scriptId)] || '';
+    } catch {
+        return '';
+    }
+}
+
+/** 将弹窗中展示的视频文案保存为当前脚本的关联文案（localStorage），便于列表里显示文案与时间 */
+export function saveVideoCopyAsScriptNote() {
+    if (workbenchScriptId == null) {
+        if (typeof showToast === 'function') showToast('请先保存脚本到动画脚本库后再关联文案', 'info');
+        return;
+    }
+    saveCurrentVideoCopyForScript(workbenchScriptId);
+    toggleModal('video-copy-modal', false);
+    if (typeof showToast === 'function') showToast('已保存为当前脚本文案，列表中将显示文案与时间', 'success');
+    renderImportScripts();
+}
+
+/** 供 HTML 直接调用的关闭视频文案弹窗方法 */
+export function closeVideoCopyModal() {
+    toggleModal('video-copy-modal', false);
+}
+
 /** 从外部（如我的算式-动画脚本库）跳转到本工作台并填入代码，可选自动运行；支持 scriptId/note 以支持工作台保存 */
 export function openManimWorkbenchWithCode(code, options = {}) {
     workbenchScriptId = options.scriptId ?? null;
@@ -451,7 +541,13 @@ function renderRainbowLib() {
         `;
     }).join('');
 
-    container.innerHTML = headerHtml + cardsHtml + '</div>';
+    const communityHtml = `
+        <div class="rainbow-community-section">
+            <h3 class="rainbow-community-title"><i class="fa-solid fa-users"></i> 社区模块</h3>
+            <p class="rainbow-community-desc">提交你写好的 Manim 脚本（附简短说明），审核通过后将展示在此，其他人可一键载入、fork 改编。敬请期待。</p>
+            <button type="button" class="action-btn tertiary" disabled style="opacity:0.8;">即将开放</button>
+        </div>`;
+    container.innerHTML = headerHtml + cardsHtml + '</div>' + communityHtml;
 
     if(window.hljs) container.querySelectorAll('pre code').forEach(el => hljs.highlightElement(el));
 }
@@ -540,7 +636,7 @@ function renderImportScripts() {
         listEl.innerHTML = '<p class="manim-import-msg" style="padding:1rem; font-size:0.85rem;">请先登录后在此选择已保存的脚本。</p>';
         return;
     }
-    listEl.innerHTML = '<p class="manim-import-msg" style="padding:0.5rem; font-size:0.8rem;">加载中...</p>';
+    listEl.innerHTML = '<div class="formulas-loading" style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
     fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`)
         .then(res => res.json())
         .then(data => {
@@ -548,14 +644,35 @@ function renderImportScripts() {
                 listEl.innerHTML = '<p class="manim-import-msg" style="padding:1rem; font-size:0.85rem;">暂无保存的脚本，可前往「我的算式 → 动画脚本库」保存。</p>';
                 return;
             }
-            listEl.innerHTML = data.data.map(s => {
+            const marked = window.marked && typeof window.marked.parse === 'function' ? window.marked : null;
+            const typesetMath = typeof window.typesetAgentMath === 'function' ? window.typesetAgentMath : null;
+            listEl.innerHTML = '';
+            data.data.forEach(s => {
                 const note = (s.note || '未命名').replace(/</g, '&lt;').replace(/"/g, '&quot;');
                 const created = s.created_at ? new Date(s.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
-                const titleAttr = note ? ` title="${note}${created ? ' · ' + created : ''}"` : '';
-                return `<button type="button" class="import-item" data-id="${s.id}"${titleAttr}><span class="import-item-note">${note}</span><small class="import-item-meta">ID: ${s.id}${created ? ' · ' + created : ''}</small></button>`;
-            }).join('');
-            listEl.querySelectorAll('.import-item').forEach(btn => {
+                const videoCopy = getVideoCopyForScript(s.id);
+                const metaText = videoCopy
+                    ? (created ? created : '')
+                    : (created ? '文案未生成 · ' + created : '');
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'import-item';
+                btn.dataset.id = String(s.id);
+                btn.title = note + (metaText ? ' · ' + metaText : '');
+                btn.innerHTML = `<span class="import-item-note">${note}</span>`;
+                if (videoCopy && marked) {
+                    const preview = document.createElement('div');
+                    preview.className = 'import-item-preview markdown-body';
+                    preview.innerHTML = marked.parse(videoCopy.slice(0, 1500));
+                    if (typesetMath) typesetMath(preview);
+                    btn.appendChild(preview);
+                }
+                const small = document.createElement('small');
+                small.className = 'import-item-meta';
+                small.textContent = metaText || ('ID: ' + s.id + (created ? ' · ' + created : ''));
+                btn.appendChild(small);
                 btn.addEventListener('click', () => loadScriptIntoEditor(parseInt(btn.dataset.id, 10)));
+                listEl.appendChild(btn);
             });
         })
         .catch(() => {
@@ -641,6 +758,19 @@ export async function confirmScriptNoteAndSave() {
             if (data.status === 'success') {
                 workbenchScriptNote = note;
                 showToast('更新成功！', 'success');
+                try {
+                    const copyRes = await fetch('/api/devtools/generate_video_copy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                    });
+                    const copyData = await copyRes.json();
+                    if (copyData.status === 'success' && copyData.copy) {
+                        currentVideoCopy = copyData.copy;
+                        saveCurrentVideoCopyForScript(workbenchScriptId);
+                        renderImportScripts();
+                    }
+                } catch (_) {}
             } else {
                 showToast(data.message || '更新失败', 'error');
             }
@@ -656,6 +786,19 @@ export async function confirmScriptNoteAndSave() {
                 workbenchScriptNote = note;
                 showToast('保存成功！', 'success');
                 renderImportScripts();
+                try {
+                    const copyRes = await fetch('/api/devtools/generate_video_copy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code })
+                    });
+                    const copyData = await copyRes.json();
+                    if (copyData.status === 'success' && copyData.copy) {
+                        currentVideoCopy = copyData.copy;
+                        saveCurrentVideoCopyForScript(data.id);
+                        renderImportScripts();
+                    }
+                } catch (_) {}
             } else {
                 showToast(data.message || '保存失败', 'error');
             }

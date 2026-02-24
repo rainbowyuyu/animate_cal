@@ -565,6 +565,29 @@
     white-space: pre-wrap;
 }
 
+/* Rainbow 社区模块占位 */
+.rainbow-community-section {
+    margin-top: 2.5rem;
+    padding: 1.5rem;
+    background: var(--bg-surface);
+    border: 1px dashed var(--border-color);
+    border-radius: 12px;
+}
+.rainbow-community-title {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.rainbow-community-desc {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 1rem;
+}
+
 /* 滚动条美化 */
 .code-preview::-webkit-scrollbar {
     width: 6px;
@@ -670,6 +693,55 @@
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
 }
+.ide-btn-secondary {
+    background: linear-gradient(180deg, #ec4899 0%, #db2777 100%);
+    color: #fff;
+    border: 1px solid rgba(236, 72, 153, 0.6);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.ide-btn-secondary:hover {
+    border-color: #ec4899;
+    box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.35);
+}
+.ide-btn-secondary:focus {
+    outline: none;
+    border-color: #ec4899;
+    box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.45);
+}
+
+/* 总结视频脚本内容：柔和青绿色，与导入/保存/运行区分且不刺眼 */
+.ide-btn-summary {
+    background: linear-gradient(180deg, #0d9488 0%, #0f766e 100%);
+    color: #fff;
+    border: 1px solid rgba(13, 148, 136, 0.5);
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.ide-btn-summary:hover {
+    border-color: #0d9488;
+    box-shadow: 0 0 0 1px rgba(13, 148, 136, 0.35);
+}
+.ide-btn-summary:focus {
+    outline: none;
+    border-color: #0d9488;
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.45);
+}
+
 .manim-import-wrap {
     position: relative;
     z-index: 1002;
@@ -778,6 +850,20 @@
     font-size: 0.75rem;
     margin-top: 4px;
     line-height: 1.4;
+}
+.manim-import-list .import-item .import-item-preview {
+    display: block;
+    margin-top: 6px;
+    padding: 8px 0 0;
+    border-top: 1px solid rgba(71, 85, 105, 0.35);
+    font-size: 0.8rem;
+    line-height: 1.45;
+    max-height: 120px;
+    overflow: hidden;
+    color: #94a3b8;
+}
+.manim-import-list .import-item .import-item-preview .markdown-body {
+    font-size: inherit;
 }
 
 /* 载入按钮 */

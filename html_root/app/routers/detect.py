@@ -50,6 +50,73 @@ def generate_manim_prompt(latex_a, latex_b, operation):
     return return_prompt(op_desc, latex_a, latex_b)
 
 
+def _inject_autoscale_into_construct(code: str) -> str:
+    """
+    将自动缩放/居中的兜底逻辑注入到 GenScene.construct 末尾：
+    - 不改变大模型生成的主要结构
+    - 统一使用 VGroup(*self.mobjects) + scale_to_fit_width/height + move_to(ORIGIN)
+    - 若解析失败，原样返回（不影响渲染）
+    """
+    if not code or "_AUTO_FIT_LAYOUT_" in code:
+        return code
+    try:
+        lines = code.splitlines()
+        class_idx = None
+        for i, line in enumerate(lines):
+            if "class GenScene" in line:
+                class_idx = i
+                break
+        if class_idx is None:
+            return code
+        class_indent = len(lines[class_idx]) - len(lines[class_idx].lstrip(" "))
+
+        construct_idx = None
+        for i in range(class_idx + 1, len(lines)):
+            stripped = lines[i].lstrip()
+            if stripped.startswith("def construct(self):"):
+                construct_idx = i
+                break
+        if construct_idx is None:
+            return code
+
+        construct_indent = len(lines[construct_idx]) - len(lines[construct_idx].lstrip(" "))
+        body_start = construct_idx + 1
+        end_idx = len(lines) - 1
+
+        for i in range(body_start, len(lines)):
+            stripped = lines[i].lstrip()
+            if not stripped:
+                continue
+            indent = len(lines[i]) - len(lines[i].lstrip(" "))
+            # 走到与 construct 同级或更外层的非注释/非装饰器代码，视为方法结束
+            if indent <= construct_indent and not stripped.startswith(("#", "@")):
+                end_idx = i - 1
+                break
+
+        insert_pos = max(body_start, end_idx + 1)
+        pad = " " * (construct_indent + 4)
+        snippet = [
+            "",
+            pad + "# _AUTO_FIT_LAYOUT_: 自动缩放所有对象以适配画面边界",
+            pad + "try:",
+            pad + "    group = VGroup(*self.mobjects)",
+            pad + "    frame = self.camera.frame",
+            pad + "    frame_w = frame.width",
+            pad + "    frame_h = frame.height",
+            pad + "    if group.width > frame_w * 0.9:",
+            pad + "        group.scale_to_fit_width(frame_w * 0.9)",
+            pad + "    if group.height > frame_h * 0.9:",
+            pad + "        group.scale_to_fit_height(frame_h * 0.9)",
+            pad + "    group.move_to(frame.get_center())",
+            pad + "except Exception:",
+            pad + "    pass",
+        ]
+        new_lines = lines[:insert_pos] + snippet + lines[insert_pos:]
+        return "\n".join(new_lines)
+    except Exception:
+        return code
+
+
 @router.post("/detect")
 async def detect_image(file: UploadFile = File(...)):
     try:
@@ -98,7 +165,8 @@ async def generate_animation_stream(data: CalcModel):
                 "请按以下**结构化格式**输出解题步骤，便于阅读与排版：\n"
                 "1. 先写 **题目** 或 **题目要点** 一段概括。\n"
                 "2. 若有选项（如 A/B/C/D），按 **A项**、**B项**、**C项**、**D项** 分段，每段内写该选项的极限或结论（行内公式用 $...$，独立公式用 $$...$$）。\n"
-                "3. 最后写 **结论** 或 **答案**，明确正确选项与理由。\n"
+                "3. 若题目本身没有任何 A/B/C/D 等选项，请**不要额外说明“无选项”“故不设 A/B/C/D 项”等字样**，直接给出题目与解题步骤即可。\n"
+                "4. 最后写 **结论** 或 **答案**，明确正确选项与理由（若无选项则给出最终结果与总结）。\n"
                 "要求：分条、分项清晰，不要大段连写。**同一行内的整段公式必须放在一对 $ $ 内**，例如 $\\\\lim_{{x\\\\to 0}}\\\\frac{{x+\\\\cos x}}{{x}}$，不要将分子、分母或极限符号拆到不同行，避免 LaTeX 与文字错位。不要输出任何代码。"
             )
             text_completion = client.chat.completions.create(
@@ -121,6 +189,7 @@ async def generate_animation_stream(data: CalcModel):
                 try:
                     completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
                     code = completion.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
+                    code = _inject_autoscale_into_construct(code)
                     yield f"data: {json.dumps({'step': 'code_generated', 'message': f'「{phase_name}」代码生成完毕，准备渲染...', 'code': code, 'progress': 30, 'part': part})}\n\n"
                 except Exception as e:
                     logger.error(f"LLM Error ({phase_name}): {e}")
@@ -195,6 +264,7 @@ async def generate_animation_stream(data: CalcModel):
                         messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
                     )
                     code2 = completion2.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
+                    code2 = _inject_autoscale_into_construct(code2)
                     with open(py_path, "w", encoding="utf-8") as f:
                         f.write(code2)
                     yield f"data: {json.dumps({'step': 'rendering', 'message': f'「{phase_name}」重新渲染中...', 'progress': 40})}\n\n"
@@ -230,6 +300,7 @@ async def generate_animation_stream(data: CalcModel):
         try:
             completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
             code = completion.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
+            code = _inject_autoscale_into_construct(code)
             yield f"data: {json.dumps({'step': 'code_generated', 'message': '代码生成完毕，准备渲染...', 'code': code, 'progress': 30})}\n\n"
         except Exception as e:
             logger.error(f"LLM Error: {e}")
@@ -321,6 +392,7 @@ async def generate_animation_stream(data: CalcModel):
                 messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
             )
             code2 = completion2.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
+            code2 = _inject_autoscale_into_construct(code2)
             with open(py_path, "w", encoding="utf-8") as f:
                 f.write(code2)
             yield f"data: {json.dumps({'step': 'rendering', 'message': 'Manim 重新渲染中...', 'progress': 40})}\n\n"

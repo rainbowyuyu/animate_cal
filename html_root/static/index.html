@@ -63,6 +63,12 @@
             <img src="assets/智算视界_avatar.svg" alt="icon" width="80"> 智算视界
         </div>
 
+        <!-- 全站搜索（桌面端） -->
+        <div id="nav-search-wrap" class="nav-search-wrap desktop-nav" style="margin-right:8px;">
+            <i class="fa-solid fa-search nav-search-icon" aria-hidden="true" title="全站搜索"></i>
+            <input type="text" id="nav-search-input" class="nav-search-input" placeholder="搜索算式、脚本、案例…" maxlength="200" autocomplete="off">
+            <div id="nav-search-dropdown" class="nav-search-dropdown" style="display:none;"></div>
+        </div>
         <!-- 桌面端导航链接 (添加 desktop-nav 类) -->
         <div class="nav-links desktop-nav">
             <button class="nav-btn active" onclick="showSection('home')">首页</button>
@@ -120,7 +126,7 @@
     <!-- 顶部更新消息：智能体 -->
     <div class="agent-update-banner" id="agent-update-banner">
         <span class="agent-update-text">新功能：智能体已上线 — 用自然语言调用识别、计算、开发者工具等</span>
-        <a href="javascript:void(0)" onclick="openDoc('update.md', '更新日志')" class="agent-update-detail" title="查看更新详情">?</a>
+        <a href="javascript:void(0)" onclick="openDoc('update.md', '更新日志', 'update-v-0.3.5')" class="agent-update-detail" title="查看更新详情（定位到 v0.3.5）">?</a>
         <button type="button" class="agent-update-close" onclick="closeAgentBanner()" title="关闭" aria-label="关闭"><i class="fa-solid fa-times"></i></button>
     </div>
 
@@ -164,6 +170,78 @@
                     <span class="tutorial-link" onclick="startTutorial()"><i class="fa-regular fa-circle-question"></i> 30 秒教程</span>
                 </div>
             </div>
+
+            <!-- 按角色快速开始：学生 / 教师 / 创作者 / 开发者 -->
+            <section class="role-start-section" aria-labelledby="role-start-title">
+                <!-- 文档锚点：供 update.md 中 #section-home-roles 使用 -->
+                <div id="section-home-roles"></div>
+                <div class="role-start-header">
+                    <h2 id="role-start-title">按角色快速开始</h2>
+                    <p class="role-start-subtitle">根据你的身份，一键使用智能体，或先观看一遍可重复的操作流程。</p>
+                </div>
+                <div class="role-start-grid">
+                    <div class="role-card">
+                        <div class="role-card-icon"><i class="fa-solid fa-user-graduate"></i></div>
+                        <div class="role-card-body">
+                            <h3>学生</h3>
+                            <p>从教学案例与动态计算开始，配合时间戳笔记与错题本复习。</p>
+                            <div class="role-card-actions">
+                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('student')">
+                                    <i class="fa-solid fa-robot"></i> 用智能体执行
+                                </button>
+                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('student')">
+                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="role-card">
+                        <div class="role-card-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
+                        <div class="role-card-body">
+                            <h3>教师</h3>
+                            <p>围绕课堂案例生成与管理，快速打造可复用的讲解课件与课件包。</p>
+                            <div class="role-card-actions">
+                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('teacher')">
+                                    <i class="fa-solid fa-robot"></i> 用智能体执行
+                                </button>
+                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('teacher')">
+                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="role-card">
+                        <div class="role-card-icon"><i class="fa-solid fa-clapperboard"></i></div>
+                        <div class="role-card-body">
+                            <h3>内容创作者</h3>
+                            <p>用 Manim 工作台与 Rainbow 组件快速产出短视频与可视化片段。</p>
+                            <div class="role-card-actions">
+                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('creator')">
+                                    <i class="fa-solid fa-robot"></i> 用智能体执行
+                                </button>
+                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('creator')">
+                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="role-card">
+                        <div class="role-card-icon"><i class="fa-solid fa-code"></i></div>
+                        <div class="role-card-body">
+                            <h3>开发者</h3>
+                            <p>以代码方式扩展数学动画组件库，复用和分享你的 Manim 模块。</p>
+                            <div class="role-card-actions">
+                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('developer')">
+                                    <i class="fa-solid fa-robot"></i> 用智能体执行
+                                </button>
+                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('developer')">
+                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- 智能体功能高亮 -->
             <div class="agent-feature-strip" onclick="showSection('agent')">
@@ -253,6 +331,9 @@
                                 <button type="button" class="agent-sidebar-action-btn" onclick="openSettings('agent')">
                                     <i class="fa-solid fa-gear"></i> 设置
                                 </button>
+                                <button type="button" class="agent-sidebar-action-btn" onclick="Agent.openTemplatesModal()">
+                                    <i class="fa-solid fa-bookmark"></i> 从模板运行
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -285,12 +366,10 @@
                                 <div class="agent-message agent-message-assistant">
                                     <div class="agent-avatar agent-avatar-bot"><img src="assets/智算视界_avatar.svg" alt="智算视界" class="agent-avatar-logo"></div>
                                     <div class="agent-bubble agent-bubble-assistant">
-                                        <p>你好，我是智能体。你可以用自然语言让我帮你：</p>
-                                        <ul>
+                                        <p>你好，我是智能体。你可以用自然语言让我帮你：
                                             <li>把公式做成动画、打开 LaTeX 编辑器并填入内容</li>
                                             <li>只进行识别、识别图片后去计算页生成动画</li>
                                             <li>上传或粘贴图片后说「识别这张图」</li>
-                                        </ul>
                                         <p>直接输入需求，支持粘贴剪贴板图片后发送。</p>
                                     </div>
                                 </div>
@@ -307,7 +386,7 @@
                                     <label class="agent-upload-btn" for="agent-image-upload" title="上传或粘贴图片">
                                         <i class="fa-solid fa-image"></i>
                                     </label>
-                                    <input type="file" id="agent-image-upload" accept="image/*" style="display:none;">
+                                    <input type="file" id="agent-image-upload" accept="image/*" multiple style="display:none;">
                                     <div class="agent-prompt-wrap">
                                         <label for="agent-prompt" class="agent-input-label">说说你想做什么</label>
                                         <textarea id="agent-prompt" class="agent-textarea agent-chat-input tech-input" placeholder="例如：填入 sin(x)=1/2、识别这张图、把公式做成动画… 支持粘贴图片" rows="1"></textarea>
@@ -462,10 +541,11 @@
         <section id="my-formulas" class="section">
             <h2 class="section-title">我的算式库</h2>
             <div class="container formulas-container" style="max-width: 1000px;">
-                <!-- 子导航：算式库 | 动画脚本库 -->
+                <!-- 子导航：算式库 | 动画脚本库 | 智能体模板 -->
                 <div class="formulas-sub-nav">
                     <button type="button" class="formulas-sub-tab active" data-tab="formulas" onclick="Formulas.switchFormulasSubTab('formulas')">算式库</button>
                     <button type="button" class="formulas-sub-tab" data-tab="scripts" onclick="Formulas.switchFormulasSubTab('scripts')">动画脚本库</button>
+                    <button type="button" class="formulas-sub-tab" data-tab="templates" onclick="Formulas.switchFormulasSubTab('templates')">智能体模板</button>
                 </div>
 
                 <!-- 算式库面板 -->
@@ -516,6 +596,17 @@
                         <div id="formulas-monaco-wrap" style="height:420px; border:1px solid var(--border-color); border-radius:12px; overflow:hidden;">
                             <div id="formulas-monaco-container" style="width:100%; height:100%;"></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 智能体模板库面板（与智能体侧栏「从模板运行」共用同一数据源 localStorage agent_automation_templates） -->
+                <div id="templates-panel" class="formulas-panel glass-panel" style="display:none;">
+                    <div class="formulas-panel-header">
+                        <h3 class="formulas-panel-title">智能体模板</h3>
+                        <p class="formulas-panel-desc" style="margin:0.5rem 0 0; font-size:0.9rem; color:var(--text-secondary);">在智能体对话中执行任务后点击「存为模板」，即可在此一键复用；侧栏「从模板运行」会跳转至此。</p>
+                    </div>
+                    <div id="formulas-agent-templates-list" class="formula-grid">
+                        <!-- 由 JS 从 localStorage agent_automation_templates 渲染 -->
                     </div>
                 </div>
             </div>
@@ -728,8 +819,29 @@
 
         <!-- 4. 教学案例 Section -->
         <section id="examples" class="section">
+            <!-- 文档锚点：供 update.md 中 #section-examples 使用 -->
+            <div id="section-examples"></div>
             <h2 class="section-title">精选教学案例</h2>
             <p class="section-subtitle">点击卡片即可全屏观看，体验公式推演与可视化演示</p>
+            <div class="examples-toolbar" id="examples-filter">
+                <!-- 文档锚点：供 update.md 中 #section-examples-filter 使用 -->
+                <div id="section-examples-filter"></div>
+                <div class="examples-filter-tabs">
+                    <button type="button" class="examples-filter-tab active" data-filter="all">全部</button>
+                    <button type="button" class="examples-filter-tab" data-filter="favorites" title="登录后可用"><i class="fa-regular fa-star"></i> 收藏</button>
+                    <button type="button" class="examples-filter-tab" data-filter="watch_later" title="登录后可用"><i class="fa-regular fa-clock"></i> 稍后看</button>
+                    <button type="button" class="examples-filter-tab" data-filter="courseware" title="教师：我的课件包"><i class="fa-solid fa-chalkboard-user"></i> 我的课件</button>
+                </div>
+                <button type="button" class="action-btn secondary examples-create-course-btn" id="examples-create-course-btn" title="创建课包（公式→动画→课堂案例）">
+                    <i class="fa-solid fa-folder-plus"></i> 创建课包
+                </button>
+                <div class="examples-tag-filter">
+                    <span class="examples-tag-label">标签</span>
+                    <select id="examples-tag-select" class="examples-tag-select">
+                        <option value="">全部</option>
+                    </select>
+                </div>
+            </div>
             <div id="examples-grid" class="video-grid">
                 <!-- JS 动态加载 -->
             </div>
@@ -738,6 +850,8 @@
 
         <!-- 开发者工具 Section (完全替换原有代码) -->
         <section id="devtools" class="section">
+            <!-- 文档锚点：供 update.md 中 #section-devtools 使用 -->
+            <div id="section-devtools"></div>
             <h2 class="section-title">代码开发者工作台</h2>
 
             <div class="workspace">
@@ -833,6 +947,9 @@
                                             <button type="button" class="ide-btn-save" onclick="DevTools.saveScriptFromWorkbench()" title="保存到动画脚本库">
                                                 <i class="fa-solid fa-floppy-disk"></i> 保存
                                             </button>
+                                            <button type="button" class="ide-btn-summary" onclick="DevTools.generateVideoCopy()" title="总结当前脚本，生成一份适合发布的视频文案">
+                                                <i class="fa-solid fa-align-left"></i> 总结视频脚本内容
+                                            </button>
                                             <button id="btn-run-manim" class="ide-btn-run" onclick="runDevManim()">
                                                 <i class="fa-solid fa-play"></i> 运行脚本
                                             </button>
@@ -909,12 +1026,17 @@
                     </div>
                 </div>
 
-                <!-- 1. 智能体 -->
+                <!-- 1. 智能体与按角色快速开始 -->
                 <details open>
-                    <summary>智能体是什么？怎么用？</summary>
-                    <p><b>智能体</b>是本站的"一句话调度"入口。您只需用自然语言描述想做的事（或上传一张公式图片），系统会理解意图并自动跳转到对应页面、预填内容或直接执行任务。
-                    <br>✅ <b>示例：</b>"把 sin(x) = 1/2 做成动画" → 跳转动态计算并自动开始生成；"打开 LaTeX 编辑器" → 跳转开发者工具 LaTeX 标签；"识别这张图里的公式并去计算" → 先识别图片公式，再跳转计算页并填入公式、可自动生成。
-                    <br>💡 在顶部导航或首页点击<b>智能体</b>即可使用。</p>
+                    <summary>智能体 &amp; 按角色快速开始怎么用？</summary>
+                    <p><b>智能体</b>是本站的“一句话调度”入口。你只需用自然语言描述想做的事（或上传一张公式/题目图片），系统会理解意图并自动：
+                    <br>· 跳转到【智能识别 / 动态计算 / 开发者工具 / 我的算式 / 教学案例】等页面；
+                    <br>· 预填识别到的 LaTeX 公式，或填入 Manim 代码，必要时自动点击「生成可视化动画」等按钮；
+                    <br>· 对整道题目先给出<b>文字版解题步骤</b>，再生成可视化演示。</p>
+                    <p><b>按角色快速开始</b>位于首页 Hero 下方，提供 学生 / 教师 / 内容创作者 / 开发者 四种入口：
+                    <br>· 点击「用智能体执行」：为该角色预填推荐提示词，一键唤起智能体完成整条路径（例如教师从识别→工作台→课包，创作者从脚本→成片→发布包）；
+                    <br>· 点击「观看操作流程」：不调用智能体，只通过交互式教程演示完整操作步骤，你可以跟着自己点。</p>
+                    <p>💡 顶部导航、首页卡片与帮助页 Banner 都可以直接进入智能体。</p>
                 </details>
 
                 <!-- 2. 识别与输入 -->
@@ -937,13 +1059,13 @@
                     <p>支持 JPG, PNG 格式。建议图片清晰、光线均匀、无阴影遮挡。尽量让公式位于图片中心，且背景干净（避免复杂的格纹或背景图案干扰 AI 识别）。</p>
                 </details>
 
-                <!-- 2. 计算与动画 -->
+                <!-- 3. 计算与动画 -->
                 <details>
-                    <summary>为什么生成的动画报错或无法播放？</summary>
-                    <p>通常是因为数学逻辑错误导致的。请检查：
-                    <br>1. <b>矩阵维度：</b> 进行矩阵乘法 (A × B) 时，A 的列数必须等于 B 的行数。
-                    <br>2. <b>行列式：</b> 只有方阵（行数=列数）才能计算行列式。
-                    <br>3. <b>语法错误：</b> 如果是手动输入的 LaTeX，请确保语法闭合（如 `\begin{bmatrix}` 必须有 `\end{bmatrix}`）。</p>
+                    <summary>生成的动画超时或报错怎么办？</summary>
+                    <p>通常是因为<b>数学逻辑</b>或<b>代码结构</b>有问题。建议：
+                    <br>1. <b>检查矩阵维度：</b> 矩阵乘法 A×B 时，A 的列数必须等于 B 的行数；行列式只对方阵有效。
+                    <br>2. <b>简化算式：</b> 目前单次渲染最长约 300 秒，若算式特别复杂或嵌套过深，建议先拆成多个步骤；通用计算模式会自动拆成「计算 + 可视化」两个视频，容错率更高。
+                    <br>3. <b>利用自动修正：</b> 对智能体生成的 Manim 代码，系统会在渲染失败时自动把错误日志发给大模型进行一次修正并重试；若仍失败，可在【开发者工具】中手动调整后重新运行。</p>
                 </details>
 
                 <details>
@@ -952,12 +1074,20 @@
                     <br>动画生成后，您可以点击视频播放器右下角的“三个点”图标选择<b>“下载”</b>，或右键点击视频选择“视频另存为”，将其保存到本地用于PPT演示或教学。</p>
                 </details>
 
-                <!-- 3. 功能与账号 -->
+                <!-- 4. 我的算式、教学案例、课件包 -->
                 <details>
-                    <summary>“我的算式”功能怎么用？</summary>
-                    <p>这是您的云端笔记本。
-                    <br>1. <b>保存：</b> 在识别或编辑完公式后，点击“保存并查看”，该公式就会存入云端。
-                    <br>2. <b>复用：</b> 在“动态计算”页面，点击输入框上方的<b>“导入”</b>按钮，可以直接从库中选择公式填入，无需重复输入。</p>
+                    <summary>“我的算式”“教学案例”“我的课件”分别做什么？</summary>
+                    <p><b>我的算式</b>是你的云端公式笔记本：
+                    <br>· 在识别或编辑完公式后点击「保存并查看」，公式会保存到这里；
+                    <br>· 在「动态计算」页点击<b>导入</b>即可从库中一键填入公式。</p>
+                    <p><b>教学案例</b>是可反复观看的动画视频库，提供：
+                    <br>· 收藏 / 稍后看 / 标签筛选；
+                    <br>· 时间戳笔记与「从 x:xx 继续观看」的复习推荐；
+                    <br>· 一键复制直达链接（可带时间点），方便分享。</p>
+                    <p><b>我的课件</b>面向教师：
+                    <br>· 在教学案例播放页点击「加入课件包」，系统会为你自动创建「我的课件包」；
+                    <br>· 在案例筛选栏选择「我的课件」，即可看到课包内的所有视频；
+                    <br>· 你也可以通过「创建课包」弹窗跟随手动流程完成：识别公式 → 工作台生成动画 → 加入课件包。</p>
                 </details>
 
                 <details>
@@ -1427,6 +1557,19 @@
         </div>
     </div>
 
+    <!-- 智能体：我的模板（存为模板后在此选择并预填运行） -->
+    <div id="agent-templates-modal" class="modal agent-examples-modal" style="display:none;">
+        <div class="modal-content glass-panel agent-examples-modal-content">
+            <div class="agent-examples-modal-header">
+                <h3 class="agent-examples-modal-title"><i class="fa-solid fa-bookmark"></i> 我的模板</h3>
+                <span class="close-modal" onclick="Agent.closeTemplatesModal()">&times;</span>
+            </div>
+            <div class="agent-examples-modal-body" id="agent-templates-list">
+                <p class="agent-examples-hint">点击模板将预填提示词，发送即可再次执行该流程。暂无模板时，可在对话中执行任务后点击「存为模板」。</p>
+            </div>
+        </div>
+    </div>
+
     <!-- 智能体：功能与示例 独立扩展窗体 -->
     <div id="agent-examples-modal" class="modal agent-examples-modal">
         <div class="modal-content glass-panel agent-examples-modal-content">
@@ -1521,6 +1664,19 @@
         </div>
     </div>
 
+    <!-- 视频文案总结弹窗（总结视频脚本内容后展示，可保存为当前脚本文案） -->
+    <div id="video-copy-modal" class="modal">
+        <div class="modal-content glass-panel" style="width: 560px; max-height: 85vh; display: flex; flex-direction: column;">
+            <span class="close-modal" onclick="DevTools.closeVideoCopyModal()">&times;</span>
+            <h3 style="padding: 1rem 2rem 0; color: var(--text-main); margin: 0;"><i class="fa-solid fa-align-left"></i> 视频脚本内容总结</h3>
+            <div class="video-copy-content" style="padding: 1rem 2rem; flex: 1; overflow: auto; min-height: 120px;"></div>
+            <div style="padding: 0 2rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="action-btn tertiary" onclick="DevTools.closeVideoCopyModal()">关闭</button>
+                <button type="button" class="action-btn primary video-copy-save-btn" onclick="DevTools.saveVideoCopyAsScriptNote()">保存为当前脚本文案</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 脚本备注 Modal（与编辑算式窗口同款样式，计算页保存与开发者工具保存共用） -->
     <div id="script-note-modal" class="modal">
         <div class="modal-content glass-panel" style="width: 480px;">
@@ -1558,6 +1714,33 @@
     </div>
 
     <!-- 自定义对话框（替换原生 alert/confirm/prompt） -->
+    <!-- 教师：创建课包入口（智能体 或 手动流程） -->
+    <div id="course-pack-modal" class="modal">
+        <div class="modal-content glass-panel course-pack-modal-content">
+            <div class="modal-header" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+                <h3 style="margin:0;"><i class="fa-solid fa-chalkboard-user"></i> 创建课包</h3>
+                <span class="close-modal" onclick="typeof closeCoursePackModal==='function'&&closeCoursePackModal()">&times;</span>
+            </div>
+            <p style="color: var(--text-secondary); line-height: 1.6; margin-bottom: 1rem;">可以通过<strong>智能体</strong>一键完成：上传 PPT / 板书照片或输入教学目标，由智能体帮你梳理知识点、生成公式动画脚本，并整理成课堂案例；也可以<strong>手动</strong>按步骤完成同一流程。</p>
+            <div style="display:flex; gap:0.5rem; justify-content:flex-end; margin-bottom: 1rem;">
+                <button type="button" class="action-btn tertiary" onclick="typeof closeCoursePackModal==='function'&&closeCoursePackModal()">取消</button>
+                <button type="button" class="action-btn primary" id="course-pack-modal-agent-btn"><i class="fa-solid fa-robot"></i> 用智能体创建课包</button>
+            </div>
+            <div class="course-pack-modal-divider"><span>或使用手动流程</span></div>
+            <div class="course-pack-manual-steps">
+                <p class="course-pack-manual-intro">按以下步骤将公式变为课堂案例并加入课包：</p>
+                <ol class="course-pack-manual-list">
+                    <li>在 <a href="javascript:void(0)" data-course-pack-step="detect" class="course-pack-step-link">智能识别</a> 或 <a href="javascript:void(0)" data-course-pack-step="my-formulas" class="course-pack-step-link">我的算式</a> 中添加/识别公式</li>
+                    <li>在 <a href="javascript:void(0)" data-course-pack-step="devtools" class="course-pack-step-link">Manim 工作台</a> 中生成动画并渲染为视频</li>
+                    <li>回到 <a href="javascript:void(0)" data-course-pack-step="examples" class="course-pack-step-link">教学案例</a>，在视频播放页点击「加入课件包」</li>
+                </ol>
+                <div style="display:flex; gap:0.5rem; justify-content:flex-end;">
+                    <button type="button" class="action-btn secondary" id="course-pack-modal-manual-btn"><i class="fa-solid fa-hand-pointer"></i> 开始手动创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="custom-dialog-modal" class="modal">
         <div class="modal-content glass-panel" style="width: 420px;">
             <span class="close-modal" id="custom-dialog-close" style="cursor:pointer;">&times;</span>
@@ -1629,10 +1812,18 @@
                     <p id="video-modal-desc">视频简介...</p>
                     <div class="video-meta-actions">
                         <span class="video-viewer-count" id="video-viewer-count" title="当前观看人数"></span>
-                        <button type="button" id="video-like-btn" class="video-like-btn" title="点赞（登录后可用）" aria-label="点赞">
-                            <i class="fa-regular fa-thumbs-up"></i>
-                            <span id="video-like-count">0</span>
-                        </button>
+                        <span class="video-meta-actions-group">
+                            <button type="button" id="video-favorite-btn" class="video-action-btn" title="收藏（登录后可用）" aria-label="收藏"><i class="fa-regular fa-star"></i></button>
+                            <button type="button" id="video-watch-later-btn" class="video-action-btn" title="稍后看（登录后可用）" aria-label="稍后看"><i class="fa-regular fa-clock"></i></button>
+                        </span>
+                        <span class="video-meta-actions-sep" aria-hidden="true"></span>
+                        <span class="video-meta-actions-group">
+                            <button type="button" id="video-share-btn" class="video-action-btn" title="复制直达链接（含时间点）" aria-label="分享"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button type="button" id="video-like-btn" class="video-like-btn" title="点赞（登录后可用）" aria-label="点赞">
+                                <i class="fa-regular fa-thumbs-up"></i>
+                                <span id="video-like-count">0</span>
+                            </button>
+                        </span>
                     </div>
                 </div>
             </div>
@@ -1740,6 +1931,48 @@
                     <button type="button" class="action-btn secondary" id="video-danmaku-send">发送</button>
                 </div>
                 <div class="video-danmaku-login-hint" id="video-danmaku-login-hint" style="display:none;"><a href="#" onclick="typeof toggleAuthModal==='function'&&toggleAuthModal(true); return false;">登录</a>后可发弹幕</div>
+            </div>
+            <div class="video-modal-notes" id="video-modal-notes" style="margin-bottom:1rem;">
+                <div class="video-modal-notes-title"><i class="fa-regular fa-note-sticky"></i> 时间戳笔记（登录后可用）</div>
+                <div id="video-notes-list" class="video-notes-list" style="max-height:120px; overflow:auto; margin-bottom:8px;"></div>
+                <div id="video-note-form" class="video-note-form" style="display:none;">
+                    <input type="text" id="video-note-input" placeholder="在当前时间点添加笔记…" maxlength="500" style="flex:1; padding:6px 10px; border-radius:6px; border:1px solid var(--border-color); margin-right:8px;">
+                    <button type="button" class="action-btn secondary" id="video-note-send">添加</button>
+                </div>
+                <div id="video-note-login-hint" class="video-comment-login-hint"><a href="#" onclick="typeof toggleAuthModal==='function'&&toggleAuthModal(true); return false;">登录</a>后可记笔记</div>
+            </div>
+            <!-- 复习推荐：基于续播进度 -->
+            <div class="video-resume-recommend" id="video-resume-recommend" style="display:none; margin-bottom:0.75rem;">
+                <span class="video-resume-text" id="video-resume-text"></span>
+                <button type="button" class="action-btn secondary" id="video-resume-btn"><i class="fa-solid fa-play"></i> 继续观看</button>
+            </div>
+            <!-- 学习闭环：进度汇总 + 本地错题本（仅保存在当前浏览器） -->
+            <div class="video-modal-study" id="video-modal-study" style="margin-bottom:1.1rem;">
+                <div class="video-modal-study-title">
+                    <i class="fa-solid fa-book-open-reader"></i>
+                    学习进度与错题本（本地）
+                </div>
+                <div class="video-modal-study-body">
+                    <span id="video-progress-summary" class="video-progress-summary">已观看：--</span>
+                    <div class="video-study-actions">
+                        <button type="button" class="action-btn secondary" id="video-mark-wrong-btn">
+                            <i class="fa-regular fa-circle-down"></i> 将当前时间点加入错题本
+                        </button>
+                        <button type="button" class="action-btn tertiary" id="video-open-wrongbook-btn">
+                            查看本视频错题记录
+                        </button>
+                    </div>
+                    <p class="video-study-hint">错题记录仅保存在当前浏览器，可配合时间戳笔记一起复习。</p>
+                </div>
+            </div>
+            <!-- 创作者 / 教师：导出发布包 & 加入课件包 -->
+            <div class="video-creator-export" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+                <button type="button" class="action-btn tertiary" id="video-export-publish-btn">
+                    <i class="fa-solid fa-file-export"></i> 导出发布包（标题+弹幕+字幕模板）
+                </button>
+                <button type="button" class="action-btn secondary" id="video-add-course-pack-btn" title="将当前视频加入我的课件列表">
+                    <i class="fa-solid fa-folder-plus"></i> 加入课件包
+                </button>
             </div>
             <div class="video-modal-comments">
                 <div class="video-modal-comments-title"><i class="fa-regular fa-comments"></i> 评论区</div>

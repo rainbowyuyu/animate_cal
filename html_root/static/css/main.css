@@ -27,6 +27,15 @@
     display: block;
 }
 
+/* 从更新日志跳转到页面某元素时的高亮（如教学案例筛选栏） */
+.page-highlight {
+    animation: page-highlight-fade 2.5s ease-out;
+}
+@keyframes page-highlight-fade {
+    0% { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5); border-radius: 12px; }
+    100% { box-shadow: none; }
+}
+
 /* ========== 全站 LaTeX：KaTeX 渲染（与 ChatGPT / Claude / 豆包一致，整齐正确好看）========== */
 .katex {
     font-size: 1em !important;
