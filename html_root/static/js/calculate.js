@@ -1,5 +1,6 @@
 import { toggleModal, showSection, toggleAuthModal, showToast } from './ui.js';
 import { loadMyFormulas, normalizeLatex } from './formulas.js';
+import { sanitizeMarkdownHtml } from './sanitize.js';
 import * as Formulas from './formulas.js';
 import * as Settings from './settings.js';
 
@@ -226,6 +227,36 @@ export async function startAnimation() {
         progBar.className = 'calc-terminal-progress-bar phase-start';
     }
     if(percentText) percentText.innerText = '0%';
+
+    // 假戏真做：阶段性进度条，各阶段都有平滑前进感，多阶段时首阶段到 75%、末阶段到 100%
+    let displayProgress = 0;
+    let serverProgress = 0;
+    let progressIntervalId = null;
+    let stageCap = 20;  // 阶段 1：理解/规划
+    let isDualPhase = false;
+    let hasSwitchedToPreviewTab = false;  // 是否已在关键帧预览时跳转过
+    const setStageCap = (cap) => { stageCap = Math.max(stageCap, cap); };
+    const updateProgressUI = (p) => {
+        const v = Math.min(99.9, Math.round(p * 10) / 10);
+        if (progBar) {
+            progBar.style.width = v + '%';
+            progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
+            progBar.classList.add(v < 30 ? 'phase-start' : v < 90 ? 'phase-mid' : 'phase-done');
+        }
+        if (percentText) percentText.innerText = v.toFixed(1) + '%';
+    };
+    const tickFakeProgress = () => {
+        if (displayProgress >= 99) return;
+        const gap = stageCap - displayProgress;
+        // 前期稍快、接近 cap 时放缓，避免卡在 cap 边缘的假感
+        const nearCap = gap < 4;
+        const baseInc = nearCap ? 0.06 + Math.random() * 0.1 : (displayProgress < 30 ? 0.15 + Math.random() * 0.25 : 0.1 + Math.random() * 0.28);
+        const inc = baseInc + (Math.random() > 0.9 ? 0.12 : 0);
+        displayProgress = Math.min(stageCap, displayProgress + inc);
+        const show = Math.max(displayProgress, serverProgress);
+        updateProgressUI(show);
+    };
+    progressIntervalId = setInterval(tickFakeProgress, 360 + Math.random() * 200);  // 360~560ms，节奏更均匀
     if(terminalWrapper) terminalWrapper.classList.add('is-generating');
 
     if(videoPlayer) {
@@ -253,10 +284,12 @@ export async function startAnimation() {
     if(videoVis) { videoVis.pause(); videoVis.src = ''; videoVis.style.display = 'none'; }
     if(placeholderCalc) {
         placeholderCalc.style.display = 'block';
+        placeholderCalc.className = 'calc-window-placeholder';
         placeholderCalc.innerHTML = '<span>等待「计算」渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
     }
     if(placeholderVis) {
         placeholderVis.style.display = 'block';
+        placeholderVis.className = 'calc-window-placeholder';
         placeholderVis.innerHTML = '<span>等待「可视化」渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
     }
     if(saveCalcWrap) saveCalcWrap.style.display = 'none';
@@ -275,6 +308,7 @@ export async function startAnimation() {
     }
     if (placeholderSingle) {
         placeholderSingle.style.display = 'block';
+        placeholderSingle.className = 'calc-window-placeholder';
         placeholderSingle.innerHTML = '<span>等待渲染</span><span class="loading-dots"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>';
     }
     if (loadingSingle) loadingSingle.style.display = 'none';
@@ -283,7 +317,14 @@ export async function startAnimation() {
     accumulatedStepsContent.single = '';
     completedVideosThisRun = [];
     const renderLoading = document.getElementById('calc-render-loading');
-    if(renderLoading) renderLoading.style.display = 'flex';
+    const renderLoadingTextEl = renderLoading ? renderLoading.querySelector('.calc-render-loading-text') : null;
+    if (renderLoading) {
+        renderLoading.style.display = 'flex';
+        // 初始阶段：让用户知道系统在「理解题目与规划步骤」
+        if (renderLoadingTextEl) {
+            renderLoadingTextEl.textContent = '正在理解题目与规划步骤…';
+        }
+    }
     const loadingCalc = document.getElementById('calc-window-loading-calc');
     const loadingVis = document.getElementById('calc-window-loading-vis');
     if(loadingCalc) loadingCalc.style.display = 'none';
@@ -346,15 +387,29 @@ export async function startAnimation() {
         });
     }
 
+    // 构造请求载荷：保留现有字段，并附带来自识别页的「视觉描述 Prompt」（若后端已支持）
+    const payload = {
+        matrixA: formula,
+        matrixB: "",
+        operation: method
+    };
+    try {
+        const vp = (typeof sessionStorage !== 'undefined')
+            ? sessionStorage.getItem('last_detect_vision_prompt')
+            : null;
+        if (vp && vp.trim()) {
+            payload.vision_prompt = vp.trim();
+        }
+    } catch (e) {
+        // sessionStorage 不可用时静默忽略，保持向后兼容
+        console.warn('Read vision prompt from sessionStorage failed', e);
+    }
+
     try {
         const response = await fetch('/api/animate/stream', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    matrixA: formula,
-                    matrixB: "",
-                    operation: method
-                })
+                body: JSON.stringify(payload)
             });
 
             const reader = response.body.getReader();
@@ -375,19 +430,16 @@ export async function startAnimation() {
                         try {
                             const data = JSON.parse(jsonStr);
 
-                            if (data.progress) {
-                            if(progBar) {
-                                progBar.style.width = data.progress + '%';
-                                progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
-                                progBar.classList.add(data.progress < 30 ? 'phase-start' : data.progress < 90 ? 'phase-mid' : 'phase-done');
-                            }
-                            if(percentText) percentText.innerText = data.progress + '%';
+                            if (data.progress !== undefined && data.progress !== null) {
+                            serverProgress = Math.max(serverProgress, Number(data.progress));
+                            const show = Math.max(displayProgress, serverProgress);
+                            updateProgressUI(show);
                         }
 
                         if (data.step === 'text_result') {
                             const content = data.content || '';
                             if (!content) return; // 空内容跳过
-                            
+                            setStageCap(55);  // 阶段 2：解题步骤已开始，假进度可到 55%
                             // 题解已到：立即隐藏「正在生成与渲染」全屏遮罩，避免挡住解题步骤；系统日志保持可见
                             if (renderLoading) renderLoading.style.display = 'none';
                             
@@ -400,8 +452,8 @@ export async function startAnimation() {
                             let htmlContentSingle = '';
                             if (window.marked && typeof window.marked.parse === 'function') {
                                 try {
-                                    htmlContentUnified = window.marked.parse(accumulatedStepsContent.unified);
-                                    htmlContentSingle = window.marked.parse(accumulatedStepsContent.single);
+                                    htmlContentUnified = sanitizeMarkdownHtml(window.marked.parse(accumulatedStepsContent.unified));
+                                    htmlContentSingle = sanitizeMarkdownHtml(window.marked.parse(accumulatedStepsContent.single));
                                 } catch (e) {
                                     console.warn('Markdown parse error:', e);
                                     htmlContentUnified = accumulatedStepsContent.unified.replace(/\n/g, '<br>');
@@ -459,6 +511,7 @@ export async function startAnimation() {
                             }, 300);
                         }
                         if (data.step === 'normal_split') {
+                            isDualPhase = true;
                             addLog(data.message || "通用演示将分两步：先计算推演，再可视化演示", "#a78bfa");
                             const dualWrap = document.getElementById('calc-dual-videos-wrap');
                             const placeholder = document.getElementById('video-placeholder-content');
@@ -472,7 +525,11 @@ export async function startAnimation() {
                             }
                         }
                         else if (data.step === 'generating_code') {
+                            setStageCap(38);  // 阶段 1.5：生成代码
                             addLog(data.message || "正在构思数学可视化脚本...", "#fbbf24");
+                            if (renderLoadingTextEl) {
+                                renderLoadingTextEl.textContent = '正在生成动画脚本与关键步骤…';
+                            }
                         }
                         else if (data.step === 'code_generated') {
                             if (data.code) {
@@ -513,8 +570,12 @@ export async function startAnimation() {
                         }
                         else if (data.step === 'fixing_code') {
                             addLog(data.message || "渲染报错，正在根据错误信息修正代码并重试...", "#fbbf24");
+                            if (renderLoadingTextEl) {
+                                renderLoadingTextEl.textContent = '检测到错误，正在自动修正脚本…';
+                            }
                         }
                         else if (data.step === 'rendering') {
+                            setStageCap(90);  // 阶段 3：进入渲染，假进度可到 90%
                             if (data.message) {
                                 addLog(data.message, "#e2e8f0");
                             }
@@ -526,17 +587,107 @@ export async function startAnimation() {
                                     if (loadingSingle) loadingSingle.style.display = 'flex';
                                 }
                             }
+
+                            // 渲染阶段：若后端提供 preview_url，则优先展示静态关键帧预览，先给用户一个可见结果
+                            if (data.preview_url) {
+                                setStageCap(90);
+                                const url = `${data.preview_url}?t=${new Date().getTime()}`;
+                                let targetPlaceholder = null;
+                                if (data.part === 'calc') {
+                                    targetPlaceholder = document.getElementById('calc-placeholder-calc');
+                                } else if (data.part === 'vis') {
+                                    targetPlaceholder = document.getElementById('calc-placeholder-vis');
+                                } else {
+                                    targetPlaceholder = document.getElementById('calc-placeholder-single');
+                                }
+                                if (targetPlaceholder) {
+                                    targetPlaceholder.className = 'calc-window-placeholder calc-window-placeholder-preview';
+                                    targetPlaceholder.innerHTML = `
+                                        <div class="calc-preview-wrap">
+                                            <img src="${url}" alt="关键帧预览" class="calc-preview-img">
+                                            <span class="calc-preview-hint">已生成关键帧预览，视频渲染中…</span>
+                                        </div>
+                                    `;
+                                    // 隐藏对应加载遮罩，让关键帧预览可见
+                                    const ldCalc = document.getElementById('calc-window-loading-calc');
+                                    const ldVis = document.getElementById('calc-window-loading-vis');
+                                    const ldSingle = document.getElementById('calc-window-loading-single');
+                                    if (data.part === 'calc' && ldCalc) ldCalc.style.display = 'none';
+                                    else if (data.part === 'vis' && ldVis) ldVis.style.display = 'none';
+                                    else if (!data.part && ldSingle) ldSingle.style.display = 'none';
+                                    // 生成关键帧时即跳转并高亮，不等视频完成
+                                    if (!hasSwitchedToPreviewTab) {
+                                        hasSwitchedToPreviewTab = true;
+                                        setTimeout(() => {
+                                            if (data.part === 'calc') {
+                                                const dw = document.getElementById('calc-dual-videos-wrap');
+                                                if (dw && dw.style.display !== 'none') {
+                                                    const allTabs = dw.querySelectorAll('.calc-stack-tab');
+                                                    const allWindows = dw.querySelectorAll('.calc-stack-window');
+                                                    allTabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'calc'));
+                                                    allWindows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-calc'));
+                                                    const wEl = document.getElementById('calc-window-calc');
+                                                    const tEl = dw.querySelector('.calc-stack-tab[data-tab="calc"]');
+                                                    if (wEl) { wEl.style.animation = 'calcCompleteHighlight 1.5s ease-out'; setTimeout(() => { wEl.style.animation = ''; }, 1500); }
+                                                    if (tEl) { tEl.style.animation = 'calcTabPulse 1s ease-out'; setTimeout(() => { tEl.style.animation = ''; }, 1000); }
+                                                }
+                                            } else if (data.part === 'vis') {
+                                                const dw = document.getElementById('calc-dual-videos-wrap');
+                                                if (dw && dw.style.display !== 'none') {
+                                                    const allTabs = dw.querySelectorAll('.calc-stack-tab');
+                                                    const allWindows = dw.querySelectorAll('.calc-stack-window');
+                                                    allTabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'vis'));
+                                                    allWindows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-vis'));
+                                                    const wEl = document.getElementById('calc-window-vis');
+                                                    const tEl = dw.querySelector('.calc-stack-tab[data-tab="vis"]');
+                                                    if (wEl) { wEl.style.animation = 'calcCompleteHighlight 1.5s ease-out'; setTimeout(() => { wEl.style.animation = ''; }, 1500); }
+                                                    if (tEl) { tEl.style.animation = 'calcTabPulse 1s ease-out'; setTimeout(() => { tEl.style.animation = ''; }, 1000); }
+                                                }
+                                            } else {
+                                                const sw = document.getElementById('calc-single-wrap');
+                                                if (sw && sw.style.display !== 'none') {
+                                                    const tabs = sw.querySelectorAll('.calc-stack-tab');
+                                                    const windows = sw.querySelectorAll('.calc-stack-window');
+                                                    tabs.forEach((x) => x.classList.toggle('active', x.dataset.tab === 'video'));
+                                                    windows.forEach((w) => w.classList.toggle('active', w.id === 'calc-window-video-single'));
+                                                    const wEl = document.getElementById('calc-window-video-single');
+                                                    const tEl = sw.querySelector('.calc-stack-tab[data-tab="video"]');
+                                                    if (wEl) { wEl.style.animation = 'calcCompleteHighlight 1.5s ease-out'; setTimeout(() => { wEl.style.animation = ''; }, 1500); }
+                                                    if (tEl) { tEl.style.animation = 'calcTabPulse 1s ease-out'; setTimeout(() => { tEl.style.animation = ''; }, 1000); }
+                                                }
+                                            }
+                                        }, 150);
+                                    }
+                                }
+                            }
+
+                            if (renderLoadingTextEl) {
+                                renderLoadingTextEl.textContent = '正在渲染视频画面…';
+                            }
                         }
                         else if (data.step === 'complete') {
-                            if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
-                            if (progBar) {
-                                progBar.classList.remove('phase-start', 'phase-mid');
-                                progBar.classList.add('phase-done');
-                                progBar.style.width = '100%';
+                            const part = data.part;
+                            const isCalcCompleteDual = part === 'calc' && isDualPhase;
+                            if (!isCalcCompleteDual) {
+                                // 单阶段或双阶段最后一阶段：收尾到 100%
+                                if (progressIntervalId) { clearInterval(progressIntervalId); progressIntervalId = null; }
+                                if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
+                                if (progBar) {
+                                    progBar.classList.remove('phase-start', 'phase-mid');
+                                    progBar.classList.add('phase-done');
+                                    progBar.style.width = '100%';
+                                }
+                                if (percentText) percentText.innerText = '100%';
+                            } else {
+                                // 双阶段首阶段（calc）完成：到 75%，保持 interval，vis 阶段会 setStageCap(90) 继续前进
+                                stageCap = 75;  // 直接设 cap，避免 setStageCap 的 max 阻止回落
+                                displayProgress = 75;
+                                serverProgress = Math.max(serverProgress, 75);
+                                updateProgressUI(75);
+                                if (progBar) progBar.classList.add('phase-mid');
                             }
                             if (renderLoading) renderLoading.style.display = 'none';
                             addLog((data.message || "✨ 渲染完成！视频加载中..."), "#a78bfa");
-                            const part = data.part;
                             const label = data.label || (part === 'calc' ? '计算推演' : part === 'vis' ? '可视化演示' : '查看视频解析');
                             const url = data.video_url ? `${data.video_url}?t=${new Date().getTime()}` : '';
                             completedVideosThisRun.push({ part, label, url });
@@ -569,16 +720,11 @@ export async function startAnimation() {
                                     if (sw) sw.style.display = 'block';
                                     const loadingCalc = document.getElementById('calc-window-loading-calc');
                                     if (loadingCalc) loadingCalc.style.display = 'none';
-                                    if (windowEl) {
+                                    if (!hasSwitchedToPreviewTab && windowEl) {
                                         windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                        if (tabEl) tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                        setTimeout(() => { if (windowEl) windowEl.style.animation = ''; if (tabEl) tabEl.style.animation = ''; }, 1500);
                                     }
-                                    if (tabEl) {
-                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
-                                    }
-                                    setTimeout(() => {
-                                        if (windowEl) windowEl.style.animation = '';
-                                        if (tabEl) tabEl.style.animation = '';
-                                    }, 1500);
                                 }, 300);
                             } else if (part === 'vis') {
                                 if (data.code) lastGeneratedCodeVis = data.code;
@@ -603,16 +749,11 @@ export async function startAnimation() {
                                     if (sw) sw.style.display = 'block';
                                     const loadingVis = document.getElementById('calc-window-loading-vis');
                                     if (loadingVis) loadingVis.style.display = 'none';
-                                    if (windowEl) {
+                                    if (!hasSwitchedToPreviewTab && windowEl) {
                                         windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                        if (tabEl) tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                        setTimeout(() => { if (windowEl) windowEl.style.animation = ''; if (tabEl) tabEl.style.animation = ''; }, 1500);
                                     }
-                                    if (tabEl) {
-                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
-                                    }
-                                    setTimeout(() => {
-                                        if (windowEl) windowEl.style.animation = '';
-                                        if (tabEl) tabEl.style.animation = '';
-                                    }, 1500);
                                 }, 300);
                             } else {
                                 // 单阶段模式：显示视频并切换到视频标签
@@ -646,22 +787,18 @@ export async function startAnimation() {
                                         v.play();
                                     }
                                     if (sw && lastGeneratedCode) sw.style.display = 'block';
-                                    if (windowEl) {
+                                    if (!hasSwitchedToPreviewTab && windowEl) {
                                         windowEl.style.animation = 'calcCompleteHighlight 1.5s ease-out';
+                                        if (tabEl) tabEl.style.animation = 'calcTabPulse 1s ease-out';
+                                        setTimeout(() => { if (windowEl) windowEl.style.animation = ''; if (tabEl) tabEl.style.animation = ''; }, 1500);
                                     }
-                                    if (tabEl) {
-                                        tabEl.style.animation = 'calcTabPulse 1s ease-out';
-                                    }
-                                    setTimeout(() => {
-                                        if (windowEl) windowEl.style.animation = '';
-                                        if (tabEl) tabEl.style.animation = '';
-                                    }, 1500);
                                 }, 500);
                                 return;
                             }
                             // 双阶段时不要 return，继续读流以接收下一阶段 complete
                         }
                         else if (data.step === 'error') {
+                            if (progressIntervalId) { clearInterval(progressIntervalId); progressIntervalId = null; }
                             if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
                             if (progBar) {
                                 progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
@@ -682,6 +819,7 @@ export async function startAnimation() {
 
     } catch (e) {
         console.error(e);
+        if (progressIntervalId) { clearInterval(progressIntervalId); progressIntervalId = null; }
         if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
         if (progBar) {
             progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
@@ -825,6 +963,29 @@ export async function submitSaveScriptNote(note) {
         });
         const data = await res.json();
         if (data.status === 'success') {
+            // 与开发者工具工作台保持一致：在保存脚本后，自动调用同一接口生成「视频文案」摘要，
+            // 并写入 localStorage，供「动画脚本库」列表预览使用。
+            try {
+                const copyRes = await fetch('/api/devtools/generate_video_copy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const copyData = await copyRes.json();
+                if (copyData.status === 'success' && copyData.copy && data.id) {
+                    try {
+                        const key = 'animation_script_video_copies';
+                        const raw = localStorage.getItem(key) || '{}';
+                        const map = JSON.parse(raw);
+                        map[String(data.id)] = copyData.copy;
+                        localStorage.setItem(key, JSON.stringify(map));
+                    } catch (e) {
+                        console.warn('保存视频文案到 localStorage 失败', e);
+                    }
+                }
+            } catch (e) {
+                console.warn('generate_video_copy 调用失败（calculate 页面）', e);
+            }
             showToast('已保存到动画脚本库', 'success');
             showSection('my-formulas');
             Formulas.switchFormulasSubTab('scripts');

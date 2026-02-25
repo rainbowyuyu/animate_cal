@@ -1,6 +1,7 @@
 // static/js/formulas.js
 import { showSection, toggleAuthModal, toggleModal } from './ui.js';
 import * as DevTools from './devtools.js';
+import { sanitizeMarkdownHtml } from './sanitize.js';
 
 // 获取当前登录用户名
 function getCurrentUser() {
@@ -168,6 +169,8 @@ export async function loadMyFormulas() {
         const data = await res.json();
         if (data.status === 'success') {
             renderList(data.data);
+            // 同步刷新右侧「知识星云」，基于已保存算式的主题标签统计
+            refreshKnowledgeSummary();
         } else {
             container.innerHTML = "加载失败";
         }
@@ -255,6 +258,93 @@ export async function deleteFormula(id) {
         loadMyFormulas();
     } catch(e) {
         if (typeof showAlert === 'function') await showAlert("删除失败", "错误");
+    }
+}
+
+// 6. 「知识星云」与掌握度进度条
+async function refreshKnowledgeSummary() {
+    const user = getCurrentUser();
+    const listEl = document.getElementById('knowledge-progress-list');
+    const cloudEl = document.getElementById('knowledge-cloud');
+    const panelEl = document.getElementById('knowledge-panel');
+    if (!listEl || !cloudEl || !panelEl) return;
+
+    if (!user) {
+        listEl.innerHTML = '<p style="font-size:0.85rem; color:var(--text-secondary);">登录后可查看基于你算式的知识掌握情况。</p>';
+        cloudEl.innerHTML = '';
+        return;
+    }
+    listEl.innerHTML = '<div style="font-size:0.85rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 计算知识星云中…</div>';
+    cloudEl.innerHTML = '';
+
+    try {
+        const res = await fetch(`/api/formulas/knowledge?username=${encodeURIComponent(user)}`);
+        const data = await res.json();
+        if (data.status !== 'success') {
+            listEl.innerHTML = '<p style="font-size:0.85rem; color:var(--error-color,#ef4444);">暂时无法获取知识统计</p>';
+            cloudEl.innerHTML = '';
+            return;
+        }
+        const topics = Array.isArray(data.topics) ? data.topics : [];
+        const total = data.total || 0;
+        // 若完全没有标签数据，则提示用户多做几道题再来
+        if (!topics.length || !total) {
+            listEl.innerHTML = '<p style="font-size:0.85rem; color:var(--text-secondary);">还没有足够的算式，先去识别或计算几道题，点亮你的第一颗知识星吧。</p>';
+            cloudEl.innerHTML = '';
+            return;
+        }
+
+        // 进度条列表
+        listEl.innerHTML = topics
+            .slice(0, 8)
+            .map(t => {
+                const tag = t.tag || '';
+                const mastery = Math.max(0, Math.min(100, parseInt(t.mastery, 10) || 0));
+                const count = t.count || 0;
+                return `
+                    <div class="knowledge-progress-item">
+                        <div class="knowledge-progress-header">
+                            <span class="knowledge-tag-label">#${tag}</span>
+                            <span class="knowledge-tag-meta">${mastery}% · ${count} 条算式</span>
+                        </div>
+                        <div class="knowledge-progress-bar">
+                            <div class="knowledge-progress-inner" style="width:${mastery}%;"></div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        // 星云/标签云：按掌握度控制大小与透明度，简单随机分布
+        const maxFont = 1.6; // rem
+        const minFont = 0.85;
+        const tagsHtml = topics
+            .map((t, idx) => {
+                const tag = t.tag || '';
+                const mastery = Math.max(0, Math.min(100, parseInt(t.mastery, 10) || 0));
+                const ratio = mastery / 100;
+                const size = (minFont + (maxFont - minFont) * ratio).toFixed(2);
+                const opacity = (0.4 + 0.6 * ratio).toFixed(2);
+                const hue = 200 + Math.round(60 * ratio) + (idx * 17) % 40;
+                return `<span class="knowledge-cloud-tag" style="font-size:${size}rem; opacity:${opacity}; color:hsl(${hue},80%,70%);">#${tag}</span>`;
+            })
+            .join('');
+        cloudEl.innerHTML = tagsHtml;
+        // 手机端：默认折叠为小球
+        if (typeof window.matchMedia !== 'undefined' && window.matchMedia('(max-width: 768px)').matches && panelEl) {
+            panelEl.classList.add('collapsed');
+            panelEl.style.width = '56px';
+            panelEl.style.height = '56px';
+            const cnt = document.getElementById('knowledge-panel-content');
+            const bbl = document.getElementById('knowledge-panel-bubble');
+            if (cnt) cnt.style.display = 'none';
+            if (bbl) bbl.style.display = 'flex';
+            panelEl.title = '点击打开知识星云';
+        }
+    } catch (e) {
+        console.warn('refreshKnowledgeSummary failed', e);
+        listEl.innerHTML = '<p style="font-size:0.85rem; color:var(--error-color,#ef4444);">知识统计加载失败</p>';
+        cloudEl.innerHTML = '';
     }
 }
 
@@ -475,7 +565,7 @@ function renderScriptsList(scripts) {
             previewDiv.className = 'formula-preview formula-preview-copy markdown-body';
             previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; max-height:140px; overflow:hidden;';
             const safeCopy = videoCopy.slice(0, 1500);
-            previewDiv.innerHTML = marked.parse(safeCopy);
+            previewDiv.innerHTML = sanitizeMarkdownHtml(marked.parse(safeCopy));
             if (typesetMath) typesetMath(previewDiv);
         } else if (videoCopy) {
             // 无 marked 时的降级：仍然单行截断，但不做富文本渲染

@@ -21,7 +21,9 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
     <script>
-    window.KATEX_RENDER_OPTS = {
+    window.App = window.App || {};
+    window.App.config = window.App.config || {};
+    window.App.config.KATEX_RENDER_OPTS = {
         delimiters: [
             { left: '$$', right: '$$', display: true },
             { left: '$', right: '$', display: false },
@@ -32,7 +34,8 @@
     };
     function renderMath(container) {
         if (container && window.renderMathInElement) {
-            try { window.renderMathInElement(container, window.KATEX_RENDER_OPTS); } catch (e) { console.warn('KaTeX render', e); }
+            var opts = window.App && window.App.config && window.App.config.KATEX_RENDER_OPTS;
+            try { window.renderMathInElement(container, opts || {}); } catch (e) { console.warn('KaTeX render', e); }
         }
     }
     </script>
@@ -54,8 +57,8 @@
     <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
-    <!-- 占位：main.js 为 type=module 异步加载，此前点击导航不报错 -->
-    <script>window.showSection = window.showSection || function(){}; window.openSettings = window.openSettings || function(){}; window.toggleMobileMenu = window.toggleMobileMenu || function(){};</script>
+    <!-- 占位：main.js 为 type=module 异步加载，此前点击导航不报错。全局能力挂到 window 供 onclick 使用，尽量通过 ES Modules 管理。 -->
+    <script>window.App = window.App || {}; window.showSection = window.showSection || function(){}; window.openSettings = window.openSettings || function(){}; window.toggleMobileMenu = window.toggleMobileMenu || function(){};</script>
 
     <!-- 导航栏 -->
     <nav class="navbar">
@@ -171,10 +174,23 @@
                 </div>
             </div>
 
-            <!-- 按角色快速开始：学生 / 教师 / 创作者 / 开发者 -->
+            <!-- 智能体功能高亮 -->
+            <div class="agent-feature-strip" onclick="showSection('agent')">
+                <div class="agent-feature-strip-inner">
+                    <span class="agent-feature-badge">NEW</span>
+                    <div class="agent-feature-strip-content">
+                        <h3>智能体</h3>
+                        <p>用自然语言描述需求，自动跳转并执行：识别公式、生成动画、打开 LaTeX / Manim 工作台等，一站调度全站能力。</p>
+                    </div>
+                    <i class="fa-solid fa-chevron-right agent-feature-arrow"></i>
+                </div>
+            </div>
+
+            <!-- 按角色快速开始：学生 / 教师 / 创作者 / 开发者（主页牌面） -->
             <section class="role-start-section" aria-labelledby="role-start-title">
                 <!-- 文档锚点：供 update.md 中 #section-home-roles 使用 -->
                 <div id="section-home-roles"></div>
+                <span class="role-start-badge" aria-hidden="true"><i class="fa-solid fa-sparkles"></i> 推荐入口</span>
                 <div class="role-start-header">
                     <h2 id="role-start-title">按角色快速开始</h2>
                     <p class="role-start-subtitle">根据你的身份，一键使用智能体，或先观看一遍可重复的操作流程。</p>
@@ -242,18 +258,6 @@
                     </div>
                 </div>
             </section>
-
-            <!-- 智能体功能高亮 -->
-            <div class="agent-feature-strip" onclick="showSection('agent')">
-                <div class="agent-feature-strip-inner">
-                    <span class="agent-feature-badge">NEW</span>
-                    <div class="agent-feature-strip-content">
-                        <h3>智能体</h3>
-                        <p>用自然语言描述需求，自动跳转并执行：识别公式、生成动画、打开 LaTeX / Manim 工作台等，一站调度全站能力。</p>
-                    </div>
-                    <i class="fa-solid fa-chevron-right agent-feature-arrow"></i>
-                </div>
-            </div>
 
             <div class="features-grid">
                 <div class="feature-card" onclick="showSection('agent')">
@@ -1713,6 +1717,37 @@
         </div>
     </div>
 
+    <!-- 全局浮动：智算星云面板（全站显示，按页面切换不同内容） -->
+    <div id="knowledge-panel" class="glass-panel knowledge-panel-global" style="position:fixed; right:1.5rem; bottom:1.5rem; width:320px; max-width:90vw; padding:1.1rem 1.3rem; border-radius:1rem; box-shadow:0 18px 45px rgba(15,23,42,0.85); z-index:1300; cursor:pointer;">
+        <!-- 折叠态：仅显示应用 Logo 的小球 -->
+        <div id="knowledge-panel-bubble" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
+            <div class="knowledge-panel-bubble-inner">
+                <img src="assets/智算视界_avatar.svg" alt="智算星云">
+            </div>
+        </div>
+        <!-- 展开态内容：可滚动，避免超出视窗 -->
+        <div id="knowledge-panel-content" class="knowledge-panel-content-scroll">
+            <div class="knowledge-panel-header-logo"><img src="assets/智算视界_avatar.svg" alt="" width="48" height="48"></div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.6rem;" id="knowledge-panel-header">
+                <div>
+                    <h3 id="knowledge-panel-title" class="formulas-panel-title" style="margin:0; font-size:0.95rem;">智算星云</h3>
+                    <p id="knowledge-panel-subtitle" style="margin:0.1rem 0 0; font-size:0.78rem; color:var(--text-secondary);">快捷入口与个性化内容</p>
+                </div>
+                <button type="button" aria-label="关闭" id="knowledge-panel-close-btn" style="border:none; background:transparent; color:var(--text-secondary); cursor:pointer;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div id="knowledge-panel-body" class="knowledge-panel-body knowledge-panel-body-scroll">
+                <div id="knowledge-panel-dynamic" style="display:none;">
+                    <div id="knowledge-panel-dynamic-stats" class="knowledge-stats-row" style="margin-bottom:0.6rem;"></div>
+                    <div id="knowledge-progress-list" class="knowledge-progress-list" style="margin-bottom:0.6rem;"></div>
+                    <div id="knowledge-cloud" class="knowledge-cloud" style="display:flex; flex-wrap:wrap; gap:0.3rem; padding-top:0.35rem; border-top:1px solid rgba(148,163,184,0.25);"></div>
+                </div>
+                <div id="knowledge-panel-static" class="knowledge-panel-static-body" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 自定义对话框（替换原生 alert/confirm/prompt） -->
     <!-- 教师：创建课包入口（智能体 或 手动流程） -->
     <div id="course-pack-modal" class="modal">
@@ -1969,6 +2004,9 @@
             <div class="video-creator-export" style="margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
                 <button type="button" class="action-btn tertiary" id="video-export-publish-btn">
                     <i class="fa-solid fa-file-export"></i> 导出发布包（标题+弹幕+字幕模板）
+                </button>
+                <button type="button" class="action-btn tertiary" id="video-export-html-btn">
+                    <i class="fa-solid fa-file-powerpoint"></i> 导出 HTML 课件（可嵌入 PPT）
                 </button>
                 <button type="button" class="action-btn secondary" id="video-add-course-pack-btn" title="将当前视频加入我的课件列表">
                     <i class="fa-solid fa-folder-plus"></i> 加入课件包

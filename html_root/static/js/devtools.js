@@ -2,6 +2,7 @@
 
 import { RAINBOW_LIB_INFO } from './rainbow_data.js';
 import { toggleModal, showToast } from './ui.js';
+import { sanitizeMarkdownHtml } from './sanitize.js';
 
 // 全局变量保存编辑器实例
 let monacoEditor = null;
@@ -140,8 +141,7 @@ export function copyDevLatex() {
 }
 
 // --- Manim 模块 (Monaco Kernel) ---
-
-// 1. 动态加载 Monaco (解决全局冲突的核心)
+// Monaco 懒加载：仅在用户进入开发者工具时加载，减轻首屏体积
 function loadMonaco() {
     // 如果已经加载过，直接初始化
     if (window.monaco) {
@@ -374,7 +374,10 @@ export async function generateVideoCopy() {
         }
         currentVideoCopy = data.copy;
         if (window.marked && typeof window.marked.parse === 'function') {
-            contentEl.innerHTML = `<div class="markdown-body agent-reply-content">${window.marked.parse(currentVideoCopy)}</div>`;
+            // 生成 Markdown 再做一次基础 XSS 清洗，避免脚本注入
+            const rawHtml = window.marked.parse(currentVideoCopy);
+            const safe = sanitizeMarkdownHtml(rawHtml);
+            contentEl.innerHTML = `<div class="markdown-body agent-reply-content">${safe}</div>`;
             if (typeof window.typesetAgentMath === 'function') window.typesetAgentMath(contentEl);
         } else {
             contentEl.innerHTML = `<pre style="white-space:pre-wrap; font-family:inherit;">${currentVideoCopy}</pre>`;
@@ -663,7 +666,8 @@ function renderImportScripts() {
                 if (videoCopy && marked) {
                     const preview = document.createElement('div');
                     preview.className = 'import-item-preview markdown-body';
-                    preview.innerHTML = marked.parse(videoCopy.slice(0, 1500));
+                    const raw = marked.parse(videoCopy.slice(0, 1500));
+                    preview.innerHTML = sanitizeMarkdownHtml(raw);
                     if (typesetMath) typesetMath(preview);
                     btn.appendChild(preview);
                 }
@@ -843,3 +847,4 @@ export function switchImportTab(tab) {
     if (tab === 'scripts') renderImportScripts();
     else renderImportRainbow();
 }
+

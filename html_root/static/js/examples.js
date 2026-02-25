@@ -1327,6 +1327,60 @@ function exportPublishPack() {
         .catch(() => { if (typeof showToast === 'function') showToast('获取弹幕失败', 'error'); });
 }
 
+/** 教师：导出 HTML 课件（内嵌当前视频播放器，方便直接插入 PPT 或单独展示） */
+function exportHtmlCourseware() {
+    if (!currentVideoId) return;
+    const videoEl = document.getElementById('example-video-player');
+    const titleEl = document.getElementById('video-modal-title');
+    const descEl = document.getElementById('video-modal-desc');
+    const title = (titleEl && titleEl.innerText) ? titleEl.innerText.trim() : '数学可视化课件';
+    const description = (descEl && descEl.innerText) ? descEl.innerText.trim() : '';
+    const src = videoEl && videoEl.currentSrc ? videoEl.currentSrc : (videoEl && videoEl.src ? videoEl.src : '');
+    if (!src) {
+        if (typeof showToast === 'function') showToast('当前视频地址不可用，无法导出课件', 'error');
+        return;
+    }
+
+    // 简单的独立 HTML 页面：内嵌响应式视频播放器与标题说明，可直接在浏览器打开或插入到 PPT 的 Web 控件中
+    const safeTitle = title.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const safeDesc = description.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>${safeTitle}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; padding:1.5rem; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#020617; color:#e5e7eb; }
+    .wrap { max-width:960px; margin:0 auto; }
+    h1 { font-size:1.6rem; margin-bottom:0.75rem; }
+    p.desc { font-size:0.95rem; color:#9ca3af; margin-bottom:1.25rem; }
+    .player-frame { position:relative; width:100%; padding-top:56.25%; border-radius:0.75rem; overflow:hidden; box-shadow:0 18px 45px rgba(15,23,42,0.8); background:#020617; }
+    .player-frame video { position:absolute; top:0; left:0; width:100%; height:100%; object-fit:contain; background:#020617; }
+    .hint { margin-top:1rem; font-size:0.8rem; color:#9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>${safeTitle}</h1>
+    ${safeDesc ? `<p class="desc">${safeDesc}</p>` : ''}
+    <div class="player-frame">
+      <video src="${src}" controls playsinline></video>
+    </div>
+    <p class="hint">提示：可将此 HTML 文件直接拖入浏览器播放，或在 PowerPoint / Keynote 中通过“插入对象/网页”嵌入展示。</p>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'courseware_' + (currentVideoId || 'video') + '_' + Date.now() + '.html';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof showToast === 'function') showToast('HTML 课件已下载', 'success');
+}
+
 /** 教师：将当前视频加入课件包（自动为用户创建默认课件包） */
 async function addCurrentVideoToCoursePack() {
     if (!currentVideoId) return;
@@ -1775,6 +1829,10 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
     const exportPublishBtn = document.getElementById('video-export-publish-btn');
     if (exportPublishBtn) {
         exportPublishBtn.onclick = () => exportPublishPack();
+    }
+    const exportHtmlBtn = document.getElementById('video-export-html-btn');
+    if (exportHtmlBtn) {
+        exportHtmlBtn.onclick = () => exportHtmlCourseware();
     }
     const addCoursePackBtn = document.getElementById('video-add-course-pack-btn');
     if (addCoursePackBtn) {

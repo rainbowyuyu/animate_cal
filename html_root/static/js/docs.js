@@ -1,6 +1,7 @@
 // static/js/docs.js
 
 import { toggleModal } from './ui.js';
+import { sanitizeMarkdownHtml } from './sanitize.js';
 
 const MARKED_CDN = 'https://cdn.jsdelivr.net/npm/marked/marked.min.js';
 const LOAD_TIMEOUT_MS = 6000;   // 文档/Marked 加载超时（毫秒），超时后不再等待
@@ -112,7 +113,8 @@ export async function openDoc(fileName, title, scrollToId) {
                 breaks: true
             });
 
-            const html = window.marked.parse(markdownText);
+            const rawHtml = window.marked.parse(markdownText);
+            const html = sanitizeMarkdownHtml(rawHtml);
             contentEl.innerHTML = html;
 
             // 5. 代码高亮
@@ -142,6 +144,36 @@ export async function openDoc(fileName, title, scrollToId) {
                     h2.setAttribute('data-update-heading', 'true');
                     versionHeadings.push({ id, text });
                 });
+
+                // 辅助：根据 id 或版本号模糊查找对应 h2（容错 update-v-0.3.5 等写法）
+                const findUpdateHeading = (headingId) => {
+                    if (!headingId) return null;
+                    // 使用属性选择器避免 id 中的 "." 等特殊字符导致 querySelector 报错
+                    const safeId = headingId.replace(/"/g, '\\"');
+                    try {
+                        const direct = contentEl.querySelector('[id="' + safeId + '"]');
+                        if (direct) return direct;
+                    } catch (_) {
+                        // 忽略 selector 解析错误，继续尝试按版本号匹配
+                    }
+                    // 若传入 update-v-0.3.5 等形式，尝试按版本号匹配
+                    if (headingId.startsWith('update-v-')) {
+                        const verStr = headingId.replace(/^update-/, '').toLowerCase().replace(/\s+/g, '');
+                        const match = versionHeadings.find(v => {
+                            const norm = (v.text || '').toLowerCase().replace(/\s+/g, '');
+                            return norm.includes(verStr);
+                        });
+                        if (match && match.id) {
+                            const safeMatchId = match.id.replace(/"/g, '\\"');
+                            try {
+                                return contentEl.querySelector('[id="' + safeMatchId + '"]');
+                            } catch (_) {
+                                return null;
+                            }
+                        }
+                    }
+                    return null;
+                };
                 const versionRegex = /^v\s*0\.\d+\.\d+/i;
                 const jumpHeadings = versionHeadings.filter((v) => versionRegex.test(v.text));
                 if (jumpHeadings.length > 0) {
@@ -153,10 +185,10 @@ export async function openDoc(fileName, title, scrollToId) {
                     jumpBar.querySelectorAll('.docs-update-jump-btn').forEach((btn) => {
                         btn.addEventListener('click', () => {
                             const id = btn.dataset.id;
-                            const target = contentEl.querySelector('#' + id);
+                            const target = findUpdateHeading(id);
                             if (target) {
                                 scrollToAndHighlight(contentEl, target);
-                                setUpdateJumpActive(contentEl, id);
+                                setUpdateJumpActive(contentEl, target.id);
                             }
                         });
                     });
@@ -171,42 +203,17 @@ export async function openDoc(fileName, title, scrollToId) {
                         e.stopPropagation();
                         if (id.startsWith('section-')) {
                             // 结构: #section-<section>[-子定位]，例如：
-                            // - #section-devtools           → sectionId=devtools，默认 devtool=rainbow
-                            // - #section-devtools-rainbow   → sectionId=devtools，devtool=rainbow
-                            // - #section-home-roles         → sectionId=home，高亮 id=section-home-roles
+                            // - #section-examples           → sectionId=examples，高亮 #section-examples
+                            // - #section-examples-filter    → sectionId=examples，高亮 #section-examples-filter
+                            // - #section-devtools-rainbow   → sectionId=devtools，高亮 #section-devtools-rainbow（若存在）
                             const rest = id.slice('section-'.length); // 去掉前缀 'section-'
                             const parts = rest.split('-');
                             const sectionId = parts[0] || 'home';
-                            const highlightId = parts.length > 1 ? id : null;
+                            const highlightId = id; // 始终尝试高亮锚点对应的元素
                             closeDocsModal();
                             if (typeof window.closeSettings === 'function') window.closeSettings();
                             if (typeof window.showSection === 'function') {
                                 window.showSection(sectionId);
-                                // 基于不同 sectionId 更新 URL 查询参数，支持 ?section=...&devtool=... 等精确定位
-                                try {
-                                    const url = new URL(window.location.href);
-                                    if (sectionId) {
-                                        url.searchParams.set('section', sectionId);
-                                    }
-                                    // 针对开发者工具：支持 ?section=devtools&devtool=xxx
-                                    if (sectionId === 'devtools') {
-                                        // 子参数优先：section-devtools-rainbow / section-devtools-manim
-                                        let devtool = parts[1] || 'rainbow';
-                                        // 只接受已知值，避免拼写错误导致异常
-                                        if (!['latex', 'manim', 'rainbow'].includes(devtool)) {
-                                            devtool = 'rainbow';
-                                        }
-                                        url.searchParams.set('devtool', devtool);
-                                        if (typeof window.switchDevTool === 'function') {
-                                            window.switchDevTool(devtool);
-                                        }
-                                    } else {
-                                        url.searchParams.delete('devtool');
-                                    }
-                                    window.history.replaceState({}, '', url.toString());
-                                } catch (e) {
-                                    // 忽略 URL 更新异常，保持基本跳转可用
-                                }
                                 if (highlightId) {
                                     const scrollToHighlight = () => {
                                         const el = document.getElementById(highlightId);
@@ -224,18 +231,18 @@ export async function openDoc(fileName, title, scrollToId) {
                             }
                             return;
                         }
-                        const target = contentEl.querySelector('#' + id);
+                        const target = findUpdateHeading(id) || contentEl.querySelector('#' + id);
                         if (target) {
                             scrollToAndHighlight(contentEl, target);
-                            if (target.getAttribute('data-update-heading') === 'true' && id.startsWith('update-')) {
-                                setUpdateJumpActive(contentEl, id);
+                            if (target.getAttribute('data-update-heading') === 'true' && target.id.startsWith('update-')) {
+                                setUpdateJumpActive(contentEl, target.id);
                             }
                         }
                     });
                     link.classList.add('docs-internal-link');
                 });
                 // 滚动：若传入 scrollToId 则定位到该处，否则定位到最新版本
-                const scrollTarget = scrollToId ? contentEl.querySelector('#' + scrollToId) : null;
+                const scrollTarget = scrollToId ? (findUpdateHeading(scrollToId) || contentEl.querySelector('#' + scrollToId)) : null;
                 const lastVersion = h2s[h2s.length - 1];
                 const toScroll = scrollTarget || lastVersion;
                 if (toScroll) {

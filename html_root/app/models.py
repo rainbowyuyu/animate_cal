@@ -14,6 +14,8 @@ class CalcModel(BaseModel):
     matrixA: str
     matrixB: str
     operation: str
+    # 可选：来自识别页的视觉描述 Prompt，用于给 Manim 生成代码时补充几何/结构信息
+    vision_prompt: Optional[str] = None
 
 
 class FormulaModel(BaseModel):

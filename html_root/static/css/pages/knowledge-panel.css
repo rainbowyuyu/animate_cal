@@ -1,0 +1,711 @@
+/* static/css/pages/knowledge-panel.css - 智算星云浮动面板样式 */
+
+/* ========== 掌握度进度条（我的算式页 dynamic 区域）========== */
+.knowledge-progress-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.knowledge-progress-item {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.06));
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.knowledge-progress-item:hover {
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.knowledge-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    gap: 0.5rem;
+}
+
+.knowledge-tag-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+}
+
+.knowledge-tag-meta {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.knowledge-progress-bar {
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.knowledge-progress-inner {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme="dark"] .knowledge-progress-item {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.08));
+}
+
+[data-theme="dark"] .knowledge-progress-item:hover {
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.12);
+}
+
+/* ========== 展开态：顶部 Logo ========== */
+.knowledge-panel-header-logo {
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.knowledge-panel-header-logo img {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    display: inline-block;
+}
+
+/* 折叠态 */
+#knowledge-panel.collapsed {
+    padding: 0 !important;
+}
+
+/* 折叠小球 */
+#knowledge-panel-bubble {
+    min-width: 0;
+    min-height: 0;
+}
+
+.knowledge-panel-bubble-inner {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+    background: var(--bg-surface);
+    overflow: hidden;
+}
+
+.knowledge-panel-bubble-inner img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+#knowledge-panel.collapsed .knowledge-panel-bubble-inner {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+}
+
+/* ========== 可滚动、不超出视窗 ========== */
+.knowledge-panel-content-scroll {
+    display: flex;
+    flex-direction: column;
+    max-height: min(70vh, 520px);
+    overflow: hidden;
+}
+
+.knowledge-panel-body-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 2px;
+}
+
+.knowledge-panel-body-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.knowledge-panel-body-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.knowledge-panel-body-scroll::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.35);
+    border-radius: 999px;
+}
+
+.knowledge-panel-body-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.5);
+}
+
+/* ========== 统计与快捷入口 ========== */
+.knowledge-panel-body {
+    min-height: 60px;
+}
+
+.knowledge-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.knowledge-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.4rem 0.65rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.05));
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 10px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.knowledge-stat-item:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.knowledge-stat-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    line-height: 1.2;
+}
+
+.knowledge-stat-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+.knowledge-panel-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.35), transparent);
+    margin: 0.6rem 0 0.75rem;
+}
+
+/* ========== 成就式图表 ========== */
+.knowledge-achievement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 0.75rem;
+}
+
+.knowledge-achievement-item {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.05));
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.knowledge-achievement-item:hover {
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+}
+
+.knowledge-achievement-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+    gap: 0.5rem;
+}
+
+.knowledge-achievement-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-main);
+}
+
+.knowledge-achievement-label i {
+    color: var(--primary-color);
+    font-size: 0.8rem;
+}
+
+.knowledge-achievement-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.knowledge-achievement-bar {
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.knowledge-achievement-bar-inner {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 环形进度 */
+.knowledge-ring-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.knowledge-ring-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.knowledge-ring-item:hover {
+    transform: scale(1.08);
+}
+
+.knowledge-ring-svg {
+    width: 44px;
+    height: 44px;
+    transform: rotate(-90deg);
+}
+
+.knowledge-ring-bg {
+    fill: none;
+    stroke: var(--bg-input);
+    stroke-width: 4;
+}
+
+.knowledge-ring-fill {
+    fill: none;
+    stroke: var(--primary-color);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.knowledge-ring-label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+/* 多栏并排条状图 */
+.knowledge-multibar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.knowledge-multibar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.2rem 0;
+    border-radius: 6px;
+    transition: background 0.25s ease;
+}
+
+.knowledge-multibar-row:hover {
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.knowledge-multibar-label {
+    flex: 0 0 72px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.knowledge-multibar-track {
+    flex: 1;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.knowledge-multibar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.knowledge-multibar-value {
+    flex: 0 0 24px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    text-align: right;
+}
+
+/* 星云气泡 */
+.knowledge-cloud-bubbles {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+    margin-bottom: 0.75rem;
+    padding: 0.6rem 0.5rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(124, 58, 237, 0.03));
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    position: relative;
+}
+
+.knowledge-bubble {
+    display: inline-block;
+    width: var(--size, 12px);
+    height: var(--size, 12px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, hsl(var(--hue, 220), 70%, 75%), hsl(var(--hue, 220), 55%, 50%));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    cursor: default;
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+}
+
+.knowledge-bubble:hover {
+    transform: scale(1.35);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.knowledge-bubble::after {
+    content: attr(data-label) ': ' attr(data-value);
+    position: absolute;
+    left: 50%;
+    bottom: 100%;
+    transform: translate(-50%, -6px);
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--bg-surface);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.knowledge-bubble:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -8px);
+}
+
+.knowledge-cloud-hint {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+/* 里程碑提示 */
+.knowledge-milestone-hint {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.06), transparent);
+    border-left: 3px solid rgba(34, 197, 94, 0.5);
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 0.75rem;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.knowledge-milestone-hint:hover {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.1), transparent);
+    border-left-color: rgba(34, 197, 94, 0.7);
+}
+
+.knowledge-milestone-hint i {
+    color: #22c55e;
+    flex-shrink: 0;
+}
+
+/* 成就徽章 */
+.knowledge-badge-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.knowledge-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.65rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(124, 58, 237, 0.08));
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 10px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.knowledge-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+
+.knowledge-badge.unlocked {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.05));
+    animation: knowledge-badge-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes knowledge-badge-glow {
+    0%, 100% { box-shadow: 0 2px 8px rgba(34, 197, 94, 0.15); }
+    50% { box-shadow: 0 2px 12px rgba(34, 197, 94, 0.25); }
+}
+
+.knowledge-badge.unlocked:hover {
+    box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+    animation: none;
+}
+
+.knowledge-badge.unlocked i {
+    color: #22c55e;
+}
+
+.knowledge-badge i {
+    font-size: 1rem;
+    color: var(--primary-color);
+}
+
+.knowledge-badge span {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+/* 我的算式页 dynamic 区域：标签云 */
+.knowledge-cloud-tag {
+    font-size: 0.8rem;
+}
+
+/* Dark theme */
+[data-theme="dark"] .knowledge-achievement-item:hover,
+[data-theme="dark"] .knowledge-achievement-item {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.06));
+}
+
+[data-theme="dark"] .knowledge-stat-item {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.06));
+    border-color: rgba(148, 163, 184, 0.15);
+}
+
+[data-theme="dark"] .knowledge-stat-item:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 2px 10px rgba(59, 130, 246, 0.1);
+}
+
+/* 快捷入口 */
+.knowledge-panel-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.knowledge-shortcut-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(124, 58, 237, 0.08));
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.knowledge-shortcut-btn:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(124, 58, 237, 0.12));
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.knowledge-shortcut-btn.full {
+    width: 100%;
+    justify-content: center;
+}
+
+.knowledge-panel-tips {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.knowledge-panel-tips p {
+    margin: 0 0 0.6rem;
+}
+
+.knowledge-panel-tips ul {
+    margin: 0 0 0.85rem;
+    padding-left: 1.1rem;
+}
+
+.knowledge-panel-tips li {
+    margin-bottom: 0.25rem;
+}
+
+.knowledge-panel-tips .knowledge-shortcut-btn {
+    margin-top: 0.5rem;
+}
+
+[data-theme="dark"] .knowledge-shortcut-btn {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.08));
+    border-color: rgba(59, 130, 246, 0.35);
+}
+
+[data-theme="dark"] .knowledge-shortcut-btn:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15));
+}
+
+/* 首屏淡入 */
+.knowledge-panel-global {
+    animation: knowledgePanelFadeIn 0.5s ease-out;
+}
+
+@keyframes knowledgePanelFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ========== 手机端 ========== */
+@media (max-width: 768px) {
+    #knowledge-panel {
+        right: max(1rem, env(safe-area-inset-right)) !important;
+        bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+        left: max(1rem, env(safe-area-inset-left)) !important;
+        width: auto !important;
+        max-width: none !important;
+        padding: 1rem 1.1rem !important;
+        padding-bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 -4px 24px rgba(15, 23, 42, 0.25), 0 0 0 1px var(--border-color) !important;
+        max-height: 45vh;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #knowledge-panel.collapsed {
+        right: max(1rem, env(safe-area-inset-right)) !important;
+        bottom: max(1rem, env(safe-area-inset-bottom)) !important;
+        left: auto !important;
+        width: 56px !important;
+        height: 56px !important;
+        padding: 0 !important;
+        border-radius: 50% !important;
+    }
+
+    .knowledge-panel-header-logo img {
+        width: 40px;
+        height: 40px;
+    }
+
+    .knowledge-panel-bubble-inner {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
+    }
+
+    #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
+    }
+
+    .knowledge-panel-bubble-inner img {
+        width: 26px;
+        height: 26px;
+    }
+
+    #knowledge-panel-content #knowledge-panel-header h3 {
+        font-size: 0.9rem !important;
+    }
+
+    #knowledge-panel-content #knowledge-panel-header p {
+        font-size: 0.72rem !important;
+    }
+
+    .knowledge-progress-item {
+        padding: 0.5rem 0.65rem;
+    }
+
+    .knowledge-tag-label {
+        font-size: 0.85rem;
+    }
+
+    .knowledge-tag-meta {
+        font-size: 0.72rem;
+    }
+
+    .knowledge-progress-bar {
+        height: 5px;
+    }
+
+    .knowledge-cloud-tag {
+        font-size: 0.75rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    #knowledge-panel {
+        right: max(0.75rem, env(safe-area-inset-right)) !important;
+        bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+        left: max(0.75rem, env(safe-area-inset-left)) !important;
+        padding: 0.9rem 1rem !important;
+        padding-bottom: max(0.9rem, calc(env(safe-area-inset-bottom) + 0.5rem)) !important;
+        border-radius: 12px !important;
+        max-height: 50vh;
+    }
+
+    #knowledge-panel.collapsed {
+        right: max(0.75rem, env(safe-area-inset-right)) !important;
+        bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
+        width: 50px !important;
+        height: 50px !important;
+    }
+
+    .knowledge-panel-bubble-inner {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+
+    #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        min-height: 48px;
+    }
+}

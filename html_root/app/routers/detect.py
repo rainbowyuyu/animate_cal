@@ -45,9 +45,12 @@ def _run_manim_subprocess_sync(cmd_list, cwd, put_fn):
         put_fn(("done", -1, str(ex) or repr(ex)))
 
 
-def generate_manim_prompt(latex_a, latex_b, operation):
+def generate_manim_prompt(latex_a, latex_b, operation, vision_prompt: str | None = None):
     op_desc = {"formular": "公式推演", "visualization": "可视化演示", "normal": "通用演示", "solution": "完整解题演示"}.get(operation, "数学展示")
-    return return_prompt(op_desc, latex_a, latex_b)
+    extra = {}
+    if vision_prompt and isinstance(vision_prompt, str):
+        extra["vision_prompt"] = vision_prompt
+    return return_prompt(op_desc, latex_a, latex_b, **extra)
 
 
 def _inject_autoscale_into_construct(code: str) -> str:
@@ -123,20 +126,49 @@ async def detect_image(file: UploadFile = File(...)):
         image_content = await file.read()
         base64_image = base64.b64encode(image_content).decode("utf-8")
         if not api_key:
+            # 未配置大模型时，降级为仅返回一个简单公式，不提供视觉描述
             return {"status": "success", "latex": r"E = mc^2"}
+
+        # 使用多模态大模型一次性返回：
+        # - latex: 识别出的 LaTeX 公式
+        # - vision_prompt: 面向后续 Manim 代码生成的几何/结构自然语言描述
+        prompt_text = (
+            "你是一名数学视觉理解助手。请仔细观察图片中的公式和几何/图像结构，输出一个 JSON 对象：\n"
+            '{ "latex": "...", "vision_prompt": "..." }\n\n'
+            "- latex：只包含主要的数学表达式或题目中的核心公式，使用标准 LaTeX，不要任何解释或多余文字；\n"
+            "- vision_prompt：用中文简洁描述图像中的空间/几何/函数关系，例如坐标轴、曲线形状、圆/直线/点的位置关系等，"
+            "便于后续根据该描述生成 Manim 动画（不要写成解题步骤，只描述“画面里有哪些对象、它们大致长什么样、彼此关系如何”）。\n"
+            "务必保证输出是合法的 JSON，且只输出这一行 JSON，不要解释。"
+        )
         completion = client.chat.completions.create(
             model="qwen-vl-max",
             messages=[{
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "识别图片中的公式，只输出LaTeX代码。"},
+                    {"type": "text", "text": prompt_text},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
                 ],
             }],
         )
-        latex = completion.choices[0].message.content.strip()
+        raw = completion.choices[0].message.content.strip()
+        # 兼容 ```json ... ``` 包裹的情况
+        if "```" in raw:
+            parts = raw.split("```")
+            if len(parts) >= 2:
+                raw = parts[1]
+            raw = raw.replace("json", "").strip()
+        vision_prompt = None
+        try:
+            parsed = json.loads(raw)
+            latex = str(parsed.get("latex", "")).strip()
+            vision_prompt = str(parsed.get("vision_prompt", "")).strip() or None
+        except Exception:
+            # JSON 解析失败则退化到旧逻辑：整个内容视为 LaTeX，仅做简单清洗
+            latex = raw
+            vision_prompt = None
+
         latex = latex.replace("```latex", "").replace("```", "").replace("\\[", "").replace("\\]", "").strip()
-        return {"status": "success", "latex": latex}
+        return {"status": "success", "latex": latex, "vision_prompt": vision_prompt}
     except Exception as e:
         return {"status": "success", "latex": r"\text{Error}"}
 
@@ -179,12 +211,96 @@ async def generate_animation_stream(data: CalcModel):
         except Exception as e:
             logger.warning(f"Text result fallback: {e}")
 
+        async def generate_preview_image(py_path: str, task_id: str, part_label: str | None = None, phase_name_text: str = ""):
+            """
+            使用 Manim 先快速渲染一张关键帧预览图，缓解等待视频渲染时的空窗。
+            - 单阶段：task_id_preview.png
+            - 双阶段：task_id_calc_preview.png / task_id_vis_preview.png
+            失败时返回 None，不影响主渲染流程。
+            """
+            preview_suffix = f"_{part_label}" if part_label else ""
+            preview_file = f"{task_id}{preview_suffix}_preview.png"
+            media_dir = os.path.abspath(VIDEOS_DIR)
+            cmd = [
+                sys.executable,
+                "-m",
+                "manim",
+                "-ql",
+                "-s",
+                "--media_dir",
+                media_dir,
+                "-o",
+                preview_file,
+                os.path.abspath(py_path),
+                "GenScene",
+            ]
+            loop = asyncio.get_event_loop()
+            try:
+                proc = await loop.run_in_executor(
+                    None,
+                    lambda: subprocess.run(
+                        cmd,
+                        capture_output=True,
+                        text=True,
+                        encoding="utf-8",
+                        timeout=60,
+                    ),
+                )
+            except Exception as e:
+                logger.warning(
+                    "Preview frame subprocess error (%s): %s",
+                    phase_name_text or "single",
+                    e,
+                )
+                return None
+
+            if proc.returncode != 0:
+                short_err = (proc.stderr or "")[-300:]
+                logger.warning(
+                    "Preview frame generation failed (%s): %s",
+                    phase_name_text or "single",
+                    short_err,
+                )
+                return None
+
+            def locate_preview() -> str | None:
+                for root, _, files in os.walk(media_dir):
+                    if preview_file in files:
+                        return os.path.join(root, preview_file)
+                return None
+
+            src = locate_preview()
+            if not src:
+                return None
+
+            final_path = os.path.join(VIDEOS_DIR, preview_file)
+            try:
+                os.makedirs(VIDEOS_DIR, exist_ok=True)
+            except Exception:
+                pass
+
+            try:
+                import shutil
+
+                if os.path.abspath(src) != os.path.abspath(final_path):
+                    shutil.move(src, final_path)
+            except Exception as e:
+                if not os.path.exists(final_path):
+                    logger.warning(
+                        "Move preview frame failed (%s -> %s): %s", src, final_path, e
+                    )
+            return f"/videos/{preview_file}"
+
+        # 若前端从识别页携带了视觉描述 Prompt，则在生成 Manim 代码时一并传入，
+        # 帮助大模型理解图片中的几何/结构信息（如“这是单位圆”“有一条过原点的直线”等）。
+        vision_prompt_text = getattr(data, "vision_prompt", None) or ""
+
         if data.operation == "normal":
             yield f"data: {json.dumps({'step': 'normal_split', 'message': '通用演示将分两步：先计算推演，再可视化演示', 'progress': 5})}\n\n"
             for (phase_name, part, op_desc) in [("计算", "calc", "公式推演"), ("可视化", "vis", "可视化演示")]:
                 task_id = str(uuid.uuid4())
                 yield f"data: {json.dumps({'step': 'generating_code', 'message': f'正在构思「{phase_name}」Manim 代码...', 'progress': 10})}\n\n"
-                prompt = return_prompt(op_desc, data.matrixA, data.matrixB)
+                prompt = return_prompt(op_desc, data.matrixA, data.matrixB, vision_prompt=vision_prompt_text)
                 code = ""
                 try:
                     completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
@@ -206,6 +322,19 @@ async def generate_animation_stream(data: CalcModel):
                     continue
                 media_dir = os.path.abspath(VIDEOS_DIR)
                 output_file = f"{task_id}.mp4"
+
+                # 先尝试生成关键帧预览图，前端会在渲染窗口中展示出来，缓解等待视频期间的焦虑
+                try:
+                    preview_url = await generate_preview_image(
+                        py_path, task_id, part_label=part, phase_name_text=phase_name
+                    )
+                    if preview_url:
+                        yield f"data: {json.dumps({'step': 'rendering', 'message': f'「{phase_name}」已生成关键帧预览', 'progress': 35, 'preview_url': preview_url, 'part': part})}\n\n"
+                except Exception as e:
+                    logger.warning(
+                        "generate_preview_image error (%s): %s", phase_name, e
+                    )
+
                 cmd = [sys.executable, "-m", "manim", "-ql", "--media_dir", media_dir, "-o", output_file, os.path.abspath(py_path), "GenScene"]
                 yield f"data: {json.dumps({'step': 'rendering', 'message': f'「{phase_name}」Manim 渲染中...', 'progress': 40})}\n\n"
 
@@ -295,7 +424,7 @@ async def generate_animation_stream(data: CalcModel):
 
         task_id = str(uuid.uuid4())
         yield f"data: {json.dumps({'step': 'generating_code', 'message': '正在构思 Manim 代码...', 'progress': 10})}\n\n"
-        prompt = generate_manim_prompt(data.matrixA, data.matrixB, data.operation)
+        prompt = generate_manim_prompt(data.matrixA, data.matrixB, data.operation, vision_prompt=vision_prompt_text)
         code = ""
         try:
             completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
@@ -319,6 +448,17 @@ async def generate_animation_stream(data: CalcModel):
 
         media_dir = os.path.abspath(VIDEOS_DIR)
         output_file = f"{task_id}.mp4"
+
+        # 单阶段模式也先尝试生成一张关键帧预览图
+        try:
+            preview_url = await generate_preview_image(
+                py_path, task_id, part_label=None, phase_name_text="单阶段"
+            )
+            if preview_url:
+                yield f"data: {json.dumps({'step': 'rendering', 'message': '已生成关键帧预览，视频渲染中…', 'progress': 35, 'preview_url': preview_url})}\n\n"
+        except Exception as e:
+            logger.warning("generate_preview_image error (single): %s", e)
+
         py_abs_path = os.path.abspath(py_path)
         cmd = [sys.executable, "-m", "manim", "-ql", "--media_dir", media_dir, "-o", output_file, py_abs_path, "GenScene"]
         yield f"data: {json.dumps({'step': 'rendering', 'message': 'Manim 引擎启动中...', 'progress': 40})}\n\n"

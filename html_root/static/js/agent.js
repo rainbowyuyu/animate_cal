@@ -2,6 +2,7 @@
 
 import { showSection, toggleAuthModal } from './ui.js';
 import { getCurrentUser } from './auth.js';
+import { sanitizeMarkdownHtml } from './sanitize.js';
 import { getAgentEnterSend } from './settings.js';
 import { getCurrentUserAvatarUrl } from './profile.js';
 
@@ -888,13 +889,15 @@ async function executeAgentRequest(prompt, image_base64, lastUser, lastAssistant
                     const last = getMessagesEl() && getMessagesEl().querySelector('.agent-message-assistant:last-child .agent-bubble-assistant');
                     if (last) { last.innerHTML = ''; last.appendChild(streamContainer); attachBubbleClick(last); }
                 }
-                await streamTextInto(streamContainer, first.reply, { onDone: () => {
-                    const html = (window.marked && typeof window.marked.parse === 'function')
-                        ? window.marked.parse(first.reply)
-                        : replyTextToHtml(first.reply);
-                    streamContainer.innerHTML = html;
-                    typesetAgentMath(streamContainer);
-                } });
+                await streamTextInto(streamContainer, first.reply, {
+                    onDone: () => {
+                        const html = (window.marked && typeof window.marked.parse === 'function')
+                            ? sanitizeMarkdownHtml(window.marked.parse(first.reply))
+                            : replyTextToHtml(first.reply);
+                        streamContainer.innerHTML = html;
+                        typesetAgentMath(streamContainer);
+                    }
+                });
                 animateMessageAppear(streamContainer);
             } else {
                 const streamContainer = document.createElement('div');
@@ -939,13 +942,15 @@ async function executeAgentRequest(prompt, image_base64, lastUser, lastAssistant
 
                 const textToStream = replyText || '';
                 if (textToStream) {
-                    await streamTextInto(streamContainer, textToStream, { onDone: () => {
-                        const html = (window.marked && typeof window.marked.parse === 'function')
-                            ? window.marked.parse(textToStream)
-                            : replyTextToHtml(textToStream);
-                        streamContainer.innerHTML = html;
-                        typesetAgentMath(streamContainer);
-                    } });
+                    await streamTextInto(streamContainer, textToStream, {
+                        onDone: () => {
+                            const html = (window.marked && typeof window.marked.parse === 'function')
+                                ? sanitizeMarkdownHtml(window.marked.parse(textToStream))
+                                : replyTextToHtml(textToStream);
+                            streamContainer.innerHTML = html;
+                            typesetAgentMath(streamContainer);
+                        }
+                    });
                 } else {
                     stepDescWrap.style.marginTop = '0';
                 }

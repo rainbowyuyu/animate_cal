@@ -143,14 +143,26 @@ export async function processRecognition() {
 
         if (data.status === 'success') {
             // 2. 成功：填充内容并激活按钮
-            if(mathField.setValue) mathField.setValue(data.latex);
-            if(codeArea) codeArea.value = data.latex;
+            if (mathField.setValue) mathField.setValue(data.latex);
+            if (codeArea) codeArea.value = data.latex;
 
             setButtonsState(true); // <--- 关键：激活按钮
 
+            // 将识别结果中由后端生成的「视觉描述 Prompt」暂存，供动态计算页复用
+            // 这样从 detect → calculate 不仅传 LaTeX，还能携带对几何/结构关系的自然语言描述
+            try {
+                if (data.vision_prompt && typeof sessionStorage !== 'undefined') {
+                    sessionStorage.setItem('last_detect_vision_prompt', String(data.vision_prompt));
+                } else if (typeof sessionStorage !== 'undefined') {
+                    sessionStorage.removeItem('last_detect_vision_prompt');
+                }
+            } catch (e) {
+                console.warn('persist vision_prompt failed', e);
+            }
+
             // 成功提示效果
             const container = document.querySelector('.result-panel');
-            if(container) {
+            if (container) {
                 container.style.boxShadow = "0 0 0 2px var(--primary-color)";
                 setTimeout(() => container.style.boxShadow = "", 1000);
             }

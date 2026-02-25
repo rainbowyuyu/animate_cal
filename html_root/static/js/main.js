@@ -14,12 +14,15 @@ import * as DevTools from './devtools.js';
 import * as Agent from './agent.js';
 import * as Profile from './profile.js';
 import * as ImageEditor from './image-editor.js';
+import * as KnowledgePanel from './knowledge-panel.js';
 import * as MathLiveKeyboard from './mathlive/mathlive-keyboard.js';
 import * as MathLiveMenu from './mathlive/mathlive-menu.js';
 import * as MathLiveLocale from './mathlive/mathlive-locale.js';
 
 // 将常用 UI 能力挂到 window，便于各处统一使用（如 Toast）
 window.showToast = UI.showToast;
+
+window._initPhase = true;  // 初始化阶段（URL 直接进入某 section）结束后置为 false
 
 // 1. 解析URL参数的工具函数（通用可复用）
 function getUrlParams() {
@@ -119,11 +122,6 @@ function initCanvasLockButton() {
     const label = document.getElementById('canvas-lock-label');
     if (!btn || !icon || !label) return;
     
-    // 检测是否为移动设备
-    function isMobileDevice() {
-        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    }
-    
     // 更新按钮显示状态（仅在移动端显示）
     function updateButtonVisibility() {
         if (isMobileDevice()) {
@@ -161,18 +159,31 @@ function initCanvasLockButton() {
     window.addEventListener('settings-changed', updateButtonState);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// 顶层设备判断：在多个初始化逻辑中复用
+function isMobileDevice() {
+  return window.innerWidth <= 768 ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const mobile = isMobileDevice();
+
     Canvas.setupCanvas();
     if (typeof window.currentToolType === 'undefined') window.currentToolType = 'pen';
     UI.showSection('home');
-    Auth.initAuth();
+    await Auth.initAuth();  // 等待鉴权完成，确保首屏时已登录用户的信息已写入 DOM
     Settings.initSettings();
     initCanvasLockButton();
     Detect.initDetectListeners();
     Tutorial.checkAutoPlay();
     Examples.loadExamples(); // 加载案例
     Theme.initTheme();
-    DevTools.initDevTools();
+
+    // PC / 平板端：初始化开发者工具工作台；移动端作为「采集器和播放器」，不主动加载代码工作台
+    if (!mobile) {
+        DevTools.initDevTools();
+    }
+
     Agent.initAgent();
     Profile.initProfile();
     window.Profile = Profile;
@@ -204,17 +215,80 @@ document.addEventListener('DOMContentLoaded', () => {
           setTimeout(() => Examples.playExampleByVideoId(params.video, params.t), 400);
         }
       }
-      // 若存在devtool参数，执行switchDevTool
-      if (params.devtool) {
+      KnowledgePanel.refreshKnowledgePanel(params.section || 'home');  // 智算星云：首屏即现，按当前 section 展示
+      // 若存在devtool参数，执行switchDevTool（仅非移动端生效）
+      if (params.devtool && !mobile) {
         switchDevTool(params.devtool);
       }
     initNavSearch();
+
+    // 初始化阶段结束，之后跳转到「我的算式」时将允许显示知识星云
+    setTimeout(() => { window._initPhase = false; }, 0);
+
+    // 移动端：弱化「开发者工具」入口，仅在大屏设备提供代码编辑与云端工作台
+    if (mobile) {
+      document.querySelectorAll('.nav-btn[onclick*=\"devtools\"]').forEach((btn) => {
+        btn.style.display = 'none';
+      });
+      document.querySelectorAll('.mobile-nav-links button[onclick*=\"devtools\"]').forEach((btn) => {
+        btn.style.display = 'none';
+      });
+    }
 
     // 新增功能条：若用户曾关闭则不再显示
     if (localStorage.getItem('agent_banner_closed')) {
       const el = document.getElementById('agent-update-banner');
       if (el) el.style.display = 'none';
     }
+
+    // 用户登录后刷新智算星云
+    window.addEventListener('auth-state-change', () => {
+      const active = document.querySelector('.section.active-section');
+      KnowledgePanel.refreshKnowledgePanel(active ? active.id : 'home');
+    });
+
+    // 知识星云浮动面板：绑定关闭与重新展开逻辑
+    (function initKnowledgePanelToggle() {
+      const panel = document.getElementById('knowledge-panel');
+      const header = document.getElementById('knowledge-panel-header');
+      const closeBtn = document.getElementById('knowledge-panel-close-btn');
+      const bubble = document.getElementById('knowledge-panel-bubble');
+      const content = document.getElementById('knowledge-panel-content');
+      if (!panel || !header || !closeBtn || !bubble || !content) return;
+
+      function expandPanel() {
+        panel.classList.remove('collapsed');
+        panel.style.width = '320px';
+        panel.style.height = '';
+        bubble.style.display = 'none';
+        content.style.display = 'flex';  // 保持 flex 以让内部可滚动区正确计算高度
+        panel.title = '';
+      }
+
+      function collapsePanel() {
+        // 折叠为小球：仅显示 Logo，小球本身带有提示文字
+        panel.classList.add('collapsed');
+        panel.style.display = 'block';
+        panel.style.width = '56px';
+        panel.style.height = '56px';
+        content.style.display = 'none';
+        bubble.style.display = 'flex';
+        panel.title = '点击打开知识星云';
+      }
+
+      // 关闭按钮：折叠为悬浮球
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        collapsePanel();
+      });
+
+      // 点击整块时：若当前为折叠状态则展开
+      panel.addEventListener('click', () => {
+        if (panel.classList.contains('collapsed')) {
+          expandPanel();
+        }
+      });
+    })();
 });
 
 // 关闭顶部“新功能：智能体”条，并记住选择
@@ -536,6 +610,14 @@ window.deleteFormula = Formulas.deleteFormula;
 
 // --- 其他挂载 ---
 window.showSection = (sectionId) => {
+    // 移动端禁止进入开发者工具：提示用户改用电脑/平板
+    if (sectionId === 'devtools' && isMobileDevice()) {
+        if (window.showToast) {
+            window.showToast('开发者工具仅在电脑或平板端提供，请在大屏设备上使用。', 'info');
+        }
+        sectionId = 'home';
+    }
+
     UI.showSection(sectionId);
     if (sectionId === 'detect') {
         setTimeout(() => Canvas.resizeCanvas(), 50);
@@ -556,6 +638,9 @@ window.showSection = (sectionId) => {
         if (window.switchDevTool) window.switchDevTool(tab);
     }
     if (sectionId === 'agent' && Agent.refreshAgentGate) Agent.refreshAgentGate();
+
+    // 智算星云：全局浮动，按页面切换内容
+    KnowledgePanel.refreshKnowledgePanel(sectionId);
 };
 
 window.toggleAuthModal = UI.toggleAuthModal;

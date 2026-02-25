@@ -629,6 +629,7 @@ footer {
 @media (max-width: 768px) {
     .container {
         padding: 0 1rem;
+        margin-bottom: 6rem;  /* 智算星云全局显示，为主内容预留底部空间 */
     }
 
     .hero { padding: 3rem 0; }

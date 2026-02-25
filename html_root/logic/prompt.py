@@ -16,6 +16,15 @@ def return_prompt(
 
 def solution_visualization_prompt(problem_text, **kwargs):
     """生成「完整解题过程」的 Manim 演示：题目、各选项极限/结论、答案；可画图题目以画图为主。"""
+    vision_prompt = kwargs.get("vision_prompt") or ""
+    vision_block = ""
+    if vision_prompt.strip():
+        vision_block = (
+            "\n【来自图片的几何/结构描述（供你理解画面，不要原样输出）】\n"
+            + vision_prompt.strip()
+            + "\n\n"
+        )
+
     return f"""
 你是一名 **Manim Community Edition（v0.18+）动画工程专家**。本任务要求根据下方给出的**完整题目与解题分析**，
 生成**完整解题方案的可视化演示**：依次展示题目、各选项及其极限（或结论）、最终答案。**能画图的题目以画图为主**（如函数图像、极限趋势），给用户直观的可视化。
@@ -26,6 +35,8 @@ def solution_visualization_prompt(problem_text, **kwargs):
 
 【完整题目与解题分析】
 {problem_text}
+
+{vision_block}
 
 ---
 
@@ -95,6 +106,15 @@ def formular_prompt(
         latex_b,
         **kwargs
 ):
+    vision_prompt = kwargs.get("vision_prompt") or ""
+    vision_block = ""
+    if vision_prompt.strip():
+        vision_block = (
+            "\n【来自图片的几何/结构描述（供你理解画面，不要原样输出）】\n"
+            + vision_prompt.strip()
+            + "\n\n"
+        )
+
     return f"""
 你是一名 **Manim Community Edition（v0.18+）动画工程专家**，精通使用 Python 将**数学推导过程**转化为
 **结构严谨、视觉清晰、符合教学直觉**的动画。
@@ -111,6 +131,8 @@ def formular_prompt(
 
 【输入公式 A（LaTeX）】
 {latex_a}
+
+{vision_block}
 
 ---
 
@@ -234,6 +256,15 @@ self.play(Create(box))
 
 
 def visualization_prompt(latex_a, latex_b, **kwargs):
+    vision_prompt = kwargs.get("vision_prompt") or ""
+    vision_block = ""
+    if vision_prompt.strip():
+        vision_block = (
+            "\n【来自图片的几何/结构描述（供你理解画面，不要原样输出）】\n"
+            + vision_prompt.strip()
+            + "\n\n"
+        )
+
     return f"""
 你是一名 **Manim Community Edition（v0.18+）动画工程专家**，专注于
 **数学对象 / 函数 / 几何 / 数值变化的动态可视化演示**。
@@ -250,6 +281,8 @@ def visualization_prompt(latex_a, latex_b, **kwargs):
 
 【输入公式（LaTeX，仅用于确定可视化对象）】
 {latex_a}
+
+{vision_block}
 
 ---
 
@@ -411,6 +444,15 @@ for x_val, tex_str in values_x:
 
 
 def for_vis_prompt(latex_a, latex_b, **kwargs):
+    vision_prompt = kwargs.get("vision_prompt") or ""
+    vision_block = ""
+    if vision_prompt.strip():
+        vision_block = (
+            "\n【来自图片的几何/结构描述（供你理解画面，不要原样输出）】\n"
+            + vision_prompt.strip()
+            + "\n\n"
+        )
+
     return f"""
 你是一名 **Manim Community Edition（v0.18+）动画工程专家**，精通使用 Python 将**数学推导过程**
 与**动态图形可视化**结合，构建**结构严谨、逻辑清晰、符合教学直觉、视觉美观**的数学动画。
@@ -428,6 +470,8 @@ def for_vis_prompt(latex_a, latex_b, **kwargs):
 
 【输入公式 A（LaTeX）】
 {latex_a}
+
+{vision_block}
 
 ---
 

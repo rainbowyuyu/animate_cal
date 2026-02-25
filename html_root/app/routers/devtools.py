@@ -1,4 +1,6 @@
 # 开发者工具：Manim 云端渲染（同步与流式）
+# [安全] RCE 高危：用户代码在服务端执行。当前有简单关键字拦截与超时。
+# 推荐：Docker/Firecracker 沙箱隔离 + 网络限制 + 资源限制，详见项目根目录 SECURITY.md
 import asyncio
 import json
 import logging
