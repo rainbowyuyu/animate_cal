@@ -5,19 +5,11 @@ import { getCurrentUser } from './auth.js';
 import { sanitizeMarkdownHtml } from './sanitize.js';
 import { getAgentEnterSend } from './settings.js';
 import { getCurrentUserAvatarUrl } from './profile.js';
-
-const SECTION_NAMES = {
-    detect: '智能识别',
-    calculate: '动态计算',
-    devtools: '开发者工具',
-    'my-formulas': '我的算式',
-    examples: '教学案例',
-    help: '帮助'
-};
+import { getSectionDisplayName, resolveIntent } from './site-graph.js';
 
 /** 获取单步的简短描述，用于多步执行时的列表展示 */
 function getStepLabel(step) {
-    const name = SECTION_NAMES[step.section] || step.section;
+    const name = getSectionDisplayName(step.section) || step.section;
     const parts = [];
     if (step.section === 'devtools') {
         if (step.devtool === 'latex') parts.push('填入 LaTeX');
@@ -183,6 +175,18 @@ function appendAssistantMessage(html, executeData = null) {
     el.appendChild(div);
     animateMessageAppear(bubble);
     scrollMessagesToBottom();
+}
+
+/** 重新执行上一条可执行消息（供右键菜单等调用） */
+export function reExecuteLastMessage() {
+    const bubbles = document.querySelectorAll('.agent-bubble-assistant[data-execute]');
+    const last = bubbles[bubbles.length - 1];
+    if (last) {
+        try {
+            const data = JSON.parse(last.getAttribute('data-execute'));
+            reExecuteFromMessage(data);
+        } catch (_) {}
+    }
 }
 
 /** 从消息重新执行操作 */
@@ -577,6 +581,7 @@ export function initAgent() {
     window.Agent.runTemplateById = runTemplate;
     window.Agent.startRoleFlow = startRoleFlow;
     window.Agent.prefillAndShow = prefillAndShow;
+    window.Agent.reExecuteLastMessage = reExecuteLastMessage;
     window.typesetAgentMath = typesetAgentMath;
 
     const input = getFileInput();
@@ -726,23 +731,34 @@ export function startRoleFlow(role) {
     }, 200);
 }
 
-const AGENT_TEMPLATES_KEY = 'agent_automation_templates';
-
-/** 将当前对话步骤存为模板（写入 localStorage，仅前端） */
-function saveAgentTemplate(prompt, steps, btnEl) {
+/** 将当前对话步骤存为模板（数据库存储，需登录） */
+async function saveAgentTemplate(prompt, steps, btnEl) {
     if (!prompt && (!steps || steps.length === 0)) {
         if (typeof showToast === 'function') showToast('无内容可保存为模板', 'error');
         return;
     }
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    if (!user) {
+        if (typeof showToast === 'function') showToast('请先登录以保存模板', 'error');
+        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+        return;
+    }
     const name = (prompt.slice(0, 28) || '未命名') + (prompt.length > 28 ? '…' : '');
-    const list = JSON.parse(localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]');
-    const id = 'tpl_' + Date.now();
-    list.push({ id, name, prompt, steps: steps || [], createdAt: Date.now() });
-    localStorage.setItem(AGENT_TEMPLATES_KEY, JSON.stringify(list));
-    if (typeof showToast === 'function') showToast('已存为模板，可在侧栏「从模板运行」中使用', 'success');
-    if (btnEl) {
-        btnEl.textContent = '已保存';
-        btnEl.disabled = true;
+    try {
+        const res = await fetch('/api/agent_templates/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, name, prompt, steps: steps || [] })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            if (typeof showToast === 'function') showToast('已存为模板，可在侧栏「从模板运行」中使用', 'success');
+            if (btnEl) { btnEl.textContent = '已保存'; btnEl.disabled = true; }
+        } else {
+            if (typeof showToast === 'function') showToast(data.message || '保存失败', 'error');
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('网络错误，保存失败', 'error');
     }
 }
 
@@ -773,10 +789,20 @@ function closeTemplatesModal() {
     modal.classList.remove('show');
     setTimeout(() => { modal.style.display = 'none'; }, 200);
 }
-/** 从模板预填并执行：自动切到智能体，已登录则直接运行 */
-function runTemplate(id) {
-    const list = JSON.parse(localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]');
-    const t = list.find((x) => x.id === id);
+/** 从模板预填并执行：自动切到智能体，已登录则直接运行（数据库读取） */
+async function runTemplate(id) {
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    if (!user) {
+        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+        if (typeof showToast === 'function') showToast('请先登录以使用模板', 'info');
+        return;
+    }
+    let t = null;
+    try {
+        const res = await fetch(`/api/agent_templates/get?id=${id}&username=${encodeURIComponent(user)}`);
+        const data = await res.json();
+        if (data.status === 'success' && data.data) t = data.data;
+    } catch (_) {}
     if (!t || !t.prompt) return;
     if (typeof showSection === 'function') showSection('agent');
     const promptEl = getPromptEl();
@@ -785,12 +811,6 @@ function runTemplate(id) {
         promptEl.focus();
     }
     closeTemplatesModal();
-    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
-    if (!user) {
-        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
-        if (typeof showToast === 'function') showToast('已预填模板内容，请登录后点击发送或修改后发送', 'info');
-        return;
-    }
     if (typeof showToast === 'function') showToast('已按模板开始执行', 'success');
     execute();
 }
@@ -860,7 +880,7 @@ async function executeAgentRequest(prompt, image_base64, lastUser, lastAssistant
                     return `<p class="agent-step-desc">已按 <strong>${steps.length}</strong> 步执行：</p><ol class="agent-steps-list">${steps.map((s, i) => `<li>${escapeHtml(getStepLabel(s))}</li>`).join('')}</ol>`;
                 }
                 const s = first || {};
-                const name = SECTION_NAMES[s.section] || s.section;
+                const name = getSectionDisplayName(s.section) || s.section;
                 let m = `已打开「${name}」`;
                 if (s.section === 'calculate' && s.operation) {
                     const modeNames = { normal: '通用公式推演+可视化', formular: '公式推演', visualization: '可视化演示', solution: '完整解题演示' };

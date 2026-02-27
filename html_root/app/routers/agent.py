@@ -55,7 +55,7 @@ def _classify_intent(text: str) -> dict:
         "prefer_devtools_latex": False,
         "prefer_devtools_manim": False,
         "prefer_solution_mode": False,      # 更像“整题解题演示”
-        "prefer_visualization_mode": False, # 更像“可视化动画演示”
+        "prefer_visualization_mode": False, # 更像“可视化动画演示”；未明确时默认用 normal 通用推演
     }
     if not t:
         return intent
@@ -83,9 +83,12 @@ def _classify_intent(text: str) -> dict:
     if "去计算" in t or "动态计算" in t or "计算页" in t or "计算页面" in t:
         intent["prefer_calculate"] = True
 
-    if "生成可视化动画" in t or "可视化" in t or "做成动画" in t or "生成动画" in t:
+    # 仅当用户明确说要「画图/函数图像/可视化演示」等才倾向 visualization；「生成动画」「做成动画」默认用通用推演
+    if any(kw in t for kw in ("画图", "画函数", "函数图像", "函数曲线", "图像演示", "可视化演示", "做成图像", "绘制图像")):
         intent["prefer_calculate"] = True
         intent["prefer_visualization_mode"] = True
+    elif "生成动画" in t or "做成动画" in t or "生成" in t:
+        intent["prefer_calculate"] = True
 
     if "完整解题演示" in t or "完整解题" in t or "做一遍题解" in t or "帮我把这道题解出来" in t or "详细解答这道题" in t:
         intent["prefer_calculate"] = True
@@ -209,7 +212,7 @@ async def agent_execute(data: AgentRequest):
         + '\n\n【解析要求】当用户给出题目、算式或图片时，请先将题目解析为可编辑的 LaTeX 或可渲染的 Manim 算式（可拆解为步骤），在 formula、fill_latex 或 fill_manim_code 中体现该解析结果；若有拆解说明可放在 reply 中简要写出。'
         '\n\n【智能区分整题与单公式】必须根据用户给的是「整道题」还是「单个公式」决定 operation 和 formula 的内容：'
         ' (整题) 选择题、多选项、求完整解答、问「哪个是无穷小量/等价无穷小」、题目截图等：operation=solution，formula=整题的结构化文字（题目描述+各选项 LaTeX+极限或结论+正确答案），输入到计算页的也必须是这段整题内容，不要只填一个公式。'
-        ' (单公式) 用户只给一个式子或说「把这个公式做成动画/推演」：operation=formular 或 visualization，formula=该式的 LaTeX，输入到计算页的就是这一个公式。'
+        ' (单公式) 用户只给一个式子或说「把这个公式做成动画/推演」：**默认 operation=normal（通用推演）**；仅当用户明确说「画图」「函数图像」「可视化演示」「做成图像」等时才用 operation=visualization；formular 用于纯公式推演。formula=该式的 LaTeX。'
         '\n\n【重要】根据用户意图决定行为：'
         ' (1) 若用户只是提问、打招呼、闲聊，则 section="chat", 输出 reply 为友好回复。'
         ' (2) 若用户说"在 LaTeX 编辑器填入 xxx""打开 LaTeX 并填入质能方程"等，则 section=devtools, devtool=latex, fill_latex 为 LaTeX。'
@@ -219,18 +222,18 @@ async def agent_execute(data: AgentRequest):
         ' (5) 若用户说"识别公式并保存到我的算式""识别并保存"等，则先识别再保存：输出 steps 数组，第一步 section=detect, trigger=recognize；第二步 section=my-formulas 且 save_to_formulas=true（表示把上一步识别结果保存到我的算式）。'
         ' (6) 其他多步需求（如先打开工作台再填入代码、先识别再去计算等）：用 steps 数组按顺序列出每一步。单步则只输出一个 JSON 对象（不含 steps）。'
         ' (7) **解题类（调用网站工具）**：当用户给出数学题（选择题、判断题、求极限、问「哪个是无穷小量/等价无穷小」等）或上传题目截图时，请：'
-        ' ① 先判断是**整题**还是**单公式**：整题则 operation=solution 且 formula 为整题结构化文字；单公式则 operation=formular 或 visualization 且 formula 为该公式 LaTeX。'
+        ' ① 先判断是**整题**还是**单公式**：整题则 operation=solution 且 formula 为整题结构化文字；单公式则 **默认 operation=normal**，仅当用户明确说「画图」「函数图像」「可视化」时才用 visualization，formula 为该公式 LaTeX。'
         ' ② 从题目/图片中提取各选项或待比较的式子，转为标准 LaTeX（如 A: \\frac{x+\\cos x}{x}, B: \\frac{\\sin x}{x}, C: \\frac{\\sin x}{\\sqrt{x}}, D: \\frac{1}{2^x-1}）。'
         ' ③ 在 reply 中简要写出结论；reply 中的数学公式请用 $ 公式 $ 表示行内、$$ 公式 $$ 表示独立公式，便于前端渲染。'
         ' ④ **整题（完整解题演示）**：section=calculate, operation=solution, formula=**整题**结构化文字（题目描述+选项 A/B/C/D 的 LaTeX+各选项极限或结论+正确答案如 Answer: C），trigger=generate。**输入到计算页的必须是整题内容，不能只填一个公式。**'
-        ' ⑤ **单公式推演/可视化**：section=calculate, formula=该式的 LaTeX, operation=formular 或 visualization, trigger=generate。'
-        ' ⑥ 若需对多个选项分别做单公式演示，可输出 steps：每步 section=calculate, formula=该选项 LaTeX, operation=formular 或 visualization, trigger=generate。'
+        ' ⑤ **单公式推演**：section=calculate, formula=该式的 LaTeX, **operation=normal**（通用推演，默认）；用户明确说「画图」「函数图像」时用 operation=visualization；纯推演步骤可用 formular。trigger=generate。'
+        ' ⑥ 若需对多个选项分别做单公式演示，可输出 steps：每步 section=calculate, formula=该选项 LaTeX, operation=normal（或 visualization 仅当意图明确画图）, trigger=generate。'
         '\n\n【角色化使用：按角色快速开始】当用户说“我是学生/老师/创作者/开发者”并提出学习或创作目标时，请优先返回多步 steps，并实际调用页面：'
-        ' (学生) 至少两步：第一步 section="examples"（推荐 1～2 个适合的教学案例，可在 reply 里说明推荐理由）；第二步 section="calculate"，选 operation=visualization 或 formular，根据用户要看的知识点填入代表性公式 formula 并 trigger="generate"。如用户还提到“时间戳笔记”“错题本”，请在 reply 中用 1～3 条建议说明如何在教学案例页添加时间戳笔记、如何把题目转成练习题并再次唤起智能体。'
+        ' (学生) 至少两步：第一步 section="examples"（推荐 1～2 个适合的教学案例，可在 reply 里说明推荐理由）；第二步 section="calculate"，**选 operation=normal**（通用推演），根据用户要看的知识点填入代表性公式 formula 并 trigger="generate"。如用户还提到“时间戳笔记”“错题本”，请在 reply 中用 1～3 条建议说明如何在教学案例页添加时间戳笔记、如何把题目转成练习题并再次唤起智能体。'
         ' (老师) 至少三步：可以先 section="detect" 或 "calculate" 用于从板书/LaTeX 中得到公式，然后 section="devtools"（devtool="manim" 或 "latex"）填入示例代码或整题 LaTeX，最后 section="examples" 引导如何保存/整理为课件或课包；每步的说明写在 reply 中简要概括。'
         ' (创作者) 优先 section="devtools" devtool="manim" 并在 fill_manim_code 中给出一段可直接运行的 Manim 脚本，trigger="none"；然后在 reply 中给出 15～30 秒视频的大纲和分镜建议。'
         ' (开发者) 优先打开开发者工具：第一步 section="devtools" devtool="rainbow" 或 "manim"，帮助用户载入或编写示例脚本；如用户提到“组件卡片”“可复用模块”，在 reply 中说明推荐的脚本结构与如何整理为组件。'
-        '\n\n动态计算页演示模式：operation 选 normal|formular|visualization|solution（solution=完整解题过程，此时 formula 为整题文字；其余为单公式 LaTeX）。'
+        '\n\n动态计算页演示模式：**默认 operation=normal**（通用推演）；solution=完整解题过程且 formula 为整题文字；仅当用户明确说「画图」「函数图像」「可视化演示」时才用 visualization；formular 为纯公式推演。'
         '\n\nformula：当 operation=solution 时为整题结构化文字（可含多行、多选项）；当 operation 为 formular/visualization/normal 时为标准内联 LaTeX，不要 \\[ \\]、$$、\\begin{equation}。fill_latex 仅用于 LaTeX 编辑器，标准内联 LaTeX。'
         '\n\n请只输出一个 JSON。单步格式：{"section":"...", "devtool":"latex|manim|rainbow"(可选), "formula":"", "fill_latex":"", "fill_manim_code":"", "operation":"normal|formular|visualization", "trigger":"generate|recognize|none", "reply":"回复"(chat 或解题时可写结论)}。'
         '多步格式：{"steps":[ 上述单步对象1, 单步对象2, ... ]}。可选字段 save_to_formulas: true 表示该步后把当前识别结果保存到我的算式。'

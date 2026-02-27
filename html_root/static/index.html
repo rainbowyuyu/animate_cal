@@ -186,75 +186,30 @@
                 </div>
             </div>
 
-            <!-- 按角色快速开始：学生 / 教师 / 创作者 / 开发者（主页牌面） -->
-            <section class="role-start-section" aria-labelledby="role-start-title">
-                <!-- 文档锚点：供 update.md 中 #section-home-roles 使用 -->
+            <!-- 全站知识图谱：功能节点可视化 -->
+            <section class="role-start-section site-graph-section" aria-labelledby="role-start-title">
                 <div id="section-home-roles"></div>
-                <span class="role-start-badge" aria-hidden="true"><i class="fa-solid fa-sparkles"></i> 推荐入口</span>
+                <div class="role-universe-bg" aria-hidden="true"></div>
                 <div class="role-start-header">
-                    <h2 id="role-start-title">按角色快速开始</h2>
-                    <p class="role-start-subtitle">根据你的身份，一键使用智能体，或先观看一遍可重复的操作流程。</p>
+                    <span class="role-start-badge"><i class="fa-solid fa-diagram-project"></i> 知识图谱</span>
+                    <h2 id="role-start-title">全站知识图谱</h2>
+                    <p class="role-start-subtitle">点击任意节点跳转功能，探索网站全部能力</p>
                 </div>
-                <div class="role-start-grid">
-                    <div class="role-card">
-                        <div class="role-card-icon"><i class="fa-solid fa-user-graduate"></i></div>
-                        <div class="role-card-body">
-                            <h3>学生</h3>
-                            <p>从教学案例与动态计算开始，配合时间戳笔记与错题本复习。</p>
-                            <div class="role-card-actions">
-                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('student')">
-                                    <i class="fa-solid fa-robot"></i> 用智能体执行
-                                </button>
-                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('student')">
-                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
-                                </button>
-                            </div>
-                        </div>
+                <div class="role-graph-wrap">
+                    <div id="role-graph-3d" class="role-graph-3d"></div>
+                    <p class="role-graph-hint">左键旋转 · 右键平移 · 滚轮缩放</p>
+                    <div class="role-graph-controls" aria-label="图谱控制">
+                        <button type="button" id="role-graph-zoom-in" title="放大"><i class="fa-solid fa-plus"></i></button>
+                        <button type="button" id="role-graph-zoom-out" title="缩小"><i class="fa-solid fa-minus"></i></button>
+                        <button type="button" id="role-graph-reset" title="还原视图"><i class="fa-solid fa-rotate-left"></i></button>
                     </div>
-                    <div class="role-card">
-                        <div class="role-card-icon"><i class="fa-solid fa-chalkboard-user"></i></div>
-                        <div class="role-card-body">
-                            <h3>教师</h3>
-                            <p>围绕课堂案例生成与管理，快速打造可复用的讲解课件与课件包。</p>
-                            <div class="role-card-actions">
-                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('teacher')">
-                                    <i class="fa-solid fa-robot"></i> 用智能体执行
-                                </button>
-                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('teacher')">
-                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="role-card">
-                        <div class="role-card-icon"><i class="fa-solid fa-clapperboard"></i></div>
-                        <div class="role-card-body">
-                            <h3>内容创作者</h3>
-                            <p>用 Manim 工作台与 Rainbow 组件快速产出短视频与可视化片段。</p>
-                            <div class="role-card-actions">
-                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('creator')">
-                                    <i class="fa-solid fa-robot"></i> 用智能体执行
-                                </button>
-                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('creator')">
-                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="role-card">
-                        <div class="role-card-icon"><i class="fa-solid fa-code"></i></div>
-                        <div class="role-card-body">
-                            <h3>开发者</h3>
-                            <p>以代码方式扩展数学动画组件库，复用和分享你的 Manim 模块。</p>
-                            <div class="role-card-actions">
-                                <button type="button" class="role-action-btn primary" onclick="Agent && Agent.startRoleFlow && Agent.startRoleFlow('developer')">
-                                    <i class="fa-solid fa-robot"></i> 用智能体执行
-                                </button>
-                                <button type="button" class="role-action-btn ghost" onclick="window.startRoleGuide && window.startRoleGuide('developer')">
-                                    <i class="fa-regular fa-circle-play"></i> 观看操作流程
-                                </button>
-                            </div>
-                        </div>
+                </div>
+                <div id="role-flow-panel" class="role-flow-panel">
+                    <div class="role-flow-panel-inner">
+                        <button type="button" class="role-flow-close" id="role-flow-back" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
+                        <h3 id="role-flow-title">推荐路径</h3>
+                        <div id="role-flow-chain" class="role-flow-chain"></div>
+                        <p class="role-flow-hint">点击「进入」跳转到对应页面，逐步熟悉网站功能</p>
                     </div>
                 </div>
             </section>
@@ -603,14 +558,18 @@
                     </div>
                 </div>
 
-                <!-- 智能体模板库面板（与智能体侧栏「从模板运行」共用同一数据源 localStorage agent_automation_templates） -->
+                <!-- 智能体模板库面板（与智能体侧栏「从模板运行」共用，数据库存储，需登录） -->
                 <div id="templates-panel" class="formulas-panel glass-panel" style="display:none;">
                     <div class="formulas-panel-header">
                         <h3 class="formulas-panel-title">智能体模板</h3>
-                        <p class="formulas-panel-desc" style="margin:0.5rem 0 0; font-size:0.9rem; color:var(--text-secondary);">在智能体对话中执行任务后点击「存为模板」，即可在此一键复用；侧栏「从模板运行」会跳转至此。</p>
+                        <div class="formulas-panel-actions">
+                            <button class="action-btn secondary formulas-refresh-btn" onclick="loadAgentTemplates()">
+                                <i class="fa-solid fa-rotate"></i> 刷新
+                            </button>
+                        </div>
                     </div>
                     <div id="formulas-agent-templates-list" class="formula-grid">
-                        <!-- 由 JS 从 localStorage agent_automation_templates 渲染 -->
+                        <!-- 由 JS 从 API /api/agent_templates/list 渲染 -->
                     </div>
                 </div>
             </div>
@@ -933,10 +892,10 @@
                             <div class="ide-top-panel ide-resize-pane" id="ide-left-pane" style="display: flex; flex-direction: column;">
                                 <div class="ide-editor ide-resize-pane" id="ide-editor-pane" style="flex: 1 1 60%; min-height: 200px;">
                                     <div class="ide-toolbar">
-                                        <span><i class="fa-brands fa-python"></i> main.py (Monaco Kernel)</span>
-                                        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                        <span class="ide-toolbar-label"><i class="fa-brands fa-python"></i> main.py (Monaco Kernel)</span>
+                                        <div class="ide-toolbar-actions">
                                             <div class="manim-import-wrap">
-                                                <button type="button" class="ide-btn-import" id="btn-manim-import" onclick="DevTools.toggleImportPanel()">
+                                                <button type="button" class="ide-btn-import" id="btn-manim-import" onclick="DevTools.toggleImportPanel()" title="从我的脚本或 Rainbow 导入">
                                                     <i class="fa-solid fa-file-import"></i> 导入
                                                 </button>
                                                 <div id="manim-import-panel" class="manim-import-panel" style="display: none;">
@@ -952,10 +911,16 @@
                                                 <i class="fa-solid fa-floppy-disk"></i> 保存
                                             </button>
                                             <button type="button" class="ide-btn-summary" onclick="DevTools.generateVideoCopy()" title="总结当前脚本，生成一份适合发布的视频文案">
-                                                <i class="fa-solid fa-align-left"></i> 总结视频脚本内容
+                                                <i class="fa-solid fa-align-left"></i> 总结
+                                            </button>
+                                            <button type="button" class="ide-btn-ai-edit" id="btn-manim-ai-edit" onclick="DevTools.toggleAiEditPanel()" title="用自然语言编辑代码（类似 Cursor）">
+                                                <i class="fa-solid fa-wand-magic-sparkles"></i> AI
+                                            </button>
+                                            <button type="button" class="ide-btn-keyframe" id="btn-manim-keyframe" onclick="DevTools.previewKeyframes()" title="渲染当前代码的首帧预览图">
+                                                <i class="fa-solid fa-film"></i> 关键帧
                                             </button>
                                             <button id="btn-run-manim" class="ide-btn-run" onclick="runDevManim()">
-                                                <i class="fa-solid fa-play"></i> 运行脚本
+                                                <i class="fa-solid fa-play"></i> 运行
                                             </button>
                                         </div>
                                     </div>
@@ -967,9 +932,17 @@
                                     <pre id="dev-manim-log" class="cmd-log"></pre>
                                 </div>
                             </div>
-                            <!-- 中间：拖拽条（调整上方代码/日志与下方视频的高度） -->
-                            <div class="ide-resize-handle ide-resize-v" id="ide-resize-top-bottom" title="拖拽调整上方编辑区与下方视频的高度"></div>
-                            <!-- 下：视频预览（16:9 全宽） -->
+                            <!-- 中间：拖拽条（视频浮动后隐藏） -->
+                            <div class="ide-resize-handle ide-resize-v" id="ide-resize-top-bottom" title="拖拽调整上方编辑区与下方视频的高度" style="display:none;"></div>
+                            <!-- 下：占位（视频已浮动，此处仅保留 flex 占位以让上方区域撑满） -->
+                            <div class="ide-preview-placeholder" id="ide-preview-placeholder" style="flex: 0 0 0; min-height: 0; overflow: hidden;"></div>
+                        </div>
+                        <!-- 浮动视频预览（可拖动） -->
+                        <div id="manim-video-float-wrap" class="manim-video-float-wrap">
+                            <div class="manim-video-float-header" id="manim-video-float-header" title="拖动可调整位置">
+                                <i class="fa-solid fa-grip-vertical"></i>
+                                <span>视频预览</span>
+                            </div>
                             <div class="ide-preview ide-resize-pane" id="ide-preview-pane" style="display: flex; flex-direction: column;">
                                 <div class="ide-video-container" id="ide-video-outer">
                                     <div class="ide-preview-inner" id="ide-preview-inner-pane">
@@ -981,6 +954,38 @@
                                         <div id="dev-manim-loading" class="ide-loading" style="display: none;">
                                             <i class="ide-loading-spinner fa-solid fa-circle-notch fa-spin"></i>
                                             <p class="ide-loading-text">正在云端渲染...</p>
+                                        </div>
+                                        <div id="manim-keyframe-preview-in-video" class="manim-keyframe-preview" style="display: none;"><img id="manim-keyframe-img-in-video" src="" alt="关键帧"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- AI 编辑独立浮动面板：固定长度，含预览+对比+接受/拒绝一体化 -->
+                        <div id="manim-ai-edit-float" class="manim-ai-edit-float" style="display: none;">
+                            <div class="manim-ai-edit-float-header" id="manim-ai-edit-float-header" title="拖动可调整位置">
+                                <i class="fa-solid fa-grip-vertical"></i>
+                                <span>AI 编辑助手</span>
+                                <button type="button" class="manim-ai-edit-close" onclick="DevTools.toggleAiEditPanel()" aria-label="关闭"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <div class="manim-ai-edit-body">
+                                <div class="manim-ai-input-wrap">
+                                    <input type="text" id="manim-ai-edit-input" class="manim-ai-edit-input" placeholder="用自然语言描述修改，如：把圆的颜色改成红色" maxlength="300" />
+                                    <button type="button" id="manim-ai-edit-btn" class="manim-ai-edit-btn" title="发送指令"><i class="fa-solid fa-paper-plane"></i></button>
+                                </div>
+                                <div class="manim-ai-edit-conversation" id="manim-ai-edit-conversation">
+                                    <div class="manim-ai-edit-preview-block" id="manim-ai-preview-block" style="display: none;">
+                                        <div class="manim-ai-edit-keyframe-wrap">
+                                            <div class="manim-ai-edit-keyframe-header">效果预览</div>
+                                            <div class="manim-ai-edit-keyframe-img-wrap"><img id="manim-ai-edit-keyframe-img" src="" alt="关键帧"></div>
+                                        </div>
+                                        <div class="manim-ai-edit-diff-wrap">
+                                            <div class="manim-ai-edit-diff-header">代码变更对比</div>
+                                            <div id="manim-ai-edit-diff-container" class="manim-ai-edit-diff-container"></div>
+                                        </div>
+                                        <div class="manim-ai-edit-diff-actions">
+                                            <button type="button" class="manim-ai-edit-accept" id="manim-ai-edit-accept"><i class="fa-solid fa-check"></i> 接受</button>
+                                            <button type="button" class="manim-ai-edit-reject" id="manim-ai-edit-reject"><i class="fa-solid fa-xmark"></i> 拒绝</button>
                                         </div>
                                     </div>
                                 </div>
@@ -1456,8 +1461,8 @@
                             <label class="settings-select-card">
                                 <input type="radio" name="devtools-default-tab" value="manim" id="devtools-tab-manim" onchange="Settings.setDevtoolsDefaultTab('manim')">
                                 <div class="settings-select-card-content">
-                                    <div class="settings-select-card-title">Manim 工作台</div>
-                                    <div class="settings-select-card-desc">代码云端渲染</div>
+                                    <div class="settings-select-card-title">云端代码工作台</div>
+                                    <div class="settings-select-card-desc">Manim 代码云端渲染</div>
                                 </div>
                             </label>
                             <label class="settings-select-card">
@@ -1718,11 +1723,15 @@
     </div>
 
     <!-- 全局浮动：智算星云面板（全站显示，按页面切换不同内容） -->
-    <div id="knowledge-panel" class="glass-panel knowledge-panel-global" style="position:fixed; right:1.5rem; bottom:1.5rem; width:320px; max-width:90vw; padding:1.1rem 1.3rem; border-radius:1rem; box-shadow:0 18px 45px rgba(15,23,42,0.85); z-index:1300; cursor:pointer;">
-        <!-- 折叠态：仅显示应用 Logo 的小球 -->
+    <div id="knowledge-panel" class="glass-panel knowledge-panel-global knowledge-panel-wrapper" style="position:fixed; right:1.5rem; bottom:1.5rem; width:320px; max-width:90vw; padding:1.1rem 1.3rem; border-radius:1rem; box-shadow:0 18px 45px rgba(15,23,42,0.85); z-index:1300; cursor:pointer;">
+        <!-- 关闭按钮：固定在面板右上角外侧，更显眼 -->
+        <button type="button" aria-label="关闭" id="knowledge-panel-close-btn" class="knowledge-panel-close-btn">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+        <!-- 折叠态：仅显示应用 Logo 的立体小球 -->
         <div id="knowledge-panel-bubble" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
             <div class="knowledge-panel-bubble-inner">
-                <img src="assets/智算视界_avatar.svg" alt="智算星云">
+                <img src="assets/智算视界_avatar.svg" alt="智算星云" draggable="false">
             </div>
         </div>
         <!-- 展开态内容：可滚动，避免超出视窗 -->
@@ -1733,10 +1742,8 @@
                     <h3 id="knowledge-panel-title" class="formulas-panel-title" style="margin:0; font-size:0.95rem;">智算星云</h3>
                     <p id="knowledge-panel-subtitle" style="margin:0.1rem 0 0; font-size:0.78rem; color:var(--text-secondary);">快捷入口与个性化内容</p>
                 </div>
-                <button type="button" aria-label="关闭" id="knowledge-panel-close-btn" style="border:none; background:transparent; color:var(--text-secondary); cursor:pointer;">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
             </div>
+            <div id="knowledge-panel-metro" class="knowledge-metro-wrap" style="display:none;"></div>
             <div id="knowledge-panel-body" class="knowledge-panel-body knowledge-panel-body-scroll">
                 <div id="knowledge-panel-dynamic" style="display:none;">
                     <div id="knowledge-panel-dynamic-stats" class="knowledge-stats-row" style="margin-bottom:0.6rem;"></div>
@@ -1773,6 +1780,17 @@
                     <button type="button" class="action-btn secondary" id="course-pack-modal-manual-btn"><i class="fa-solid fa-hand-pointer"></i> 开始手动创建</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- 成就统计面板（点击星云成就横线打开） -->
+    <div id="achievement-panel-modal" class="modal">
+        <div class="modal-content glass-panel achievement-panel-content">
+            <div class="achievement-panel-header">
+                <h3><i class="fa-solid fa-trophy"></i> 成就统计</h3>
+                <span class="close-modal" onclick="typeof window.toggleModal==='function'&&window.toggleModal('achievement-panel-modal',false)">&times;</span>
+            </div>
+            <div class="achievement-panel-list"></div>
         </div>
     </div>
 
@@ -1981,11 +1999,11 @@
                 <span class="video-resume-text" id="video-resume-text"></span>
                 <button type="button" class="action-btn secondary" id="video-resume-btn"><i class="fa-solid fa-play"></i> 继续观看</button>
             </div>
-            <!-- 学习闭环：进度汇总 + 本地错题本（仅保存在当前浏览器） -->
+            <!-- 学习闭环：进度汇总 + 错题本（登录后同步到云端） -->
             <div class="video-modal-study" id="video-modal-study" style="margin-bottom:1.1rem;">
                 <div class="video-modal-study-title">
                     <i class="fa-solid fa-book-open-reader"></i>
-                    学习进度与错题本（本地）
+                    学习进度与错题本
                 </div>
                 <div class="video-modal-study-body">
                     <span id="video-progress-summary" class="video-progress-summary">已观看：--</span>
@@ -1997,7 +2015,7 @@
                             查看本视频错题记录
                         </button>
                     </div>
-                    <p class="video-study-hint">错题记录仅保存在当前浏览器，可配合时间戳笔记一起复习。</p>
+                    <p class="video-study-hint">登录后错题记录会同步到云端；未登录时仅保存在当前浏览器。可配合时间戳笔记一起复习。</p>
                 </div>
             </div>
             <!-- 创作者 / 教师：导出发布包 & 加入课件包 -->
@@ -2128,6 +2146,10 @@
 
     <!-- HLS.js：MSE 流媒体播放（.m3u8），与原生 MP4 并存 -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.7/dist/hls.min.js" crossorigin="anonymous"></script>
+    <!-- Three.js + 3d-force-graph（UMD 单实例）process polyfill 解决浏览器中 process 未定义 -->
+    <script>window.process = { env: { NODE_ENV: 'production' } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.79.1/dist/3d-force-graph.min.js"></script>
     <!-- 模块化 JS 入口 -->
     <script type="module" src="js/main.js"></script>
 </body>

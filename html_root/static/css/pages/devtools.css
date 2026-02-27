@@ -190,17 +190,30 @@
 .ide-toolbar {
     position: relative;
     z-index: 100;
-    height: 40px;
+    min-height: 44px;
     background: #252526;
     border-bottom: 1px solid #333;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 1rem;
-    color: #cccccc;
+    color: #e2e8f0;
     font-size: 0.8rem;
     font-family: 'JetBrains Mono', monospace;
     flex-shrink: 0;
+    gap: 1rem;
+}
+
+.ide-toolbar-label {
+    flex-shrink: 0;
+    color: #e2e8f0;
+}
+
+.ide-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 .ide-btn-run {
@@ -301,6 +314,346 @@
     cursor: ns-resize;
     margin: 0 8px;
     border-radius: 4px;
+}
+
+/* 浮动视频预览面板 */
+.manim-video-float-wrap {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 480px;
+    max-width: calc(100vw - 48px);
+    z-index: 1200;
+    background: #1e1e1e;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    display: flex;
+    flex-direction: column;
+}
+
+.manim-video-float-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #252526;
+    color: #cccccc;
+    font-size: 0.85rem;
+    cursor: move;
+    user-select: none;
+}
+
+.manim-video-float-header i {
+    opacity: 0.7;
+}
+
+.manim-video-float-header:hover {
+    background: #2d2d30;
+}
+
+/* 关键帧断点图标（Monaco glyph margin） */
+.manim-keyframe-breakpoint {
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='%23ef4444' stroke='%23fff' stroke-width='1'/%3E%3C/svg%3E") center center no-repeat !important;
+    background-size: 12px 12px !important;
+}
+
+.manim-keyframe-preview {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    z-index: 2;
+}
+.manim-keyframe-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+/* AI 编辑独立面板：固定长度，预览+对比+接受/拒绝一体化 */
+.manim-ai-edit-float {
+    position: fixed;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 540px;
+    max-width: calc(100vw - 48px);
+    height: 520px;
+    min-height: 400px;
+    max-height: 85vh;
+    z-index: 1300;
+    background: #1e1e1e;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.manim-ai-edit-resize-handle {
+    flex-shrink: 0;
+    height: 6px;
+    background: #333;
+    cursor: ns-resize;
+    transition: background 0.2s;
+}
+
+.manim-ai-edit-resize-handle:hover {
+    background: var(--primary-color);
+}
+
+.manim-ai-edit-float-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: #252526;
+    color: #cccccc;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: move;
+    user-select: none;
+}
+
+.manim-ai-edit-float-header i.fa-grip-vertical {
+    opacity: 0.7;
+}
+
+.manim-ai-edit-float-header .manim-ai-edit-close {
+    margin-left: auto;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: #999;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.manim-ai-edit-float-header .manim-ai-edit-close:hover {
+    background: #3c3c3c;
+    color: #fff;
+}
+
+.manim-ai-edit-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.manim-ai-input-wrap {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #333;
+}
+
+.manim-ai-edit-preview-block {
+    display: flex;
+    flex-direction: column;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #333;
+}
+
+.manim-ai-edit-conversation {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+}
+
+.manim-ai-edit-keyframe-wrap {
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.manim-ai-edit-keyframe-header {
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.manim-ai-edit-keyframe-img-wrap {
+    min-height: 120px;
+    max-height: 320px;
+    overflow: auto;
+    border-radius: 8px;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.manim-ai-edit-keyframe-img-wrap img {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 300px;
+    display: block;
+    object-fit: contain;
+}
+
+.manim-ai-edit-msg {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.manim-ai-edit-msg.user {
+    background: rgba(37, 99, 235, 0.2);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    align-self: flex-end;
+    max-width: 90%;
+    color: #f1f5f9; /* 固定高对比度 */
+}
+
+.manim-ai-edit-msg.ai {
+    background: #2d2d30;
+    border: 1px solid #444;
+    align-self: flex-start;
+    max-width: 95%;
+    color: #f1f5f9; /* 固定高对比度，不随深浅色主题变化 */
+}
+
+.manim-ai-edit-diff-wrap {
+    padding: 8px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.manim-ai-edit-diff-header {
+    font-size: 0.8rem;
+    color: #e2e8f0; /* 固定高对比度 */
+    font-weight: 600;
+}
+
+.manim-ai-edit-diff-container {
+    height: 150px;
+    min-height: 100px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.manim-ai-edit-diff-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    padding: 8px 12px 0;
+}
+
+.manim-ai-edit-accept,
+.manim-ai-edit-reject {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: opacity 0.2s;
+}
+
+.manim-ai-edit-accept {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+}
+
+.manim-ai-edit-accept:hover {
+    opacity: 0.9;
+}
+
+.manim-ai-edit-reject {
+    background: #3c3c3c;
+    color: #e5e7eb;
+}
+
+.manim-ai-edit-reject:hover {
+    background: #4a4a4a;
+}
+
+.manim-ai-edit-input-wrap {
+    display: flex;
+    gap: 8px;
+    padding: 10px 12px;
+    background: #252526;
+    border-top: 1px solid #333;
+}
+
+.manim-ai-edit-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #e5e7eb;
+    background: #1e1e1e;
+    border: 1px solid #444;
+    border-radius: 8px;
+    outline: none;
+}
+
+.manim-ai-edit-input::placeholder {
+    color: #6b7280;
+}
+
+.manim-ai-edit-input:focus {
+    border-color: var(--primary-color);
+}
+
+.manim-ai-edit-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.manim-ai-edit-btn:hover {
+    opacity: 0.95;
+    transform: scale(1.05);
+}
+
+.manim-ai-edit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.manim-video-float-wrap .ide-preview {
+    flex: none;
+    min-height: 200px;
+}
+
+.manim-video-float-wrap .ide-video-container {
+    padding-bottom: 56.25%;
 }
 
 /* 水平拖拽条（竖排布局下：调整上/下高度）沿用 .ide-resize-v */
@@ -740,6 +1093,53 @@
     outline: none;
     border-color: #0d9488;
     box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.45);
+}
+
+/* AI 编辑按钮（紫青渐变，类似 Cursor 风格） */
+.ide-btn-ai-edit {
+    background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
+    color: #fff;
+    border: 1px solid rgba(139, 92, 246, 0.5);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+.ide-btn-ai-edit:hover {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.35);
+}
+.ide-btn-ai-edit:focus {
+    outline: none;
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.45);
+}
+
+/* 预览关键帧按钮 */
+.ide-btn-keyframe {
+    background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+    color: #fff;
+    border: 1px solid rgba(100, 116, 139, 0.5);
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.ide-btn-keyframe:hover {
+    border-color: #94a3b8;
+}
+.ide-btn-keyframe:focus {
+    outline: none;
 }
 
 .manim-import-wrap {

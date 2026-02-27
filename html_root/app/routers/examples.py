@@ -22,6 +22,7 @@ from ..config import (
     ALIYUN_CDN_AUTH_TYPE,
     ALIYUN_CDN_VIDEO_PATH,
     ALIYUN_CDN_AUTH_TTL,
+    ALIYUN_CDN_PUBLIC_BASE,
 )
 from ..store import SESSION_STORE
 
@@ -321,12 +322,15 @@ async def get_examples(
                             sprite_cols, sprite_rows, he_list = 10, 10, []
                         tags_raw = meta.get("tags")
                         tags_list = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else []
+                        # 有公开 CDN 基地址时优先使用，加速列表预览与回退播放
+                        cdn_base = (ALIYUN_CDN_PUBLIC_BASE or "").strip()
+                        video_url = f"{cdn_base.rstrip('/')}{ALIYUN_CDN_VIDEO_PATH}/{file}" if cdn_base else f"/assets/storage/{file}"
                         videos.append({
                             "filename": file,
                             "video_id": video_id,
                             "title": meta.get("title", file),
                             "description": meta.get("description", "暂无简介"),
-                            "url": f"/assets/storage/{file}",
+                            "url": video_url,
                             "poster": meta.get("poster", ""),
                             "duration_sec": duration_sec,
                             "sprite_url": meta.get("sprite_url", ""),

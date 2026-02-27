@@ -4,7 +4,8 @@
  */
 // showSection / openDoc / switchDevTool 由 window 全局提供
 
-const AGENT_TEMPLATES_KEY = 'agent_automation_templates';
+import { getMetroPathForSection, getNodeById } from './site-graph.js';
+
 const WRONGBOOK_STORAGE_KEY = 'wcp_examples_wrongbook_v1';
 
 function getCurrentUser() {
@@ -28,9 +29,10 @@ async function fetchUserStats() {
     };
     if (user) {
         try {
-            const [formulasRes, scriptsRes] = await Promise.all([
+            const [formulasRes, scriptsRes, templatesRes] = await Promise.all([
                 fetch(`/api/formulas/list?username=${encodeURIComponent(user)}`).catch(() => null),
-                fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`).catch(() => null)
+                fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`).catch(() => null),
+                fetch(`/api/agent_templates/list?username=${encodeURIComponent(user)}`).catch(() => null)
             ]);
             if (formulasRes) {
                 const d = await formulasRes.json();
@@ -40,16 +42,26 @@ async function fetchUserStats() {
                 const d = await scriptsRes.json();
                 if (d.status === 'success' && Array.isArray(d.data)) stats.scripts = d.data.length;
             }
+            if (templatesRes) {
+                const td = await templatesRes.json();
+                if (td.status === 'success' && Array.isArray(td.data)) stats.templates = td.data.length;
+            }
         } catch (_) {}
     }
-    try {
-        const t = JSON.parse(localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]');
-        stats.templates = Array.isArray(t) ? t.length : 0;
-    } catch (_) {}
-    try {
-        const w = JSON.parse(localStorage.getItem(WRONGBOOK_STORAGE_KEY) || '[]');
-        stats.wrongbook = Array.isArray(w) ? w.length : 0;
-    } catch (_) {}
+    if (user) {
+        try {
+            const wr = await fetch(`/api/wrongbook/list?username=${encodeURIComponent(user)}`, { credentials: 'include' }).catch(() => null);
+            if (wr) {
+                const wd = await wr.json();
+                if (wd.status === 'success' && Array.isArray(wd.data)) stats.wrongbook = wd.data.length;
+            }
+        } catch (_) {}
+    } else {
+        try {
+            const w = JSON.parse(localStorage.getItem(WRONGBOOK_STORAGE_KEY) || '[]');
+            stats.wrongbook = Array.isArray(w) ? w.length : 0;
+        } catch (_) {}
+    }
     return stats;
 }
 
@@ -110,11 +122,78 @@ function renderMultiBar(items, maxEach = 20) {
     `;
 }
 
-/** 成就徽章 */
+/** 成就徽章（单枚） */
 function renderBadge(label, value, icon, unlocked) {
     const cls = unlocked ? 'knowledge-badge unlocked' : 'knowledge-badge';
     const ico = icon || 'fa-star';
     return `<div class="${cls}"><i class="fa-solid ${ico}"></i><span>${escapeHtml(label)} ${value}</span></div>`;
+}
+
+/** 获取成就列表（含 DB 读写） */
+async function fetchAchievements(stats) {
+    const user = getCurrentUser();
+    const params = new URLSearchParams({
+        formulas: String(stats.formulas || 0),
+        scripts: String(stats.scripts || 0),
+        templates: String(stats.templates || 0),
+        wrongbook: String(stats.wrongbook || 0),
+        tutorial_done: stats.tutorialDone ? 'true' : 'false',
+    });
+    if (user) params.set('username', user);
+    try {
+        const res = await fetch(`/api/achievements/list?${params}`);
+        const d = await res.json();
+        if (d.status === 'success' && Array.isArray(d.data)) return d.data;
+    } catch (_) {}
+    return [];
+}
+
+/** 同步成就到数据库 */
+async function syncAchievementToDb(achievementId, progress, unlocked) {
+    const user = getCurrentUser();
+    if (!user) return;
+    try {
+        await fetch('/api/achievements/upsert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, achievement_id: achievementId, progress, unlocked }),
+        });
+    } catch (_) {}
+}
+
+let _lastAllAchievements = [];
+
+/** 选取 5 个最接近完成的成就（未达成优先，按进度从高到低） */
+function getTop5ClosestAchievements(achievements) {
+    const list = Array.isArray(achievements) ? achievements : [];
+    const incomplete = list.filter(a => !a.unlocked);
+    const complete = list.filter(a => a.unlocked);
+    incomplete.sort((a, b) => {
+        const pa = a.target > 0 ? a.progress / a.target : 0;
+        const pb = b.target > 0 ? b.progress / b.target : 0;
+        return pb - pa;
+    });
+    const top = incomplete.slice(0, 5);
+    const need = 5 - top.length;
+    if (need > 0 && complete.length) top.push(...complete.slice(0, need));
+    return top;
+}
+
+/** 成就轮播：横线段形式（5 个最接近完成），点击打开成就统计面板 */
+function renderAchievementCarousel(achievements, allAchievements = []) {
+    const list = getTop5ClosestAchievements(achievements);
+    if (list.length === 0) return '';
+
+    const items = list.map(a => {
+        const pct = a.target > 0 ? Math.min(100, Math.round(a.progress / a.target * 100)) : 0;
+        const segClass = a.unlocked ? 'achievement-seg unlocked' : 'achievement-seg';
+        const ico = a.icon || 'fa-star';
+        return `<div class="knowledge-achievement-seg-item" title="${escapeHtml(a.label)} ${a.progress}/${a.target}" data-achievement-id="${escapeHtml(a.id)}"><i class="fa-solid ${ico} achievement-seg-icon"></i><div class="${segClass}" style="--pct:${pct}%;"></div></div>`;
+    }).join('');
+
+    const wrapClass = 'knowledge-achievement-carousel knowledge-achievement-seg-carousel';
+    const wrapId = 'knowledge-achievement-carousel-el';
+    return `<div class="${wrapClass}" id="${wrapId}" data-count="${list.length}">${items}</div>`;
 }
 
 /** 星云气泡（创意展示：不同大小圆点代表数据，类似词云但更有空间感） */
@@ -153,6 +232,46 @@ function escapeHtml(s) {
     return d.innerHTML;
 }
 
+/** 获取当前 devtools 子标签 */
+function getActiveDevtool() {
+    const btn = document.querySelector('#devtools .tab-btn.active');
+    if (!btn) return null;
+    const m = String(btn.getAttribute('onclick') || '').match(/switchDevTool\s*\(\s*['"](\w+)['"]\s*\)/);
+    return m ? m[1] : null;
+}
+
+/** 将当前站点滚动到地铁导航最中央 */
+function centerMetroCurrent(metroWrap) {
+    const line = metroWrap.querySelector('.knowledge-metro-line');
+    const current = metroWrap.querySelector('.knowledge-metro-station.current');
+    if (!line || !current) return;
+    const doCenter = () => {
+        const track = line.querySelector('.knowledge-metro-track');
+        if (!track || track.scrollWidth <= line.clientWidth) return;
+        const currCenter = current.offsetLeft + current.offsetWidth / 2;
+        const targetScroll = Math.max(0, currCenter - line.clientWidth / 2);
+        line.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    };
+    requestAnimationFrame(() => requestAnimationFrame(doCenter));
+}
+
+/** 地铁式横向导航：prev — [当前] — next */
+function renderMetroNav(sectionId) {
+    const devtool = sectionId === 'devtools' ? getActiveDevtool() : null;
+    const path = getMetroPathForSection(sectionId, devtool);
+    if (!path || path.length === 0) return { html: '', hasNav: false };
+    const items = path.map((n) => {
+        const node = getNodeById(n.id);
+        const icon = node && node.icon ? node.icon : 'fa-solid fa-circle-dot';
+        const isCurrent = !!n.current;
+        const sec = escapeHtml(n.section || '');
+        const dev = escapeHtml(n.devtool || '');
+        return `<button type="button" class="knowledge-metro-station ${isCurrent ? 'current' : ''}" data-section="${sec}" data-devtool="${dev}"><span class="knowledge-metro-dot"></span><span class="knowledge-metro-label">${escapeHtml(n.name)}</span></button>`;
+    });
+    const html = `<div class="knowledge-metro-line"><div class="knowledge-metro-track">${items.join('<span class="knowledge-metro-connector"></span>')}</div></div>`;
+    return { html, hasNav: true };
+}
+
 /** 旧版简单统计行（兼容） */
 function renderStatsRow(items) {
     if (!items || items.length === 0) return '';
@@ -176,7 +295,7 @@ const SECTION_CONFIG = {
     home: {
         title: '智算星云',
         subtitle: '成就与快捷入口',
-        renderCharts: s => {
+        renderCharts: (s, achievements = []) => {
             let html = '<div class="knowledge-ring-wrap">';
             html += renderRingChart('算式', s.formulas, MILESTONE);
             html += renderRingChart('脚本', s.scripts, MILESTONE);
@@ -188,10 +307,7 @@ const SECTION_CONFIG = {
                 { label: '模板', value: s.templates },
                 { label: '错题', value: s.wrongbook }
             ], MILESTONE);
-            html += renderMilestoneHint(s);
-            if (s.tutorialDone) {
-                html += '<div class="knowledge-badge-wrap">' + renderBadge('新手教程', '已完成', 'fa-circle-check', true) + '</div>';
-            }
+            html += renderAchievementCarousel(achievements, achievements);
             return html;
         },
         body: `
@@ -241,14 +357,10 @@ const SECTION_CONFIG = {
     calculate: {
         title: '动态计算',
         subtitle: '公式推演与可视化',
-        renderCharts: s => {
-            let html = renderMultiBar([
-                { label: '可选用算式', value: s.formulas },
-                { label: '已存脚本', value: s.scripts }
-            ], MILESTONE);
-            html += renderMilestoneHint(s);
-            return html;
-        },
+        renderCharts: s => renderMultiBar([
+            { label: '可选用算式', value: s.formulas },
+            { label: '已存脚本', value: s.scripts }
+        ], MILESTONE),
         body: `
             <div class="knowledge-panel-tips">
                 <p>输入 LaTeX 公式一键生成动画。通用模式自动拆分为计算推演 + 可视化演示。</p>
@@ -285,9 +397,13 @@ const SECTION_CONFIG = {
     help: {
         title: '帮助中心',
         subtitle: '使用文档',
-        renderCharts: s => s.tutorialDone
-            ? '<div class="knowledge-badge-wrap">' + renderBadge('新手教程', '已完成', 'fa-circle-check', true) + '</div>'
-            : renderAchievementBar('完成新手教程', 0, 1, 'fa-graduation-cap'),
+        renderCharts: (s, achievements = []) => {
+            const tutorial = achievements.find(a => a.id === 'tutorial');
+            if (tutorial) return renderAchievementCarousel([tutorial], achievements);
+            return s.tutorialDone
+                ? '<div class="knowledge-badge-wrap">' + renderBadge('新手教程', '已完成', 'fa-circle-check', true) + '</div>'
+                : renderAchievementBar('完成新手教程', 0, 1, 'fa-graduation-cap');
+        },
         body: `
             <div class="knowledge-panel-tips">
                 <p>查看使用说明、隐私政策、更新日志等。</p>
@@ -324,6 +440,28 @@ export async function refreshKnowledgePanel(sectionId) {
     titleEl.textContent = config.title;
     subtitleEl.textContent = config.subtitle;
 
+    const metroEl = document.getElementById('knowledge-panel-metro');
+    const metroResult = renderMetroNav(sectionId);
+    if (metroEl) {
+        if (metroResult.hasNav) {
+            metroEl.innerHTML = metroResult.html;
+            metroEl.style.display = '';
+            metroEl.querySelectorAll('.knowledge-metro-station').forEach((btn) => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const sec = btn.dataset.section;
+                    const dev = btn.dataset.devtool;
+                    if (sec && typeof window.showSection === 'function') window.showSection(sec);
+                    if (sec === 'devtools' && dev && typeof window.switchDevTool === 'function') setTimeout(() => window.switchDevTool(dev), 100);
+                });
+            });
+            centerMetroCurrent(metroEl);
+        } else {
+            metroEl.innerHTML = '';
+            metroEl.style.display = 'none';
+        }
+    }
+
     if (config.body === 'dynamic') {
         dynamicEl.style.display = '';
         staticEl.style.display = 'none';
@@ -347,9 +485,68 @@ export async function refreshKnowledgePanel(sectionId) {
     staticEl.style.display = '';
 
     const stats = await fetchUserStats();
-    const chartsHtml = config.renderCharts ? config.renderCharts(stats) : '';
+    const achievements = await fetchAchievements(stats);
+    if (stats.tutorialDone) syncAchievementToDb('tutorial', 1, true);
+    _lastAllAchievements = achievements;
+    const chartsHtml = config.renderCharts ? config.renderCharts(stats, achievements) : '';
     staticEl.innerHTML = (chartsHtml ? chartsHtml + '<div class="knowledge-panel-divider"></div>' : '') + config.body;
+
+    // 成就点击：打开成就统计面板
+    staticEl.querySelectorAll('.knowledge-achievement-seg-item').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openAchievementPanel(_lastAllAchievements);
+        });
+    });
+
+    startAchievementCarousel();
     const bodyEl = document.getElementById('knowledge-panel-body');
     if (bodyEl) bodyEl.scrollTop = 0;
     ensureCollapsedOnMobile(panel);
+}
+
+/** 成就轮播：多成就时定时横向滚动 */
+let _carouselInterval = null;
+function startAchievementCarousel() {
+    if (_carouselInterval) clearInterval(_carouselInterval);
+    _carouselInterval = null;
+    const carousel = document.getElementById('knowledge-achievement-carousel-el');
+    if (!carousel || parseInt(carousel.dataset.count || '0', 10) <= 1) return;
+    let step = 0;
+    _carouselInterval = setInterval(() => {
+        const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+        if (maxScroll <= 0) return;
+        step = (step + 1) % 4;
+        const target = (step / 3) * maxScroll;
+        carousel.scrollTo({ left: target, behavior: 'smooth' });
+    }, 3500);
+}
+
+/** 打开成就统计面板（独立窗口） */
+function openAchievementPanel(achievements) {
+    const modal = document.getElementById('achievement-panel-modal');
+    if (!modal) return;
+    const listEl = modal.querySelector('.achievement-panel-list');
+    if (!listEl) return;
+    const list = Array.isArray(achievements) ? achievements : [];
+    listEl.innerHTML = list.map(a => {
+        const pct = a.target > 0 ? Math.min(100, Math.round(a.progress / a.target * 100)) : 0;
+        const cls = a.unlocked ? 'knowledge-badge unlocked' : 'knowledge-badge';
+        return `
+            <div class="achievement-panel-item">
+                <div class="${cls} achievement-panel-badge"><i class="fa-solid ${a.icon || 'fa-star'}"></i><span>${escapeHtml(a.label)}</span></div>
+                <p class="achievement-panel-condition">${escapeHtml(a.condition || '')}</p>
+                <div class="achievement-panel-progress">
+                    <span class="achievement-panel-meta">${a.progress} / ${a.target}</span>
+                    <div class="knowledge-achievement-bar"><div class="knowledge-achievement-bar-inner" style="width:${pct}%;"></div></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    if (typeof window.toggleModal === 'function') {
+        window.toggleModal('achievement-panel-modal', true);
+    } else {
+        modal.style.display = 'flex';
+        modal.classList.add('show');
+    }
 }

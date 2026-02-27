@@ -15,6 +15,10 @@ import * as Agent from './agent.js';
 import * as Profile from './profile.js';
 import * as ImageEditor from './image-editor.js';
 import * as KnowledgePanel from './knowledge-panel.js';
+import * as ContextMenu from './context-menu.js';
+import * as RoleGraph from './role-graph.js';
+import * as Tooltip from './tooltip.js';
+import * as SectionHistory from './section-history.js';
 import * as MathLiveKeyboard from './mathlive/mathlive-keyboard.js';
 import * as MathLiveMenu from './mathlive/mathlive-menu.js';
 import * as MathLiveLocale from './mathlive/mathlive-locale.js';
@@ -23,6 +27,30 @@ import * as MathLiveLocale from './mathlive/mathlive-locale.js';
 window.showToast = UI.showToast;
 
 window._initPhase = true;  // 初始化阶段（URL 直接进入某 section）结束后置为 false
+
+// 0. 子页面 URL 与 History API 同步（使浏览器原生前进/后退在子页面间切换）
+function buildSectionUrl(sectionId, extraParams = {}) {
+  const params = { section: sectionId, ...extraParams };
+  const qs = Object.entries(params)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => k + '=' + encodeURIComponent(String(v)))
+    .join('&');
+  return (window.location.pathname || '/') + (qs ? '?' + qs : '');
+}
+
+function pushStateForSection(sectionId) {
+  const url = buildSectionUrl(sectionId);
+  try {
+    history.pushState({ sectionId }, '', url);
+  } catch (_) {}
+}
+
+function replaceStateForSection(sectionId) {
+  const url = buildSectionUrl(sectionId);
+  try {
+    history.replaceState({ sectionId }, '', url);
+  } catch (_) {}
+}
 
 // 1. 解析URL参数的工具函数（通用可复用）
 function getUrlParams() {
@@ -170,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     Canvas.setupCanvas();
     if (typeof window.currentToolType === 'undefined') window.currentToolType = 'pen';
-    UI.showSection('home');
+    window.showSection('home');
     await Auth.initAuth();  // 等待鉴权完成，确保首屏时已登录用户的信息已写入 DOM
     Settings.initSettings();
     initCanvasLockButton();
@@ -193,6 +221,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // 初始化Hero文字效果（根据设置选择渐变模式和交互效果）
     initHeroTextGlow();
+    RoleGraph.initRoleGraph();
 
     // 画板快捷键（类 Photoshop），仅在非输入框时生效
     document.addEventListener('keydown', (e) => {
@@ -220,7 +249,24 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (params.devtool && !mobile) {
         switchDevTool(params.devtool);
       }
+      // 将当前 section 写入浏览器历史（replace），使后续 pushState 与原生前进/后退一致
+      const initSection = params.section || 'home';
+      replaceStateForSection(initSection, (initSection === 'examples' && params.video) ? { video: params.video, t: params.t } : {});
     initNavSearch();
+    window.appSectionBack = () => history.back();
+    window.appSectionForward = () => history.forward();
+    window.appSectionCanBack = SectionHistory.canGoBack;
+    window.appSectionCanForward = SectionHistory.canGoForward;
+    window.addEventListener('popstate', (e) => {
+      const sid = e.state?.sectionId;
+      if (sid) {
+        SectionHistory.syncIndexToSection(sid);
+        window.showSection(sid, { fromHistory: true });
+      }
+    });
+    ContextMenu.initContextMenu();
+    Tooltip.initTooltip();
+    UI.initModalEscHandler?.();
 
     // 初始化阶段结束，之后跳转到「我的算式」时将允许显示知识星云
     setTimeout(() => { window._initPhase = false; }, 0);
@@ -247,7 +293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       KnowledgePanel.refreshKnowledgePanel(active ? active.id : 'home');
     });
 
-    // 知识星云浮动面板：绑定关闭与重新展开逻辑
+    // 知识星云浮动面板：关闭、展开、全屏拖动
     (function initKnowledgePanelToggle() {
       const panel = document.getElementById('knowledge-panel');
       const header = document.getElementById('knowledge-panel-header');
@@ -256,38 +302,145 @@ document.addEventListener('DOMContentLoaded', async () => {
       const content = document.getElementById('knowledge-panel-content');
       if (!panel || !header || !closeBtn || !bubble || !content) return;
 
+      const STORAGE_KEY = 'knowledge_panel_bubble_pos';
+
+      function applyBubblePosition() {
+        try {
+          const s = localStorage.getItem(STORAGE_KEY);
+          if (s) {
+            const { left, top } = JSON.parse(s);
+            if (typeof left === 'number' && typeof top === 'number') {
+              panel.style.left = left + 'px';
+              panel.style.top = top + 'px';
+              panel.style.right = 'auto';
+              panel.style.bottom = 'auto';
+              panel.classList.add('has-bubble-pos');
+              return;
+            }
+          }
+        } catch (_) {}
+        panel.style.left = '';
+        panel.style.top = '';
+        panel.style.right = '1.5rem';
+        panel.style.bottom = '1.5rem';
+        panel.classList.remove('has-bubble-pos');
+      }
+
       function expandPanel() {
         panel.classList.remove('collapsed');
         panel.style.width = '320px';
         panel.style.height = '';
+        const rect = panel.getBoundingClientRect();
+        const onLeft = rect.left + rect.width / 2 < window.innerWidth / 2;
+        panel.style.left = onLeft ? '1.5rem' : '';
+        panel.style.top = '';
+        panel.style.right = onLeft ? '' : '1.5rem';
+        panel.style.bottom = '1.5rem';
+        panel.classList.remove('has-bubble-pos');
         bubble.style.display = 'none';
-        content.style.display = 'flex';  // 保持 flex 以让内部可滚动区正确计算高度
+        content.style.display = 'flex';
         panel.title = '';
       }
 
       function collapsePanel() {
-        // 折叠为小球：仅显示 Logo，小球本身带有提示文字
         panel.classList.add('collapsed');
         panel.style.display = 'block';
-        panel.style.width = '56px';
-        panel.style.height = '56px';
+        panel.style.width = '64px';
+        panel.style.height = '64px';
         content.style.display = 'none';
         bubble.style.display = 'flex';
-        panel.title = '点击打开知识星云';
+        panel.title = '拖动移动位置，松手打开星云';
+        applyBubblePosition();
       }
 
-      // 关闭按钮：折叠为悬浮球
+      // 按下即拖动，释放时：若未移动则打开，若已移动则保存位置
+      let dragStart = null;
+      let baseLeft = 0, baseTop = 0;
+      let lastLeft = 0, lastTop = 0;
+      let hasMoved = false;
+      let panelW = 64, panelH = 64;
+      const MOVE_THRESHOLD_SQ = 36;  // 6px^2，超过视为拖动
+
+      function getPointer(e) {
+        const t = e.touches ? e.touches[0] : e.changedTouches ? e.changedTouches[0] : e;
+        return t ? { x: t.clientX, y: t.clientY } : null;
+      }
+
+      function onPointerDown(e) {
+        if (!panel.classList.contains('collapsed')) return;
+        e.stopPropagation();
+        if (e.touches) e.preventDefault();
+        const p = getPointer(e);
+        if (!p) return;
+        const rect = panel.getBoundingClientRect();
+        panelW = rect.width;
+        panelH = rect.height;
+        baseLeft = rect.left;
+        baseTop = rect.top;
+        lastLeft = baseLeft;
+        lastTop = baseTop;
+        hasMoved = false;
+        // 用 left/top 固定基准，避免从 right/bottom 切过来时跳到左上角
+        panel.style.left = baseLeft + 'px';
+        panel.style.top = baseTop + 'px';
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+        panel.style.transform = 'translate(0, 0)';
+        panel.classList.add('has-bubble-pos', 'is-dragging');
+        dragStart = { x: p.x - rect.left, y: p.y - rect.top };
+      }
+
+      function onPointerMove(e) {
+        if (!dragStart) return;
+        const p = getPointer(e);
+        if (!p) return;
+        e.preventDefault();
+        const left = Math.max(0, Math.min(p.x - dragStart.x, window.innerWidth - panelW));
+        const top = Math.max(0, Math.min(p.y - dragStart.y, window.innerHeight - panelH));
+        const dx = left - baseLeft, dy = top - baseTop;
+        if (dx * dx + dy * dy > MOVE_THRESHOLD_SQ) hasMoved = true;
+        lastLeft = left;
+        lastTop = top;
+        // 仅更新 transform，不碰 left/top，GPU 合成更跟手
+        panel.style.transform = `translate(${left - baseLeft}px, ${top - baseTop}px)`;
+      }
+
+      function onPointerUp(e) {
+        if (!dragStart) return;
+        const p = getPointer(e);
+        panel.style.transform = '';
+        panel.classList.remove('is-dragging');
+        if (hasMoved) {
+          panel.style.left = lastLeft + 'px';
+          panel.style.top = lastTop + 'px';
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({ left: lastLeft, top: lastTop }));
+        } else {
+          expandPanel();
+        }
+        dragStart = null;
+      }
+
+      bubble.addEventListener('dragstart', (e) => e.preventDefault());
+      bubble.addEventListener('mousedown', onPointerDown);
+      bubble.addEventListener('touchstart', onPointerDown, { passive: false });
+      document.addEventListener('mousemove', onPointerMove);
+      document.addEventListener('touchmove', onPointerMove, { passive: false });
+      document.addEventListener('mouseup', onPointerUp);
+      document.addEventListener('touchend', onPointerUp);
+      document.addEventListener('touchcancel', onPointerUp);
+
       closeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         collapsePanel();
       });
 
-      // 点击整块时：若当前为折叠状态则展开
-      panel.addEventListener('click', () => {
-        if (panel.classList.contains('collapsed')) {
-          expandPanel();
-        }
+      panel.addEventListener('click', (e) => {
+        if (e.target === bubble || bubble.contains(e.target)) return;
+        if (panel.classList.contains('collapsed')) expandPanel();
       });
+
+      // 若初始为折叠态则应用保存的位置（首次加载时默认展开，此处仅作初始化）
+      if (panel.classList.contains('collapsed')) applyBubblePosition();
     })();
 });
 
@@ -609,15 +762,19 @@ window.useFormula = Formulas.useFormula;
 window.deleteFormula = Formulas.deleteFormula;
 
 // --- 其他挂载 ---
-window.showSection = (sectionId) => {
-    // 移动端禁止进入开发者工具：提示用户改用电脑/平板
+window.showSection = (sectionId, opts = {}) => {
     if (sectionId === 'devtools' && isMobileDevice()) {
         if (window.showToast) {
             window.showToast('开发者工具仅在电脑或平板端提供，请在大屏设备上使用。', 'info');
         }
         sectionId = 'home';
     }
+    if (!opts.fromHistory) {
+        SectionHistory.pushSection(sectionId);
+        if (!window._initPhase) pushStateForSection(sectionId);
+    }
 
+    UI.closeAllModals?.();
     UI.showSection(sectionId);
     if (sectionId === 'detect') {
         setTimeout(() => Canvas.resizeCanvas(), 50);
@@ -718,6 +875,7 @@ window.useFormula = (latexEncoded) => {
 // 挂载 Examples 函数
 window.playExample = Examples.playExample;
 window.closeVideoModal = Examples.closeVideoModal;
+window.loadExamples = Examples.loadExamples;
 
 // --- Docs 挂载 ---
 window.openDoc = Docs.openDoc;

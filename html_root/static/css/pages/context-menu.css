@@ -1,0 +1,149 @@
+/* 智算视界 - 独有右键菜单（多级 + 编辑操作） */
+
+.app-context-menu-wrap {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 10002;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.96);
+    transform-origin: top left;
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+    pointer-events: none;
+}
+
+.app-context-menu-wrap.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.app-context-menu {
+    position: relative;
+    min-width: 200px;
+    padding: 8px 0;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .app-context-menu {
+    background: var(--bg-surface);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.app-context-submenu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    min-width: 200px;
+    padding: 8px 0;
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+    z-index: 10003;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease, visibility 0.12s;
+}
+
+.app-context-submenu.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+[data-theme="dark"] .app-context-submenu {
+    background: var(--bg-surface);
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.ctx-menu-group {
+    padding: 4px 0;
+}
+
+.ctx-menu-group:not(:first-child) {
+    border-top: 1px solid var(--border-color);
+    margin-top: 4px;
+    padding-top: 8px;
+}
+
+.ctx-menu-group-title {
+    padding: 4px 14px 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.ctx-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease;
+}
+
+.ctx-menu-item:hover {
+    background: var(--bg-secondary, rgba(148, 163, 184, 0.12));
+}
+
+.ctx-menu-item:active {
+    background: var(--bg-secondary, rgba(148, 163, 184, 0.2));
+}
+
+.ctx-menu-item i {
+    width: 18px;
+    text-align: center;
+    color: var(--primary-color);
+    font-size: 0.85rem;
+}
+
+.ctx-menu-item.ctx-has-sub,
+.ctx-menu-item.ctx-direct {
+    box-sizing: border-box;
+}
+
+.ctx-arrow {
+    margin-left: auto !important;
+    width: auto !important;
+    font-size: 0.75rem !important;
+    color: var(--text-secondary) !important;
+}
+
+.ctx-shortcut {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.ctx-submenu-inner .ctx-menu-item {
+    padding: 8px 14px;
+}
+
+.ctx-menu-item.ctx-item-disabled {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
+
+.ctx-menu-item.ctx-region-item.ctx-region-danger,
+.ctx-menu-item.ctx-region-item.ctx-region-danger i {
+    color: var(--color-error, #dc2626) !important;
+}
+
+.ctx-menu-item.ctx-region-item.ctx-region-danger:hover {
+    background: rgba(220, 38, 38, 0.1);
+}

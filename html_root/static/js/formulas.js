@@ -422,7 +422,6 @@ export async function submitFormulaEdit() {
 let formulasMonacoEditor = null;
 let currentScriptId = null; // 编辑中的脚本 id，null 表示新建
 
-const AGENT_TEMPLATES_KEY = 'agent_automation_templates';
 
 export function switchFormulasSubTab(tab) {
     document.querySelectorAll('.formulas-sub-tab').forEach(btn => btn.classList.remove('active'));
@@ -449,45 +448,89 @@ export function switchFormulasSubTab(tab) {
     }
 }
 
-function loadAgentTemplates() {
+async function loadAgentTemplates() {
     const listEl = document.getElementById('formulas-agent-templates-list');
     if (!listEl) return;
-    const list = [];
+    const user = getCurrentUser();
+    if (!user) {
+        listEl.innerHTML = `
+            <div class="empty-state" style="grid-column:1/-1;">
+                <i class="fa-solid fa-lock"></i>
+                <p>请先登录以使用智能体模板</p>
+                <button class="action-btn" onclick="toggleAuthModal(true)">立即登录</button>
+            </div>`;
+        return;
+    }
+    listEl.innerHTML = '<div class="formulas-loading" style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+    let list = [];
     try {
-        const raw = localStorage.getItem(AGENT_TEMPLATES_KEY) || '[]';
-        list.push(...JSON.parse(raw));
+        const res = await fetch(`/api/agent_templates/list?username=${encodeURIComponent(user)}`);
+        const data = await res.json();
+        if (data.status === 'success' && Array.isArray(data.data)) list = data.data;
     } catch (e) {
         listEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">读取模板失败</div>';
         return;
     }
+    const addCard = `<div class="formula-card add-new-card" onclick="showSection('agent')">
+        <div style="font-size:2.5rem; color:var(--primary-color); margin-bottom:0.5rem;"><i class="fa-solid fa-circle-plus"></i></div>
+        <div style="font-size:1rem; color:var(--text-secondary); font-weight:600;">去智能体生成并保存</div>
+    </div>`;
     if (list.length === 0) {
-        listEl.innerHTML = `
-            <div class="empty-state" style="grid-column:1/-1;">
-                <i class="fa-solid fa-bookmark" style="font-size:2rem; color:var(--primary-color); margin-bottom:0.5rem;"></i>
-                <p>暂无智能体模板</p>
-                <p style="font-size:0.9rem; color:var(--text-secondary);">在「智能体」对话中执行任务后，点击回复中的「存为模板」，即可在此一键复用。</p>
-                <button type="button" class="action-btn secondary" onclick="showSection(\'agent\')"><i class="fa-solid fa-robot"></i> 去智能体</button>
+        listEl.innerHTML = addCard + `
+            <div class="empty-state" style="grid-column:1/-1; padding-top:1rem;">
+                <p>暂无保存的模板。在「智能体」对话中执行任务后，点击回复中的「存为模板」，即可在此一键复用。</p>
             </div>`;
         return;
     }
-    const cards = list.slice().reverse().map(t => {
+    const marked = window.marked && typeof window.marked.parse === 'function' ? window.marked : null;
+    const typesetMath = typeof window.typesetAgentMath === 'function' ? window.typesetAgentMath : null;
+    function toPreviewLine(text, maxLen) {
+        if (!text || !text.trim()) return '';
+        const line = text.replace(/\s+/g, ' ').trim();
+        return line.length > maxLen ? line.slice(0, maxLen) + '…' : line;
+    }
+    const cardFrag = document.createDocumentFragment();
+    list.slice().reverse().forEach(t => {
         const name = (t.name || '未命名').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        const preview = (t.prompt || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').trim().slice(0, 120) + ((t.prompt || '').length > 120 ? '…' : '');
-        const createdAt = t.createdAt ? new Date(t.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
-        const id = (t.id || '').replace(/"/g, '&quot;');
-        return `
-        <div class="formula-card">
-            <div class="formula-preview formula-preview-copy" style="font-size:0.85rem; white-space:pre-wrap; text-align:left;">${preview || '（无提示词）'}</div>
-            <div class="formula-meta">
+        const promptText = (t.prompt || '').trim();
+        const ts = t.createdAt != null ? (typeof t.createdAt === 'number' ? t.createdAt : new Date(t.createdAt).getTime()) : null;
+        const createdAt = ts ? new Date(ts).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '';
+        const id = (t.id || '').toString();
+        const card = document.createElement('div');
+        card.className = 'formula-card';
+        const previewDiv = document.createElement('div');
+        if (promptText && marked) {
+            previewDiv.className = 'formula-preview formula-preview-copy markdown-body';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; max-height:140px; overflow:hidden;';
+            const safeCopy = promptText.slice(0, 1500);
+            previewDiv.innerHTML = sanitizeMarkdownHtml(marked.parse(safeCopy));
+            if (typesetMath) typesetMath(previewDiv);
+        } else if (promptText) {
+            previewDiv.className = 'formula-preview formula-preview-copy';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;';
+            previewDiv.textContent = toPreviewLine(promptText, 200) || '（无提示词）';
+        } else {
+            previewDiv.className = 'formula-preview';
+            previewDiv.style.cssText = 'font-size:0.8rem; text-align:left; justify-content:flex-start; overflow:hidden; white-space:pre-wrap;';
+            previewDiv.textContent = '（无提示词）';
+        }
+        const meta = document.createElement('div');
+        meta.className = 'formula-meta';
+        meta.innerHTML = `
+            <div class="formula-info">
                 <span class="formula-note" title="${name}">${name}</span>
-                ${createdAt ? `<small style="color:var(--text-secondary);">${createdAt}</small>` : ''}
-                <div class="formula-actions">
-                    <button class="action-btn secondary agent-template-use-btn" type="button" data-template-id="${id}"><i class="fa-solid fa-play"></i> 使用</button>
-                </div>
+                ${createdAt ? `<small class="formula-date">${createdAt}</small>` : ''}
             </div>
-        </div>`;
-    }).join('');
-    listEl.innerHTML = cards;
+            <div class="formula-actions">
+                <button class="btn-icon agent-template-use-btn" title="使用" type="button" data-template-id="${id}"><i class="fa-solid fa-play"></i></button>
+            </div>`;
+        card.appendChild(previewDiv);
+        card.appendChild(meta);
+        card.dataset.templateId = id;
+        cardFrag.appendChild(card);
+    });
+    listEl.innerHTML = addCard;
+    listEl.appendChild(cardFrag);
     listEl.querySelectorAll('.agent-template-use-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const id = btn.getAttribute('data-template-id');

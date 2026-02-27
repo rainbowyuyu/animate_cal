@@ -106,11 +106,11 @@ export function applyCalcMathFontSizeToPage() {
 
 export function getDevtoolsDefaultTab() {
     const v = localStorage.getItem(DEVTOOLS_DEFAULT_TAB_KEY);
-    return v === 'manim' || v === 'rainbow' ? v : 'latex';
+    return v === 'latex' || v === 'manim' || v === 'rainbow' ? v : 'manim';
 }
 export function setDevtoolsDefaultTab(value) {
     const allowed = ['latex', 'manim', 'rainbow'];
-    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, allowed.includes(value) ? value : 'latex');
+    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, allowed.includes(value) ? value : 'manim');
     persistAfterChange();
 }
 
@@ -832,7 +832,7 @@ export function resetDefaults() {
     localStorage.setItem(DETECT_DEFAULT_INPUT_KEY, 'draw');
     localStorage.setItem(CALC_DEFAULT_MODE_KEY, 'normal');
     localStorage.setItem(CALC_MATH_FONT_SIZE_KEY, String(CALC_MATH_FONT_SIZE_DEFAULT));
-    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, 'latex');
+    localStorage.setItem(DEVTOOLS_DEFAULT_TAB_KEY, 'manim');
     setCanvasLockMobile(false);
     updateShortcutDisplay();
     syncAgentEnterSendCheckbox();

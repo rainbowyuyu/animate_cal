@@ -239,22 +239,24 @@
     z-index: 1;
 }
 
-/* 深色模式下的默认渐变：更亮的蓝紫粉渐变 */
+/* 深色模式下的默认渐变：更稳定、减少抖动的蓝紫渐变 */
 [data-theme="dark"] .animate-text {
     background: linear-gradient(135deg, 
-        #60a5fa 0%, 
-        #818cf8 25%,
-        #a78bfa 50%,
-        #f472b6 75%,
-        #60a5fa 100%);
-    background-size: 300% 300%;
-    background-position: 0% 50%;
+        #93c5fd 0%, 
+        #a5b4fc 30%,
+        #c4b5fd 55%,
+        #a5b4fc 80%,
+        #93c5fd 100%);
+    background-size: 200% 200%;
+    background-position: 50% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gradientShift 12s ease-in-out infinite;
+    animation: gradientShift 14s ease-in-out infinite;
     will-change: background-position;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 /* 动态渐变模式：只有渐变，没有交互 - 柔和高级效果，确保动画播放 */
@@ -278,22 +280,23 @@
     z-index: 1;
 }
 
-/* 深色模式下的柔和渐变：使用更亮的颜色确保文字清晰 */
+/* 深色模式下的柔和渐变：稳定蓝紫，减少动画抖动 */
 [data-theme="dark"] .animate-text.hero-gradient-dynamic {
     background: linear-gradient(135deg, 
         #bfdbfe 0%, 
-        #93c5fd 30%,
-        #60a5fa 50%,
-        #93c5fd 70%,
+        #a5b4fc 35%,
+        #c4b5fd 65%,
         #bfdbfe 100%);
-    background-size: 300% 300%;
-    background-position: 0% 50%;
+    background-size: 200% 200%;
+    background-position: 50% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gradientShift 12s ease-in-out infinite;
+    animation: gradientShift 14s ease-in-out infinite;
     will-change: background-position;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 /* 确保 .text-gradient 子元素也应用动态渐变（显式动画以修复不播放问题） */
@@ -315,22 +318,23 @@
     will-change: background-position;
 }
 
-/* 深色模式下 .text-gradient 的渐变：使用更亮的颜色 */
+/* 深色模式下 .text-gradient 的渐变 */
 [data-theme="dark"] .animate-text.hero-gradient-dynamic .text-gradient {
     background: linear-gradient(135deg, 
         #bfdbfe 0%, 
-        #93c5fd 30%,
-        #60a5fa 50%,
-        #93c5fd 70%,
+        #a5b4fc 35%,
+        #c4b5fd 65%,
         #bfdbfe 100%);
-    background-size: 300% 300%;
-    background-position: 0% 50%;
+    background-size: 200% 200%;
+    background-position: 50% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     color: transparent;
-    animation: gradientShift 12s ease-in-out infinite;
+    animation: gradientShift 14s ease-in-out infinite;
     will-change: background-position;
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 /* 抖动交互模式：只有交互，没有渐变 - 使用蓝色匹配主页 */
@@ -355,10 +359,16 @@
     background-clip: unset;
     -webkit-text-fill-color: var(--primary-color);
     color: var(--primary-color);
-    /* 确保文字清晰 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     will-change: transform;
+    backface-visibility: hidden;
+}
+
+/* 深色模式下交互模式字符：更亮的蓝紫，减少抖动感 */
+[data-theme="dark"] .animate-text.hero-interaction-only .char {
+    -webkit-text-fill-color: #93c5fd;
+    color: #93c5fd;
 }
 
 /* 桌面端：根据设置应用不同的效果模式 */
@@ -382,22 +392,22 @@
         will-change: background-position;
     }
     
-    /* 深色模式下的柔和渐变：使用更亮的颜色确保文字清晰 */
     [data-theme="dark"] .animate-text.hero-gradient-dynamic {
         background: linear-gradient(135deg, 
             #bfdbfe 0%, 
-            #93c5fd 30%,
-            #60a5fa 50%,
-            #93c5fd 70%,
+            #a5b4fc 35%,
+            #c4b5fd 65%,
             #bfdbfe 100%);
-        background-size: 300% 300%;
-        background-position: 0% 50%;
+        background-size: 200% 200%;
+        background-position: 50% 50%;
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
         color: transparent;
-        animation: gradientShift 12s ease-in-out infinite;
+        animation: gradientShift 14s ease-in-out infinite;
         will-change: background-position;
+        backface-visibility: hidden;
+        transform: translateZ(0);
     }
     
     /* 抖动交互模式：只有交互，没有渐变 - 使用蓝色匹配主页 */
@@ -432,7 +442,6 @@
     animation: inherit;
 }
 
-/* 抖动交互模式下，text-gradient 使用蓝色匹配主页 */
 .animate-text.hero-interaction-only .text-gradient {
     background: none;
     -webkit-background-clip: unset;
@@ -440,6 +449,11 @@
     -webkit-text-fill-color: var(--primary-color);
     color: var(--primary-color);
     animation: none;
+}
+
+[data-theme="dark"] .animate-text.hero-interaction-only .text-gradient {
+    -webkit-text-fill-color: #93c5fd;
+    color: #93c5fd;
 }
 
 .subtitle {

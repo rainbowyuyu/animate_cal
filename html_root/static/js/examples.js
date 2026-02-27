@@ -724,26 +724,47 @@ function escapeHtml(str) {
 /** 弹幕分段时长（秒），与后端 segment 一致 */
 const DANMAKU_SEGMENT_SECONDS = 360;
 
-/** 本地错题本存储键（仅存于当前浏览器） */
+/** 本地错题本存储键（未登录时存于当前浏览器，登录后走数据库） */
 const WRONGBOOK_STORAGE_KEY = 'wcp_examples_wrongbook_v1';
 
-function getWrongbookList() {
+function getWrongbookUsername() {
+    const userSpan = document.getElementById('username-span');
+    const userDisplay = document.getElementById('user-display');
+    if (userDisplay && userDisplay.style.display !== 'none' && userSpan) return userSpan.innerText || null;
+    return null;
+}
+
+function getWrongbookListFromStorage() {
     try {
         const raw = localStorage.getItem(WRONGBOOK_STORAGE_KEY);
         if (!raw) return [];
         const parsed = JSON.parse(raw);
         return Array.isArray(parsed) ? parsed : [];
-    } catch (_) {
-        return [];
-    }
+    } catch (_) { return []; }
 }
 
-function setWrongbookList(list) {
+function setWrongbookListToStorage(list) {
     try {
         localStorage.setItem(WRONGBOOK_STORAGE_KEY, JSON.stringify(Array.isArray(list) ? list : []));
-    } catch (_) {
-        // 本地存储失败时静默忽略
+    } catch (_) {}
+}
+
+/** 获取错题列表（登录走 API，未登录走 localStorage） */
+async function getWrongbookList(videoId) {
+    const user = getWrongbookUsername();
+    if (user) {
+        try {
+            const params = new URLSearchParams({ username: user });
+            if (videoId) params.set('video_id', videoId);
+            const res = await fetch('/api/wrongbook/list?' + params, { credentials: 'include' });
+            const d = await res.json();
+            if (d.status === 'success' && Array.isArray(d.data)) return d.data;
+        } catch (_) {}
+        return [];
     }
+    const list = getWrongbookListFromStorage();
+    if (videoId) return list.filter(item => item.video_id === videoId);
+    return list;
 }
 
 function loadDanmaku(videoId, onLoaded) {
@@ -1266,8 +1287,8 @@ function updateVideoProgressSummary() {
     el.textContent = `已观看约 ${pct.toFixed(0)}%`;
 }
 
-/** 将当前时间点加入本地错题本（仅当前浏览器可见） */
-function addCurrentTimeToWrongbook() {
+/** 将当前时间点加入错题本（登录走数据库，未登录走 localStorage） */
+async function addCurrentTimeToWrongbook() {
     if (!currentVideoId) return;
     const player = document.getElementById('example-video-player');
     const titleEl = document.getElementById('video-modal-title');
@@ -1275,21 +1296,33 @@ function addCurrentTimeToWrongbook() {
     const time = player && Number.isFinite(player.currentTime) ? Math.max(0, Math.floor(player.currentTime)) : 0;
     const title = (titleEl && titleEl.innerText) ? titleEl.innerText.trim() : '';
     const content = (noteInput && noteInput.value) ? noteInput.value.trim() : '';
-    const list = getWrongbookList();
+    const user = getWrongbookUsername();
+    if (user) {
+        try {
+            const res = await fetch('/api/wrongbook/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, video_id: currentVideoId, title, time_sec: time, note: content }),
+                credentials: 'include',
+            });
+            const d = await res.json();
+            if (d.status === 'success') {
+                if (d.duplicate && typeof showToast === 'function') showToast('该时间点已在错题本中', 'info');
+                else if (typeof showToast === 'function') showToast('已加入错题本', 'success');
+            } else if (typeof showToast === 'function') showToast(d.message || '添加失败', 'error');
+        } catch (_) {
+            if (typeof showToast === 'function') showToast('网络错误', 'error');
+        }
+        return;
+    }
+    const list = getWrongbookListFromStorage();
     const key = `${currentVideoId}-${time}-${content || ''}`;
     if (list.some(item => item.key === key)) {
         if (typeof showToast === 'function') showToast('该时间点已在错题本中', 'info');
         return;
     }
-    list.push({
-        key,
-        video_id: currentVideoId,
-        title,
-        time_sec: time,
-        note: content,
-        created_at: Date.now()
-    });
-    setWrongbookList(list);
+    list.push({ key, video_id: currentVideoId, title, time_sec: time, note: content, created_at: Date.now() });
+    setWrongbookListToStorage(list);
     if (typeof showToast === 'function') showToast('已加入本地错题本', 'success');
 }
 
@@ -1419,12 +1452,12 @@ async function addCurrentVideoToCoursePack() {
     }
 }
 
-/** 查看当前视频的本地错题记录 */
-function showWrongbookForCurrentVideo() {
+/** 查看当前视频的错题记录 */
+async function showWrongbookForCurrentVideo() {
     if (!currentVideoId) return;
-    const list = getWrongbookList().filter(item => item.video_id === currentVideoId);
+    const list = await getWrongbookList(currentVideoId);
     if (!list.length) {
-        if (typeof showToast === 'function') showToast('当前视频还没有本地错题记录', 'info');
+        if (typeof showToast === 'function') showToast('当前视频还没有错题记录', 'info');
         return;
     }
     const sorted = list.slice().sort((a, b) => (a.time_sec || 0) - (b.time_sec || 0));
@@ -1435,7 +1468,7 @@ function showWrongbookForCurrentVideo() {
     });
     const text = lines.join('\n');
     if (typeof showAlert === 'function') {
-        showAlert(text, '本视频的错题记录（本地）');
+        showAlert(text, '本视频的错题记录');
     } else {
         alert(text);
     }

@@ -14,6 +14,8 @@
 @import url('pages/help.css');
 @import url('pages/formulas.css');
 @import url('pages/knowledge-panel.css');
+@import url('pages/context-menu.css');
+@import url('pages/tooltip.css');
 @import url('pages/devtools.css');
 @import url('pages/mathlive.css');
 @import url('pages/image-editor.css');

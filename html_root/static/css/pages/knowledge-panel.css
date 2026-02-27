@@ -1,5 +1,41 @@
 /* static/css/pages/knowledge-panel.css - 智算星云浮动面板样式 */
 
+/* ========== 关闭按钮：固定在右上角外侧，更显眼 ========== */
+.knowledge-panel-wrapper {
+    position: relative;
+}
+
+.knowledge-panel-close-btn {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(148, 163, 184, 0.9), rgba(100, 116, 139, 0.9));
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    z-index: 10;
+}
+
+.knowledge-panel-close-btn:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(185, 28, 28, 0.95));
+    color: #fff;
+    transform: scale(1.12);
+    box-shadow: 0 3px 14px rgba(239, 68, 68, 0.5);
+}
+
+#knowledge-panel.collapsed .knowledge-panel-close-btn {
+    display: none;
+}
+
 /* ========== 掌握度进度条（我的算式页 dynamic 区域）========== */
 .knowledge-progress-list {
     display: flex;
@@ -79,40 +115,134 @@
     display: inline-block;
 }
 
-/* 折叠态 */
+/* 折叠态：去除白底，仅显示球体，透明融入背景 */
 #knowledge-panel.collapsed {
     padding: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* 用户拖动后使用 left/top 定位 */
+#knowledge-panel.collapsed.has-bubble-pos {
+    right: auto !important;
+    bottom: auto !important;
+}
+
+/* 拖动中：仅 transform 更新，禁用 transition 确保跟手 */
+#knowledge-panel.is-dragging {
+    will-change: transform;
+    transition: none !important;
 }
 
 /* 折叠小球 */
 #knowledge-panel-bubble {
     min-width: 0;
     min-height: 0;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: pointer;
 }
 
+/* 立体 3D 球体：适当放大，柔和配色 */
 .knowledge-panel-bubble-inner {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    min-height: 54px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
-    background: var(--bg-surface);
     overflow: hidden;
+    /* 柔和球体：淡蓝紫渐变，左上高光 */
+    background: radial-gradient(
+        circle at 35% 30%,
+        rgba(255, 255, 255, 0.65) 0%,
+        rgba(191, 219, 254, 0.5) 30%,
+        rgba(147, 197, 253, 0.45) 55%,
+        rgba(99, 102, 241, 0.5) 80%,
+        rgba(79, 70, 229, 0.55) 100%
+    );
+    box-shadow:
+        0 3px 10px rgba(99, 102, 241, 0.12),
+        0 1px 4px rgba(0, 0, 0, 0.08),
+        inset 2px 2px 5px rgba(255, 255, 255, 0.4),
+        inset -1px -1px 4px rgba(99, 102, 241, 0.1);
+    animation: knowledgeBubbleFloat 4.5s ease-in-out infinite;
+}
+
+@keyframes knowledgeBubbleFloat {
+    0%, 100% { transform: translateY(0) translateZ(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-1.5px) translateZ(0) scale(1.01); opacity: 1; }
 }
 
 .knowledge-panel-bubble-inner img {
-    width: 28px;
-    height: 28px;
+    width: 34px;
+    height: 34px;
+    -webkit-user-drag: none;
+    user-drag: none;
     object-fit: contain;
     flex-shrink: 0;
+    filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.15));
 }
 
 #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+    /* 折叠态：更柔和的主色光晕，半透明融入背景 */
+    background: radial-gradient(
+        circle at 35% 30%,
+        rgba(255, 255, 255, 0.6) 0%,
+        rgba(191, 219, 254, 0.5) 25%,
+        rgba(147, 197, 253, 0.55) 50%,
+        rgba(99, 102, 241, 0.6) 75%,
+        rgba(79, 70, 229, 0.65) 100%
+    );
+    box-shadow:
+        0 4px 12px rgba(99, 102, 241, 0.2),
+        0 2px 6px rgba(79, 70, 229, 0.12),
+        inset 2px 2px 5px rgba(255, 255, 255, 0.35),
+        inset -1px -1px 4px rgba(79, 70, 229, 0.15);
+}
+
+[data-theme="dark"] .knowledge-panel-bubble-inner {
+    backface-visibility: hidden;
+    /* 深色模式：柔和蓝紫球体，与背景协调 */
+    background: radial-gradient(
+        circle at 35% 30%,
+        rgba(191, 219, 254, 0.5) 0%,
+        rgba(147, 197, 253, 0.45) 25%,
+        rgba(129, 140, 248, 0.5) 55%,
+        rgba(99, 102, 241, 0.55) 100%
+    );
+    box-shadow:
+        0 4px 16px rgba(99, 102, 241, 0.22),
+        0 2px 8px rgba(0, 0, 0, 0.2),
+        inset 2px 2px 8px rgba(255, 255, 255, 0.25),
+        inset -1px -1px 4px rgba(99, 102, 241, 0.15);
+    animation: knowledgeBubbleFloat 5s ease-in-out infinite;
+}
+
+[data-theme="dark"] .knowledge-panel-bubble-inner img {
+    filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.3)) brightness(1.1);
+}
+
+[data-theme="dark"] #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
+    /* 折叠态：更醒目但柔和的蓝紫光晕 */
+    background: radial-gradient(
+        circle at 35% 30%,
+        rgba(191, 219, 254, 0.55) 0%,
+        rgba(147, 197, 253, 0.5) 30%,
+        rgba(129, 140, 248, 0.55) 60%,
+        rgba(99, 102, 241, 0.6) 100%
+    );
+    box-shadow:
+        0 4px 18px rgba(99, 102, 241, 0.28),
+        0 2px 10px rgba(79, 70, 229, 0.2),
+        inset 2px 2px 8px rgba(255, 255, 255, 0.2),
+        inset -1px -1px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* ========== 可滚动、不超出视窗 ========== */
@@ -500,6 +630,135 @@
     color: var(--text-main);
 }
 
+/* 成就轮播：横线段形式 */
+.knowledge-achievement-seg-carousel {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.4rem 0;
+    margin-bottom: 0.75rem;
+    scrollbar-width: thin;
+    scroll-behavior: smooth;
+}
+
+.knowledge-achievement-seg-carousel::-webkit-scrollbar {
+    height: 3px;
+}
+
+.knowledge-achievement-seg-carousel::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.4);
+    border-radius: 3px;
+}
+
+.knowledge-achievement-seg-item {
+    flex-shrink: 0;
+    cursor: pointer;
+    width: 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    transition: transform 0.2s ease;
+}
+
+.knowledge-achievement-seg-item:hover {
+    transform: scale(1.1);
+}
+
+.achievement-seg-icon {
+    font-size: 0.75rem;
+    color: var(--primary-color);
+}
+
+.knowledge-achievement-seg-item:has(.achievement-seg.unlocked) .achievement-seg-icon {
+    color: #22c55e;
+}
+
+.achievement-seg {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-input);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.achievement-seg::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--pct, 0%);
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 3px;
+    transition: width 0.4s ease;
+}
+
+.achievement-seg.unlocked::after {
+    width: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+/* 成就统计面板（独立弹窗） */
+.achievement-panel-content {
+    width: 360px;
+    max-width: 92vw;
+    max-height: 75vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.achievement-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.achievement-panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.achievement-panel-list {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.achievement-panel-item {
+    padding: 0.65rem 0.75rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.05));
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 10px;
+}
+
+.achievement-panel-badge {
+    margin-bottom: 0.35rem;
+}
+
+.achievement-panel-condition {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.4rem;
+}
+
+.achievement-panel-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.achievement-panel-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
 /* 我的算式页 dynamic 区域：标签云 */
 .knowledge-cloud-tag {
     font-size: 0.8rem;
@@ -578,6 +837,127 @@
     margin-top: 0.5rem;
 }
 
+/* 地铁式横向导航：偏上位置，无滚动条，两端渐变隐去 */
+.knowledge-metro-wrap {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.knowledge-metro-line {
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.25rem 0;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.knowledge-metro-line::-webkit-scrollbar {
+    display: none;
+}
+
+.knowledge-metro-line::before,
+.knowledge-metro-line::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.knowledge-metro-line::before {
+    left: 0;
+    background: linear-gradient(90deg, var(--bg-surface, #fff) 0%, transparent 100%);
+}
+
+.knowledge-metro-line::after {
+    right: 0;
+    background: linear-gradient(270deg, var(--bg-surface, #fff) 0%, transparent 100%);
+}
+
+[data-theme="dark"] .knowledge-metro-line::before {
+    background: linear-gradient(90deg, var(--bg-surface, #1e293b) 0%, transparent 100%);
+}
+
+[data-theme="dark"] .knowledge-metro-line::after {
+    background: linear-gradient(270deg, var(--bg-surface, #1e293b) 0%, transparent 100%);
+}
+
+.knowledge-metro-track {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    min-width: min-content;
+}
+
+.knowledge-metro-station {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.knowledge-metro-station:hover {
+    color: var(--primary-color);
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.knowledge-metro-station.current {
+    color: var(--primary-color);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.1));
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.25);
+}
+
+.knowledge-metro-station.current .knowledge-metro-dot {
+    background: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+}
+
+.knowledge-metro-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    opacity: 0.7;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+}
+
+.knowledge-metro-station:hover .knowledge-metro-dot {
+    background: var(--primary-color);
+    opacity: 1;
+}
+
+.knowledge-metro-label {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.knowledge-metro-connector {
+    width: 16px;
+    height: 2px;
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0.4), rgba(148, 163, 184, 0.25));
+    flex-shrink: 0;
+    margin: 0 2px;
+}
+
+[data-theme="dark"] .knowledge-metro-connector {
+    background: linear-gradient(90deg, rgba(148, 163, 184, 0.35), rgba(148, 163, 184, 0.2));
+}
+
 [data-theme="dark"] .knowledge-shortcut-btn {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.08));
     border-color: rgba(59, 130, 246, 0.35);
@@ -615,13 +995,18 @@
     }
 
     #knowledge-panel.collapsed {
-        right: max(1rem, env(safe-area-inset-right)) !important;
-        bottom: max(1rem, env(safe-area-inset-bottom)) !important;
         left: auto !important;
-        width: 56px !important;
-        height: 56px !important;
+        width: 64px !important;
+        height: 64px !important;
         padding: 0 !important;
         border-radius: 50% !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    #knowledge-panel.collapsed:not(.has-bubble-pos) {
+        right: max(1rem, env(safe-area-inset-right)) !important;
+        bottom: max(1rem, env(safe-area-inset-bottom)) !important;
     }
 
     .knowledge-panel-header-logo img {
@@ -630,17 +1015,17 @@
     }
 
     .knowledge-panel-bubble-inner {
-        width: 52px;
-        height: 52px;
-        min-width: 52px;
-        min-height: 52px;
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        min-height: 54px;
     }
 
     #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
-        width: 52px;
-        height: 52px;
-        min-width: 52px;
-        min-height: 52px;
+        width: 54px;
+        height: 54px;
+        min-width: 54px;
+        min-height: 54px;
     }
 
     .knowledge-panel-bubble-inner img {
@@ -689,23 +1074,25 @@
     }
 
     #knowledge-panel.collapsed {
+        width: 60px !important;
+        height: 60px !important;
+    }
+    #knowledge-panel.collapsed:not(.has-bubble-pos) {
         right: max(0.75rem, env(safe-area-inset-right)) !important;
         bottom: max(0.75rem, env(safe-area-inset-bottom)) !important;
-        width: 50px !important;
-        height: 50px !important;
     }
 
     .knowledge-panel-bubble-inner {
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        min-height: 48px;
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
     }
 
     #knowledge-panel.collapsed .knowledge-panel-bubble-inner {
-        width: 48px;
-        height: 48px;
-        min-width: 48px;
-        min-height: 48px;
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        min-height: 52px;
     }
 }

@@ -166,6 +166,7 @@ async def change_username(data: ChangeUsernameModel, auth_session: Optional[str]
         cursor.execute("UPDATE formulas SET user_id = %s WHERE user_id = %s", (new_username, username))
         cursor.execute("UPDATE animation_scripts SET user_id = %s WHERE user_id = %s", (new_username, username))
         cursor.execute("UPDATE user_settings SET user_id = %s WHERE user_id = %s", (new_username, username))
+        cursor.execute("UPDATE agent_templates SET user_id = %s WHERE user_id = %s", (new_username, username))
         cursor.execute("SELECT avatar_url, nickname FROM user_profiles WHERE user_id = %s", (username,))
         prof = cursor.fetchone()
         if prof:

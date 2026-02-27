@@ -67,6 +67,16 @@ class ManimCodeModel(BaseModel):
     code: str
 
 
+class ManimKeyframeModel(BaseModel):
+    code: str
+    breakpoint_line: Optional[int] = None  # 1-based, 渲染到该行为止
+
+
+class ManimCodeEditModel(BaseModel):
+    code: str
+    instruction: str
+
+
 class AgentRequest(BaseModel):
     prompt: str
     image_base64: Optional[str] = None
@@ -80,3 +90,10 @@ class ExampleVideo(BaseModel):
     description: str
     url: str
     poster: str = ""
+
+
+class AgentTemplateCreate(BaseModel):
+    username: str
+    name: str = "未命名"
+    prompt: str
+    steps: list = []

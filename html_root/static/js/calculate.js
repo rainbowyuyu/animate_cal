@@ -579,17 +579,18 @@ export async function startAnimation() {
                             if (data.message) {
                                 addLog(data.message, "#e2e8f0");
                             }
-                            // 单阶段模式渲染时显示加载状态
-                            if (!data.part) {
-                                const singleWrap = document.getElementById('calc-single-wrap');
-                                if (singleWrap && singleWrap.style.display !== 'none') {
-                                    const loadingSingle = document.getElementById('calc-window-loading-single');
-                                    if (loadingSingle) loadingSingle.style.display = 'flex';
-                                }
-                            }
 
-                            // 渲染阶段：若后端提供 preview_url，则优先展示静态关键帧预览，先给用户一个可见结果
+                            // 渲染阶段：若后端提供 preview_url，则优先展示静态关键帧预览；关键帧一出现就立即隐藏所有加载层
                             if (data.preview_url) {
+                                // 先隐藏加载层，再展示预览（避免加载遮挡关键帧）
+                                const ldCalc = document.getElementById('calc-window-loading-calc');
+                                const ldVis = document.getElementById('calc-window-loading-vis');
+                                const ldSingle = document.getElementById('calc-window-loading-single');
+                                if (ldCalc) ldCalc.style.display = 'none';
+                                if (ldVis) ldVis.style.display = 'none';
+                                if (ldSingle) ldSingle.style.display = 'none';
+                                if (renderLoading) renderLoading.style.display = 'none';
+
                                 setStageCap(90);
                                 const url = `${data.preview_url}?t=${new Date().getTime()}`;
                                 let targetPlaceholder = null;
@@ -608,15 +609,9 @@ export async function startAnimation() {
                                             <span class="calc-preview-hint">已生成关键帧预览，视频渲染中…</span>
                                         </div>
                                     `;
-                                    // 隐藏对应加载遮罩，让关键帧预览可见
-                                    const ldCalc = document.getElementById('calc-window-loading-calc');
-                                    const ldVis = document.getElementById('calc-window-loading-vis');
-                                    const ldSingle = document.getElementById('calc-window-loading-single');
-                                    if (data.part === 'calc' && ldCalc) ldCalc.style.display = 'none';
-                                    else if (data.part === 'vis' && ldVis) ldVis.style.display = 'none';
-                                    else if (!data.part && ldSingle) ldSingle.style.display = 'none';
-                                    // 生成关键帧时即跳转并高亮，不等视频完成
-                                    if (!hasSwitchedToPreviewTab) {
+                                }
+                                // 生成关键帧时即跳转并高亮，不等视频完成
+                                if (!hasSwitchedToPreviewTab) {
                                         hasSwitchedToPreviewTab = true;
                                         setTimeout(() => {
                                             if (data.part === 'calc') {
@@ -658,8 +653,8 @@ export async function startAnimation() {
                                             }
                                         }, 150);
                                     }
-                                }
                             }
+                            // 不在此处显示加载层：后端会先发 preview_url 再发后续 rendering，若在无 preview 的 rendering 时显示加载会遮挡已出现的关键帧（通用推演流程同理）
 
                             if (renderLoadingTextEl) {
                                 renderLoadingTextEl.textContent = '正在渲染视频画面…';

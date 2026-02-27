@@ -1,5 +1,12 @@
 // static/js/ui.js
 
+const MODAL_IDS = [
+    'auth-modal', 'settings-modal', 'change-username-modal', 'change-password-modal',
+    'agent-templates-modal', 'agent-examples-modal', 'edit-formula-modal', 'video-copy-modal',
+    'script-note-modal', 'select-formula-modal', 'course-pack-modal', 'custom-dialog-modal',
+    'script-run-modal', 'docs-modal', 'video-modal', 'image-editor-modal', 'achievement-panel-modal'
+];
+
 export function toggleModal(modalId, show) {
     const modal = document.getElementById(modalId);
     if (!modal) return;
@@ -15,6 +22,24 @@ export function toggleModal(modalId, show) {
             modal.style.display = 'none';
         }, 300);
     }
+}
+
+/** 关闭所有已打开的弹窗 */
+export function closeAllModals() {
+    MODAL_IDS.forEach(id => toggleModal(id, false));
+}
+
+/** 按 ESC 关闭最顶层弹窗（若有多层则逐个关闭） */
+export function initModalEscHandler() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const visible = MODAL_IDS.map(id => document.getElementById(id)).filter(m => m && m.classList.contains('show'));
+        if (visible.length) {
+            e.preventDefault();
+            const top = visible[visible.length - 1];
+            toggleModal(top.id, false);
+        }
+    });
 }
 
 export function showSection(sectionId) {

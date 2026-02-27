@@ -76,3 +76,5 @@ ALIYUN_CDN_AUTH_KEY = os.getenv("ALIYUN_CDN_AUTH_KEY", "")           # 控制台
 ALIYUN_CDN_AUTH_TYPE = os.getenv("ALIYUN_CDN_AUTH_TYPE", "a").lower()  # a=鉴权方式A(b 暂不实现)
 ALIYUN_CDN_VIDEO_PATH = os.getenv("ALIYUN_CDN_VIDEO_PATH", "/storage").rstrip("/")  # CDN 上视频路径前缀
 ALIYUN_CDN_AUTH_TTL = _int_env("ALIYUN_CDN_AUTH_TTL", 3600)  # 鉴权 URL 有效时长（秒）
+# 公开 CDN 基地址（可选）：不开启 URL 鉴权时，设为与 ALIYUN_CDN_DOMAIN 相同，列表与预览将直接走 CDN 加速
+ALIYUN_CDN_PUBLIC_BASE = os.getenv("ALIYUN_CDN_PUBLIC_BASE", "").rstrip("/")

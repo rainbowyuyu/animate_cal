@@ -14,7 +14,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from ..config import VIDEOS_DIR, client, api_key
-from ..models import ManimCodeModel
+from ..models import ManimCodeModel, ManimCodeEditModel, ManimKeyframeModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/devtools", tags=["devtools"])
@@ -61,6 +61,110 @@ def _locate_manim_video(media_dir: str, output_file: str, py_path: str) -> Optio
                     return f"/videos/{output_file}"
             break
     return None
+
+
+def _locate_preview_png(media_dir: str, output_file: str, py_base: str) -> Optional[str]:
+    """Manim -s 渲染后查找预览 PNG。"""
+    import shutil
+    for root, _, files in os.walk(media_dir):
+        if output_file in files:
+            src = os.path.join(root, output_file)
+            final_path = os.path.join(media_dir, output_file)
+            if os.path.abspath(src) != os.path.abspath(final_path):
+                shutil.move(src, final_path)
+            return final_path
+    return None
+
+
+def _apply_breakpoint(code: str, breakpoint_line: int) -> str:
+    """在指定行后插入 return，使 construct 执行到该行后停止。breakpoint_line 为 1-based。"""
+    lines = code.splitlines(keepends=True)
+    if breakpoint_line < 1 or breakpoint_line > len(lines):
+        return code
+    idx = breakpoint_line - 1
+    indent = ""
+    for c in lines[idx]:
+        if c in " \t":
+            indent += c
+        else:
+            break
+    new_line = indent + "return  # breakpoint\n"
+    return "".join(lines[: breakpoint_line]) + new_line + "".join(lines[breakpoint_line:])
+
+
+@router.post("/render_keyframe")
+async def render_keyframe(data: ManimKeyframeModel):
+    """渲染单张关键帧预览图（Manim -s）。可选 breakpoint_line 指定渲染到该行为止。"""
+    forbidden = ["import os", "import sys", "import subprocess", "rm -rf", "shutil"]
+    for keyword in forbidden:
+        if keyword in data.code:
+            return JSONResponse(status_code=400, content={"status": "error", "message": f"安全拦截: 禁止使用 '{keyword}'"})
+
+    code = data.code
+    if data.breakpoint_line is not None:
+        code = _apply_breakpoint(code, data.breakpoint_line)
+
+    task_id = str(uuid.uuid4())
+    py_filename = f"kf_{task_id}.py"
+    py_path = os.path.join(VIDEOS_DIR, py_filename)
+    media_dir = os.path.abspath(VIDEOS_DIR)
+    output_file = f"{task_id}_preview.png"
+
+    try:
+        os.makedirs(media_dir, exist_ok=True)
+        with open(py_path, "w", encoding="utf-8") as f:
+            f.write(code)
+        cmd = [
+            sys.executable,
+            "-m",
+            "manim",
+            "-ql",
+            "-s",
+            "--media_dir",
+            media_dir,
+            "-o",
+            output_file,
+            os.path.abspath(py_path),
+            "GenScene",
+        ]
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", timeout=90),
+        )
+        try:
+            os.remove(py_path)
+        except Exception:
+            pass
+        if result.returncode == 0:
+            py_base = py_filename.replace(".py", "")
+            found_path = _locate_preview_png(media_dir, output_file, py_base)
+            if not found_path:
+                for root, _, files in os.walk(media_dir):
+                    for f in files:
+                        if f == output_file or (task_id in f and f.endswith(".png")):
+                            import shutil
+                            src = os.path.join(root, f)
+                            dst = os.path.join(media_dir, output_file)
+                            if src != dst:
+                                shutil.move(src, dst)
+                            found_path = dst
+                            break
+                    if found_path:
+                        break
+            if found_path or os.path.exists(os.path.join(media_dir, output_file)):
+                return {"status": "success", "preview_url": f"/videos/{output_file}"}
+        err = (result.stderr or result.stdout or "")[-500:]
+        return JSONResponse(status_code=400, content={"status": "error", "message": err or "渲染失败"})
+    except subprocess.TimeoutExpired:
+        try:
+            os.remove(py_path)
+        except Exception:
+            pass
+        return JSONResponse(status_code=400, content={"status": "error", "message": "渲染超时"})
+    except Exception as e:
+        logger.error("render_keyframe: %s", e)
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
 @router.post("/run_manim")
@@ -290,3 +394,51 @@ async def generate_video_copy(data: ManimCodeModel):
     except Exception as e:
         logger.error(f"generate_video_copy error: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "message": "生成视频文案时出错：" + str(e)})
+
+
+@router.post("/edit_code")
+async def edit_manim_code(data: ManimCodeEditModel):
+    """
+    用自然语言指令编辑 Manim 代码（类似 Cursor）。
+    接收当前代码与用户指令，返回大模型修改后的完整代码。
+    """
+    code = (data.code or "").strip()
+    instruction = (data.instruction or "").strip()
+    if not instruction:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "请输入编辑指令"})
+    if not code:
+        return JSONResponse(status_code=400, content={"status": "error", "message": "当前代码为空，请先编写或导入脚本"})
+
+    snippet = code[:6000]
+    if not api_key or client is None:
+        return JSONResponse(status_code=503, content={"status": "error", "message": "未配置大模型，无法使用自然语言编辑"})
+
+    prompt = (
+        "你是一个 Manim 动画代码编辑助手。用户会提供当前的 Manim Python 代码和一条自然语言编辑指令。"
+        "请根据指令修改代码，直接输出修改后的**完整** Manim 代码，不要解释、不要 markdown 代码块包裹。\n\n"
+        "要求：\n"
+        "- 保留 from manim import * 和 class GenScene(Scene) 结构；\n"
+        "- 只输出可执行的 Python 代码；\n"
+        "- 若指令无法实现，输出原代码并尽量靠近用户意图。\n\n"
+        "当前代码：\n```python\n" + snippet + "\n```\n\n"
+        "用户指令：" + instruction
+    )
+
+    try:
+        completion = client.chat.completions.create(
+            model="qwen-plus",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = completion.choices[0].message.content.strip()
+        if "```" in text:
+            for block in text.split("```"):
+                if block.strip().startswith("python"):
+                    text = block.strip()[6:].strip()
+                    break
+                if "from manim" in block or "class GenScene" in block:
+                    text = block.strip()
+                    break
+        return {"status": "success", "code": text}
+    except Exception as e:
+        logger.error(f"edit_manim_code error: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": "编辑失败：" + str(e)})

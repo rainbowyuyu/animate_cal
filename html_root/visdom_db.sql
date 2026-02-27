@@ -19,8 +19,19 @@ CREATE TABLE IF NOT EXISTS formulas (
     FOREIGN KEY (user_id) REFERENCES users(username) ON DELETE CASCADE
 );
 
+-- 算式主题标签表（用于知识星云与掌握度统计）
+CREATE TABLE IF NOT EXISTS formula_topics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(64) NOT NULL,
+    formula_id INT NOT NULL,
+    tag VARCHAR(64) NOT NULL,
+    weight FLOAT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_tag (user_id, tag),
+    INDEX idx_formula (formula_id)
+);
 
--- localStorage，不落库；仅 id/user_id/note/code/created_at 存于此表。
+-- 动画脚本表（localStorage 不落库；仅 id/user_id/note/code/created_at 存于此表）
 CREATE TABLE IF NOT EXISTS animation_scripts (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id VARCHAR(255) NOT NULL,
@@ -123,5 +134,38 @@ CREATE TABLE IF NOT EXISTS example_video_notes (
     video_id VARCHAR(128) NOT NULL,
     time_sec DOUBLE NOT NULL DEFAULT 0,
     content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 智能体模板表（用户在执行智能体任务后存为模板，登录后同步到数据库）
+CREATE TABLE IF NOT EXISTS agent_templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    name VARCHAR(256) NOT NULL DEFAULT '未命名',
+    prompt TEXT NOT NULL,
+    steps_json MEDIUMTEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(username) ON DELETE CASCADE
+);
+
+-- 星云成就表（成就进度与解锁状态，登录后同步）
+CREATE TABLE IF NOT EXISTS user_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    achievement_id VARCHAR(64) NOT NULL,
+    progress INT NOT NULL DEFAULT 0,
+    unlocked TINYINT(1) NOT NULL DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_user_ach (user_id, achievement_id)
+);
+
+-- 错题本表（教学案例视频时间点错题记录，登录后同步）
+CREATE TABLE IF NOT EXISTS user_wrongbook (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    video_id VARCHAR(256) NOT NULL,
+    title VARCHAR(512) DEFAULT '',
+    time_sec INT NOT NULL DEFAULT 0,
+    note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

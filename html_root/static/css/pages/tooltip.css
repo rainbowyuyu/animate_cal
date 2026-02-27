@@ -1,0 +1,72 @@
+/* 智算视界 - 独有浮动提示与面板 */
+
+.app-floating-tooltip {
+    position: fixed;
+    left: 0;
+    top: 0;
+    padding: 7px 14px;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    font-weight: 500;
+    border-radius: 10px;
+    z-index: 10001;
+    pointer-events: none;
+    max-width: 300px;
+    white-space: normal;
+    word-break: break-word;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px) scale(0.97);
+    transform-origin: center bottom;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+}
+
+.app-floating-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+/* 浅色模式：简洁文字提示 - 深色背景 + 浅色文字，更清晰 */
+.app-floating-tooltip:not(.is-panel) {
+    color: #f8fafc;
+    background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.2),
+        0 0 0 1px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* 浅色模式：面板样式 */
+.app-floating-tooltip.is-panel {
+    padding: 9px 16px;
+    font-size: 0.88rem;
+    color: #0f172a;
+    background: #ffffff;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    box-shadow:
+        0 10px 32px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* 深色模式：文字提示 - 稍亮的灰蓝背景 + 柔和白字 */
+[data-theme="dark"] .app-floating-tooltip:not(.is-panel) {
+    color: #f1f5f9;
+    background: linear-gradient(135deg, #475569 0%, #334155 100%);
+    box-shadow:
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 深色模式：面板样式 - 深色底 + 浅色字 */
+[data-theme="dark"] .app-floating-tooltip.is-panel {
+    color: #e2e8f0;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
