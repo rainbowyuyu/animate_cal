@@ -13,8 +13,16 @@ function getStepLabel(step) {
     const parts = [];
     if (step.section === 'devtools') {
         if (step.devtool === 'latex') parts.push('填入 LaTeX');
-        else if (step.devtool === 'manim') parts.push('填入 Manim 代码');
-        else if (step.devtool === 'rainbow') parts.push('Rainbow 拓展');
+        else if (step.devtool === 'manim') {
+            const act = step.devtool_action || step.action;
+            if (act === 'run') parts.push('运行 Manim');
+            else if (act === 'keyframe') parts.push('关键帧预览');
+            else if (act === 'import') parts.push('导入脚本');
+            else if (act === 'save') parts.push('保存脚本');
+            else if (act === 'summary') parts.push('生成视频文案');
+            else if (act === 'ai_edit') parts.push('AI 编辑');
+            else parts.push('填入 Manim 代码');
+        } else if (step.devtool === 'rainbow') parts.push('Rainbow 拓展');
     }
     if (step.trigger === 'recognize') parts.push('识别');
     if (step.trigger === 'generate') parts.push('生成动画');
@@ -22,6 +30,15 @@ function getStepLabel(step) {
     if (step.section === 'calculate' && step.operation) {
         const modeNames = { normal: '通用推演', formular: '公式推演', visualization: '可视化', solution: '完整解题演示' };
         parts.push(modeNames[step.operation] || step.operation);
+    }
+    if (step.section === 'examples' && step.examples_filter) {
+        const filterNames = { all: '全部案例', favorites: '收藏', watch_later: '稍后看', courseware: '我的课件' };
+        parts.push(filterNames[step.examples_filter] || step.examples_filter);
+    }
+    if (step.section === 'settings') {
+        const sectionNames = { appearance: '外观', profile: '账户', agent: '智能体', detect: '画板', shortcuts: '快捷键', calc: '动态计算', devtools: '开发者工具', examples: '弹幕' };
+        if (step.settings_section) parts.push(sectionNames[step.settings_section] || step.settings_section);
+        if (step.setting_key) parts.push('修改 ' + step.setting_key);
     }
     const action = parts.length ? `（${parts.join('、')}）` : '';
     return `打开「${name}」${action}`;
@@ -386,6 +403,20 @@ function applyStepContent(step) {
                     window.openManimWorkbenchWithCode(step.fill_manim_code.trim());
                 }, 200);
             }
+            // 智能体调用的 Manim 工具栏动作（知识图谱中的按钮）
+            const action = step.devtool_action || step.action;
+            if (step.devtool === 'manim' && action && typeof window.DevTools !== 'undefined') {
+                const D = window.DevTools;
+                const act = () => {
+                    if (action === 'run' && typeof window.runDevManim === 'function') window.runDevManim();
+                    else if (action === 'keyframe' && typeof D.previewKeyframes === 'function') D.previewKeyframes();
+                    else if (action === 'import' && typeof D.toggleImportPanel === 'function') D.toggleImportPanel();
+                    else if (action === 'save' && typeof D.saveScriptFromWorkbench === 'function') D.saveScriptFromWorkbench();
+                    else if (action === 'summary' && typeof D.generateVideoCopy === 'function') D.generateVideoCopy();
+                    else if (action === 'ai_edit' && typeof D.toggleAiEditPanel === 'function') D.toggleAiEditPanel();
+                };
+                setTimeout(act, 300);
+            }
         }, 100);
     }
 
@@ -405,6 +436,25 @@ function applyStepContent(step) {
                 setTimeout(() => window.startAnimation(), 400);
             }
         }, 200);
+    }
+
+    if (section === 'examples' && step.examples_filter) {
+        if (typeof window.Examples !== 'undefined' && typeof window.Examples.switchExamplesFilter === 'function') {
+            setTimeout(() => window.Examples.switchExamplesFilter(step.examples_filter), 200);
+        }
+    }
+
+    if (section === 'settings') {
+        const anchor = step.settings_section || undefined;
+        if (typeof window.openSettings === 'function') {
+            setTimeout(() => window.openSettings(anchor), 100);
+        }
+        if (step.setting_key && step.setting_value != null && typeof window.Settings?.applySingleSetting === 'function') {
+            setTimeout(() => {
+                window.Settings.applySingleSetting(step.setting_key, step.setting_value);
+                if (typeof showToast === 'function') showToast('已修改设置：' + step.setting_key, 'success');
+            }, 250);
+        }
     }
 
     if (section === 'detect' && step.formula) {

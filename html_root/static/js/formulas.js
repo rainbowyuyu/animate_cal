@@ -461,7 +461,7 @@ async function loadAgentTemplates() {
             </div>`;
         return;
     }
-    listEl.innerHTML = '<div class="formulas-loading" style="grid-column:1/-1; text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+    listEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i><p>正在同步云端数据...</p></div>';
     let list = [];
     try {
         const res = await fetch(`/api/agent_templates/list?username=${encodeURIComponent(user)}`);
@@ -555,7 +555,7 @@ export async function loadAnimationScripts() {
         return;
     }
 
-    listEl.innerHTML = '<div class="formulas-loading" style="text-align:center; padding:2rem; color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+    listEl.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-spinner fa-spin"></i><p>正在同步云端数据...</p></div>';
     try {
         const res = await fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`);
         const data = await res.json();

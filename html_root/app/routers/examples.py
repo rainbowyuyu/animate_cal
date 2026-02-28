@@ -23,6 +23,7 @@ from ..config import (
     ALIYUN_CDN_VIDEO_PATH,
     ALIYUN_CDN_AUTH_TTL,
     ALIYUN_CDN_PUBLIC_BASE,
+    EXAMPLES_USE_CDN,
 )
 from ..store import SESSION_STORE
 
@@ -322,8 +323,8 @@ async def get_examples(
                             sprite_cols, sprite_rows, he_list = 10, 10, []
                         tags_raw = meta.get("tags")
                         tags_list = [str(t) for t in tags_raw] if isinstance(tags_raw, list) else []
-                        # 有公开 CDN 基地址时优先使用，加速列表预览与回退播放
-                        cdn_base = (ALIYUN_CDN_PUBLIC_BASE or "").strip()
+                        # 默认本地；EXAMPLES_USE_CDN=1 时走 CDN（保留 CDN 接口）
+                        cdn_base = (ALIYUN_CDN_PUBLIC_BASE or "").strip() if EXAMPLES_USE_CDN else ""
                         video_url = f"{cdn_base.rstrip('/')}{ALIYUN_CDN_VIDEO_PATH}/{file}" if cdn_base else f"/assets/storage/{file}"
                         videos.append({
                             "filename": file,
@@ -443,16 +444,16 @@ async def get_player_config(
             status_code=404,
             content={"code": -1, "message": "视频不存在"},
         )
-    # 优先 CDN 鉴权地址，未配置或失败则用本地鉴权流；并始终返回 fallback_src 供前端 CDN 失败时切换
+    # 默认本地；EXAMPLES_USE_CDN=1 时优先 CDN（保留 CDN 接口），并返回 fallback_src 供前端切换
+    # 使用相对路径（与列表页缩略图一致），浏览器按当前页 origin 解析，反向代理环境下可正常播放
     token, expires = _sign_video_token(video_id)
-    base_url = str(request.base_url).rstrip("/")
-    local_src = f"{base_url}/api/v1/player/stream/{video_id}?token={token}&expires={expires}"
-    video_src = _aliyun_cdn_signed_url(video_id)
+    local_src = f"/api/v1/player/stream/{video_id}?token={token}&expires={expires}"
+    video_src = _aliyun_cdn_signed_url(video_id) if EXAMPLES_USE_CDN else None
     if not video_src:
         video_src = local_src
-        fallback_src = None  # 当前已是本地，无需回退
+        fallback_src = None
     else:
-        fallback_src = local_src  # CDN 失败时可切回本地
+        fallback_src = local_src
     last_play_time = 0.0
     username = _username_from_session(auth_session)
     if username:

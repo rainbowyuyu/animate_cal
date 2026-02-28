@@ -4,6 +4,7 @@
 import asyncio
 import json
 import logging
+import re
 import os
 import subprocess
 import sys
@@ -77,10 +78,12 @@ def _locate_preview_png(media_dir: str, output_file: str, py_base: str) -> Optio
 
 
 def _apply_breakpoint(code: str, breakpoint_line: int) -> str:
-    """在指定行后插入 return，使 construct 执行到该行后停止。breakpoint_line 为 1-based。"""
+    """在指定行后插入 return，使 construct 执行到该行后停止。breakpoint_line 为 1-based。支持最后一行。"""
     lines = code.splitlines(keepends=True)
-    if breakpoint_line < 1 or breakpoint_line > len(lines):
+    if breakpoint_line < 1:
         return code
+    if breakpoint_line > len(lines):
+        breakpoint_line = len(lines)  # 允许超出的行号，视为最后一行
     idx = breakpoint_line - 1
     indent = ""
     for c in lines[idx]:
@@ -89,7 +92,11 @@ def _apply_breakpoint(code: str, breakpoint_line: int) -> str:
         else:
             break
     new_line = indent + "return  # breakpoint\n"
-    return "".join(lines[: breakpoint_line]) + new_line + "".join(lines[breakpoint_line:])
+    before = "".join(lines[:breakpoint_line])
+    after = "".join(lines[breakpoint_line:])
+    if before and not before.endswith("\n"):
+        before += "\n"  # 最后一行无换行时，补换行避免与 return 拼接
+    return before + new_line + after
 
 
 @router.post("/render_keyframe")
@@ -396,14 +403,59 @@ async def generate_video_copy(data: ManimCodeModel):
         return JSONResponse(status_code=500, content={"status": "error", "message": "生成视频文案时出错：" + str(e)})
 
 
+def _is_add_or_play_line(line: str) -> bool:
+    """判断该行是否为 add/play 行（对象在此行才显示在画面上）"""
+    line = line.strip()
+    if re.search(r"self\.add\s*\(", line):
+        return True
+    if re.search(r"self\.play\s*\(", line):
+        return True
+    return False
+
+
+def _get_keyframe_lines(code: str, instruction: str = "") -> list:
+    """
+    根据 Manim 规则提取关键帧断点行号（1-based）。
+    对象在 add 或 play(Create/Write/Transform 等) 时才显示在画面上，定义行不显示。
+    instruction 含「添加」时优先取最后一个（新增对象通常在末尾）。
+    """
+    add_pattern = re.compile(r"self\.add\s*\(")
+    anim_keywords = re.compile(
+        r"\b(Create|Write|Transform|ReplacementTransform|FadeIn|FadeOut|GrowFromCenter|DrawBorderThenFill)\s*\("
+    )
+    play_pattern = re.compile(r"self\.play\s*\(")
+    lines = code.splitlines()
+    add_lines = []
+    play_anim_lines = []
+    play_other_lines = []
+    for i, line in enumerate(lines):
+        ln = i + 1
+        if add_pattern.search(line):
+            add_lines.append(ln)
+        elif play_pattern.search(line):
+            if anim_keywords.search(line):
+                play_anim_lines.append(ln)
+            else:
+                play_other_lines.append(ln)
+    result = add_lines or play_anim_lines or play_other_lines
+    if not result:
+        return []
+    # 「添加」类指令：新对象通常在最后，取最后一个 add/play
+    if instruction and ("添加" in instruction or "add" in instruction.lower()):
+        return [result[-1]]
+    return result[:3]
+
+
 @router.post("/edit_code")
 async def edit_manim_code(data: ManimCodeEditModel):
     """
     用自然语言指令编辑 Manim 代码（类似 Cursor）。
-    接收当前代码与用户指令，返回大模型修改后的完整代码。
+    接收当前代码与用户指令，可选渲染日志；返回修改后代码及关键帧断点。
     """
     code = (data.code or "").strip()
     instruction = (data.instruction or "").strip()
+    render_log = (data.render_log or "").strip()
+
     if not instruction:
         return JSONResponse(status_code=400, content={"status": "error", "message": "请输入编辑指令"})
     if not code:
@@ -419,10 +471,27 @@ async def edit_manim_code(data: ManimCodeEditModel):
         "要求：\n"
         "- 保留 from manim import * 和 class GenScene(Scene) 结构；\n"
         "- 只输出可执行的 Python 代码；\n"
-        "- 若指令无法实现，输出原代码并尽量靠近用户意图。\n\n"
-        "当前代码：\n```python\n" + snippet + "\n```\n\n"
-        "用户指令：" + instruction
+        "- 若指令无法实现，输出原代码并尽量靠近用户意图。\n"
+        "- 【形状颜色】用户要求改形状颜色（如「方形改为红色」「圆改成蓝色」）时，必须加 set_fill(color, opacity=0.5) 使填充生效，否则可能只显示描边。"
+        "例：square = Square(color=RED)\nsquare.set_fill(RED, opacity=0.5)\n"
+        "- 【新增形状】用户说「添加三角形」用 Triangle()，「添加方形」用 Square()，「添加圆」用 Circle()。\n\n"
+        "【关键帧断点】（必须输出）在输出代码的最后，另起一行写：KEYFRAME_LINE: N\n\n"
+        "【Manim 显示规则】对象只有在 add 或 play 时才出现在画面上，定义行（circle=Circle()）不会显示：\n"
+        "self.add(obj)、self.play(Create/Write/FadeIn/Transform/ReplacementTransform 等)\n\n"
+        "N 的选取规则：必须是**用户指令所针对的那个对象**在画面上出现的 add/play 行。\n"
+        "- 修改现有对象（如「方形改红色」「圆变大」）→ N 选该对象（square/circle）的 add 或 play 行；\n"
+        "- 新增对象（如「添加一个三角形」「加一段文字」）→ N 选**新对象**（triangle/text）的 add 或 play 行，不是已有对象的行；\n"
+        "- 若代码中有多个 add/play，必须选与用户指令对应的那个，不能选第一个或无关的。\n"
+        "示例：「添加一个三角形的动画」→ N 选 self.play(Create(triangle)) 或 self.add(triangle) 所在行（三角形），不能选 square/circle 的行；"
+        "「方形改为红色」→ N 选 self.play(Create(square)) 所在行；"
+        "「圆改为渐变色」→ N 选 self.play(Create(circle)) 所在行（绝不是 set_fill 或 Circle() 定义行，那些行不会把对象显示在画面上，会导致黑屏）。\n\n"
     )
+    if render_log:
+        prompt += (
+            "【重要】用户当前意图为纠错/修复。下方为最近的 Manim 渲染日志，请结合报错信息修改代码：\n\n"
+            "渲染日志：\n```\n" + render_log[:3000] + "\n```\n\n"
+        )
+    prompt += "当前代码：\n```python\n" + snippet + "\n```\n\n用户指令：" + instruction
 
     try:
         completion = client.chat.completions.create(
@@ -438,7 +507,25 @@ async def edit_manim_code(data: ManimCodeEditModel):
                 if "from manim" in block or "class GenScene" in block:
                     text = block.strip()
                     break
-        return {"status": "success", "code": text}
+
+        # 解析智能体提供的断点行号（支持行内或独立行）
+        keyframe_lines = []
+        keyframe_match = re.search(r"KEYFRAME_LINE:\s*(\d+)", text, re.IGNORECASE)
+        if keyframe_match:
+            ln = int(keyframe_match.group(1))
+            if 1 <= ln <= 9999:
+                lines_arr = text.splitlines()
+                if ln <= len(lines_arr) and _is_add_or_play_line(lines_arr[ln - 1]):
+                    keyframe_lines = [ln]
+                # 若 LLM 返回的是定义行（如 set_fill、Circle()），会导致黑屏，改用 fallback
+        # 从代码中移除 KEYFRAME_LINE 行
+        text = re.sub(r"^[ \t]*KEYFRAME_LINE:\s*\d+[ \t\r]*$", "", text, flags=re.IGNORECASE | re.MULTILINE)
+        text = re.sub(r"\n\n+", "\n", text).strip()  # 合并多余空行
+
+        if not keyframe_lines:
+            keyframe_lines = _get_keyframe_lines(text, instruction)
+
+        return {"status": "success", "code": text, "keyframe_lines": keyframe_lines}
     except Exception as e:
         logger.error(f"edit_manim_code error: {e}")
         return JSONResponse(status_code=500, content={"status": "error", "message": "编辑失败：" + str(e)})

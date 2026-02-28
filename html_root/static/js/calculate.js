@@ -1,5 +1,6 @@
 import { toggleModal, showSection, toggleAuthModal, showToast } from './ui.js';
 import { loadMyFormulas, normalizeLatex } from './formulas.js';
+import { getIsRenderCooldown, startRenderCooldown, setRenderInProgress, setRenderProgress } from './render-cooldown.js';
 import { sanitizeMarkdownHtml } from './sanitize.js';
 import * as Formulas from './formulas.js';
 import * as Settings from './settings.js';
@@ -148,53 +149,40 @@ export function initCalculateListeners() {
             }
         });
     }
+
+    // 全站渲染冷却事件：同步更新计算页按钮状态
+    window.addEventListener('render-cooldown-tick', (e) => updateCalcButtonFromCooldown(e.detail.left));
+    window.addEventListener('render-cooldown-end', () => updateCalcButtonFromCooldown(0));
 }
 
-// 辅助：冷却逻辑 (独立并行)
-function startCooldown(duration = 10) {
+// 动态计算按钮冷却（与开发者工具共享全站渲染冷却）
+function updateCalcButtonFromCooldown(left) {
     const btn = document.querySelector('.calc-sidebar .action-btn.full-width');
     if (!btn) return;
-
-    // 如果已经在冷却中，不再重复触发（双重保险）
-    if (btn.classList.contains('is-cooldown')) return;
-
-    // 1. 保存原始按钮内容 (如果还没保存过)
-    if (!btn.dataset.originalHtml) {
-        btn.dataset.originalHtml = btn.innerHTML;
+    if (!btn.dataset.originalHtml) btn.dataset.originalHtml = btn.innerHTML;
+    if (left > 0) {
+        btn.disabled = true;
+        btn.classList.add('is-cooldown');
+        btn.style.opacity = '0.7';
+        btn.style.cursor = 'not-allowed';
+        btn.innerHTML = `<i class="fa-regular fa-clock"></i> 冷却中 (${left}s)`;
+    } else {
+        btn.disabled = false;
+        btn.classList.remove('is-cooldown');
+        btn.innerHTML = btn.dataset.originalHtml;
+        btn.style.opacity = '';
+        btn.style.cursor = '';
     }
-
-    // 2. 设置冷却状态
-    btn.disabled = true;
-    btn.classList.add('is-cooldown'); // 添加标记
-    btn.style.opacity = '0.7';
-    btn.style.cursor = 'not-allowed';
-
-    let timeLeft = duration;
-    btn.innerHTML = `<i class="fa-regular fa-clock"></i> 冷却中 (${timeLeft}s)`;
-
-    // 3. 启动倒计时 (不等待 Promise，独立运行)
-    const timer = setInterval(() => {
-        timeLeft--;
-        if (timeLeft <= 0) {
-            clearInterval(timer);
-            // 4. 恢复原始状态
-            btn.disabled = false;
-            btn.classList.remove('is-cooldown');
-            btn.innerHTML = btn.dataset.originalHtml;
-            btn.style.opacity = '';
-            btn.style.cursor = '';
-        } else {
-            btn.innerHTML = `<i class="fa-regular fa-clock"></i> 冷却中 (${timeLeft}s)`;
-        }
-    }, 1000);
 }
 
 // 核心：开始生成动画（仅在有错误时由后端对单阶段重试，前端不整请求重试）
 export async function startAnimation() {
     const btn = document.querySelector('.calc-sidebar .action-btn.full-width');
 
-    // 检查是否正在冷却
-    if (btn && btn.disabled) return;
+    if (getIsRenderCooldown()) {
+        if (typeof showAlert === 'function') await showAlert("全站渲染冷却中，请稍后再试（开发者工具与动态计算共享冷却）", "提示");
+        return;
+    }
 
     const formulaField = document.getElementById('math-field-main');
     const formula = formulaField ? formulaField.getValue() : "";
@@ -204,8 +192,10 @@ export async function startAnimation() {
         return;
     }
 
-    // --- 点击后立即启动冷却 (并行执行) ---
-    startCooldown(30);
+    startRenderCooldown(30);
+    updateCalcButtonFromCooldown(30);
+    setRenderInProgress(true, { source: 'calculate' });
+    setRenderProgress({ source: 'calculate', progress: 0 });
 
     // 获取 DOM 元素
     const videoWrapper = document.getElementById('calc-video-wrapper');
@@ -217,6 +207,7 @@ export async function startAnimation() {
     const percentText = document.getElementById('gen-percent');
     const terminalWrapper = document.getElementById('calc-terminal-wrapper');
     const method = document.getElementById('calc-method').value;
+    const isGenericDual = method === 'normal';
 
     // 1. 重置 UI 状态
     if(logBox) logBox.innerHTML = '';
@@ -233,17 +224,26 @@ export async function startAnimation() {
     let serverProgress = 0;
     let progressIntervalId = null;
     let stageCap = 20;  // 阶段 1：理解/规划
-    let isDualPhase = false;
-    let hasSwitchedToPreviewTab = false;  // 是否已在关键帧预览时跳转过
+    let isDualPhase = isGenericDual;
+    let calcPhaseComplete = false;  // 通用模式：计算阶段是否已完成
+    let hasSwitchedToPreviewTab = false;
     const setStageCap = (cap) => { stageCap = Math.max(stageCap, cap); };
+    /** 通用：整体 0–100%，计算 0–75%、可视化 75–100%；非通用：独立 0–100% */
+    const toDisplayProgress = (raw) => {
+        if (!isDualPhase) return Math.min(100, raw);
+        const effective = !calcPhaseComplete ? Math.min(raw, 75) : raw;
+        return Math.min(100, effective);
+    };
     const updateProgressUI = (p) => {
-        const v = Math.min(99.9, Math.round(p * 10) / 10);
+        const displayVal = toDisplayProgress(p);
+        const v = Math.min(100, Math.round(displayVal * 10) / 10);
         if (progBar) {
             progBar.style.width = v + '%';
             progBar.classList.remove('phase-start', 'phase-mid', 'phase-done');
             progBar.classList.add(v < 30 ? 'phase-start' : v < 90 ? 'phase-mid' : 'phase-done');
         }
         if (percentText) percentText.innerText = v.toFixed(1) + '%';
+        setRenderProgress({ source: 'calculate', progress: v });
     };
     const tickFakeProgress = () => {
         if (displayProgress >= 99) return;
@@ -253,6 +253,7 @@ export async function startAnimation() {
         const baseInc = nearCap ? 0.06 + Math.random() * 0.1 : (displayProgress < 30 ? 0.15 + Math.random() * 0.25 : 0.1 + Math.random() * 0.28);
         const inc = baseInc + (Math.random() > 0.9 ? 0.12 : 0);
         displayProgress = Math.min(stageCap, displayProgress + inc);
+        if (isDualPhase && !calcPhaseComplete) displayProgress = Math.min(displayProgress, 75);
         const show = Math.max(displayProgress, serverProgress);
         updateProgressUI(show);
     };
@@ -431,7 +432,9 @@ export async function startAnimation() {
                             const data = JSON.parse(jsonStr);
 
                             if (data.progress !== undefined && data.progress !== null) {
-                            serverProgress = Math.max(serverProgress, Number(data.progress));
+                            const raw = Number(data.progress);
+                            serverProgress = Math.max(serverProgress, raw);
+                            if (isDualPhase && !calcPhaseComplete) serverProgress = Math.min(serverProgress, 75);
                             const show = Math.max(displayProgress, serverProgress);
                             updateProgressUI(show);
                         }
@@ -511,7 +514,6 @@ export async function startAnimation() {
                             }, 300);
                         }
                         if (data.step === 'normal_split') {
-                            isDualPhase = true;
                             addLog(data.message || "通用演示将分两步：先计算推演，再可视化演示", "#a78bfa");
                             const dualWrap = document.getElementById('calc-dual-videos-wrap');
                             const placeholder = document.getElementById('video-placeholder-content');
@@ -664,20 +666,27 @@ export async function startAnimation() {
                             const part = data.part;
                             const isCalcCompleteDual = part === 'calc' && isDualPhase;
                             if (!isCalcCompleteDual) {
-                                // 单阶段或双阶段最后一阶段：收尾到 100%
+                                // 单阶段或双阶段最后一阶段：先到 ~95% 再平滑过渡 100%（避免直接跳）
                                 if (progressIntervalId) { clearInterval(progressIntervalId); progressIntervalId = null; }
                                 if (terminalWrapper) terminalWrapper.classList.remove('is-generating');
-                                if (progBar) {
-                                    progBar.classList.remove('phase-start', 'phase-mid');
-                                    progBar.classList.add('phase-done');
-                                    progBar.style.width = '100%';
-                                }
-                                if (percentText) percentText.innerText = '100%';
+                                const raw = Math.max(displayProgress, serverProgress);
+                                const midRaw = isDualPhase ? 97.5 : Math.max(raw, 95);
+                                updateProgressUI(midRaw);
+                                setTimeout(() => {
+                                    if (progBar) {
+                                        progBar.classList.remove('phase-start', 'phase-mid');
+                                        progBar.classList.add('phase-done');
+                                        progBar.style.width = '100%';
+                                    }
+                                    if (percentText) percentText.innerText = '100%';
+                                    setRenderProgress({ source: 'calculate', progress: 100 });
+                                }, 280);
                             } else {
-                                // 双阶段首阶段（calc）完成：到 75%，保持 interval，vis 阶段会 setStageCap(90) 继续前进
-                                stageCap = 75;  // 直接设 cap，避免 setStageCap 的 max 阻止回落
+                                // 双阶段首阶段（calc）完成：进入整体后半段，显示 75%，vis 阶段 75→100
+                                calcPhaseComplete = true;
+                                stageCap = 75;
                                 displayProgress = 75;
-                                serverProgress = Math.max(serverProgress, 75);
+                                serverProgress = 75;
                                 updateProgressUI(75);
                                 if (progBar) progBar.classList.add('phase-mid');
                             }
@@ -824,6 +833,8 @@ export async function startAnimation() {
         if (loadingEl) loadingEl.style.display = 'none';
         addLog("❌ 网络或请求错误: " + (e.message || '请检查服务器状态'), "#ef4444");
         if (typeof showToast === 'function') showToast('请求失败，请稍后再试。', 'error');
+    } finally {
+        setRenderInProgress(false);
     }
 }
 

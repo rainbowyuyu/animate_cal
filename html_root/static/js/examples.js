@@ -9,6 +9,9 @@ let examplesFilterTabsInited = false;
 
 function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+/** 安全播放：捕获 AbortError（被 load/pause 打断时）和 NotAllowedError，避免未处理的 Promise 拒绝 */
+function safePlay(el) { if (el && typeof el.play === 'function') el.play().catch(() => {}); }
+
 export async function loadExamples() {
     const grid = document.getElementById('examples-grid');
     if (!grid) return;
@@ -59,6 +62,38 @@ export async function loadExamples() {
     }
 }
 
+/**
+ * 切换教学案例筛选（供知识图谱、智能体调用）
+ * @param {string} mode - 'all' | 'favorites' | 'watch_later' | 'courseware'
+ * @returns {Promise<boolean>} 是否成功切换（登录校验失败时返回 false）
+ */
+export async function switchExamplesFilter(mode) {
+    const valid = ['all', 'favorites', 'watch_later', 'courseware'].includes(mode);
+    const filterMode = valid ? mode : 'all';
+    if (filterMode === 'favorites' || filterMode === 'watch_later' || filterMode === 'courseware') {
+        try {
+            const res = await fetch('/api/user/me', { credentials: 'include' });
+            const me = await res.json();
+            if (!me || me.status !== 'success' || !me.username) {
+                if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
+                if (typeof showToast === 'function') showToast('登录后可查看我的收藏、稍后看和课件包', 'info');
+                return false;
+            }
+        } catch (_) {
+            if (typeof showToast === 'function') showToast('网络错误，请稍后重试', 'error');
+            return false;
+        }
+    }
+    const tab = document.querySelector(`.examples-filter-tab[data-filter="${filterMode}"]`);
+    if (tab) {
+        document.querySelectorAll('.examples-filter-tab').forEach(b => b.classList.remove('active'));
+        tab.classList.add('active');
+    }
+    initExamplesFilterTabs();
+    loadExamples();
+    return true;
+}
+
 function initExamplesFilterTabs() {
     if (examplesFilterTabsInited) return;
     examplesFilterTabsInited = true;
@@ -66,23 +101,7 @@ function initExamplesFilterTabs() {
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
             const mode = (btn.dataset && btn.dataset.filter) || 'all';
-            if (mode === 'favorites' || mode === 'watch_later' || mode === 'courseware') {
-                try {
-                    const res = await fetch('/api/user/me', { credentials: 'include' });
-                    const me = await res.json();
-                    if (!me || me.status !== 'success' || !me.username) {
-                        if (typeof toggleAuthModal === 'function') toggleAuthModal(true);
-                        if (typeof showToast === 'function') showToast('登录后可查看我的收藏、稍后看和课件包', 'info');
-                        return;
-                    }
-                } catch (_) {
-                    if (typeof showToast === 'function') showToast('网络错误，请稍后重试', 'error');
-                    return;
-                }
-            }
-            document.querySelectorAll('.examples-filter-tab').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            loadExamples();
+            await switchExamplesFilter(mode);
         });
     });
     const tagSelect = document.getElementById('examples-tag-select');
@@ -205,7 +224,7 @@ function renderExampleCards(videos) {
         return [
             '<div class="video-card" data-video-url="' + urlAttr + '" data-video-id="' + videoId + '" data-video-title="' + titleAttr + '" data-video-desc="' + descAttr + '" data-video-sprite="' + spriteAttr + '" data-video-duration="' + durationSec + '" data-video-sprite-cols="' + spriteCols + '" data-video-sprite-rows="' + spriteRows + '" data-video-hls="' + hlsAttr + '" data-video-mask="' + maskAttr + '" data-video-high-energy="' + highEnergyAttr + '">',
             '  <div class="thumbnail video-preview-container">',
-            '    <video src="' + url + '#t=0.5" muted loop playsinline preload="metadata" onmouseover="this.play()" onmouseout="this.pause(); this.currentTime=0.5;" style="width:100%; height:100%; object-fit:cover;"></video>',
+            '    <video src="' + url + '#t=0.5" muted loop playsinline preload="metadata" onmouseover="this.play().catch(function(){})" onmouseout="this.pause(); this.currentTime=0.5;" style="width:100%; height:100%; object-fit:cover;"></video>',
             '    <div class="play-overlay"><i class="fa-solid fa-play-circle"></i></div>',
             durationBadge,
             '    <div class="video-card-meta"><span><i class="fa-regular fa-thumbs-up"></i> ' + likeCount + '</span></div>',
@@ -633,7 +652,7 @@ function loadVideoNotes(videoId) {
                     if (e.target.closest('.video-note-to-exercise-btn')) return;
                     const player = document.getElementById('example-video-player');
                     const time = parseFloat(el.dataset.time, 10);
-                    if (player && Number.isFinite(time)) { player.currentTime = time; player.play().catch(() => {}); }
+                    if (player && Number.isFinite(time)) { player.currentTime = time; safePlay(player); }
                 });
             });
             listEl.querySelectorAll('.video-note-to-exercise-btn').forEach(btn => {
@@ -935,7 +954,7 @@ function initCustomPlayer() {
     if (player) {
         player.removeAttribute('controls');
         player.addEventListener('click', () => {
-            if (player.paused) player.play(); else player.pause();
+            if (player.paused) safePlay(player); else player.pause();
         });
         player.addEventListener('play', syncPlayPauseUI);
         player.addEventListener('pause', syncPlayPauseUI);
@@ -944,9 +963,9 @@ function initCustomPlayer() {
         player.addEventListener('loadedmetadata', () => { syncTimeUI(); syncBufferUI(); });
     }
 
-    if (centerPlay) centerPlay.addEventListener('click', (e) => { e.stopPropagation(); if (player) player.play(); });
+    if (centerPlay) centerPlay.addEventListener('click', (e) => { e.stopPropagation(); if (player) safePlay(player); });
 
-    if (playBtn) playBtn.addEventListener('click', (e) => { e.stopPropagation(); if (player) (player.paused ? player.play() : player.pause()); });
+    if (playBtn) playBtn.addEventListener('click', (e) => { e.stopPropagation(); if (player) (player.paused ? safePlay(player) : player.pause()); });
 
     if (progressWrap && progressTrack) {
         const previewTimeEl = document.getElementById('custom-player-preview-time');
@@ -1053,7 +1072,7 @@ function initCustomPlayer() {
             switch (e.key) {
                 case ' ':
                     e.preventDefault();
-                    if (player) (player.paused ? player.play() : player.pause());
+                    if (player) (player.paused ? safePlay(player) : player.pause());
                     break;
                 case 'ArrowLeft':
                     e.preventDefault();
@@ -1262,7 +1281,7 @@ function updateResumeRecommendUI() {
         btn.onclick = () => {
             if (player && Number.isFinite(currentVideoResumeTime)) {
                 player.currentTime = currentVideoResumeTime;
-                player.play().catch(() => {});
+                safePlay(player);
             }
         };
     } else {
@@ -1615,7 +1634,7 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
             setVideoSource(player, videoSrcFromConfig, { hlsUrl: options.hlsUrl });
             const onReady = () => {
                 if (startTime > 0) player.currentTime = startTime;
-                player.play().catch(() => {});
+                safePlay(player);
             };
             if (player.readyState >= 2) onReady();
             else player.addEventListener('loadedmetadata', onReady, { once: true });
@@ -1624,7 +1643,7 @@ export function playExample(videoSrc, title, desc, videoId, options = {}) {
                     player.removeEventListener('error', onError);
                     setVideoSource(player, fallbackSrc, { hlsUrl: options.hlsUrl });
                     player.load();
-                    player.play().catch(() => {});
+                    safePlay(player);
                 };
                 player.addEventListener('error', onError, { once: true });
             }

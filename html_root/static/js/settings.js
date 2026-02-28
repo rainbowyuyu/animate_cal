@@ -336,6 +336,33 @@ export function applySettings(obj) {
     }
 }
 
+/**
+ * 应用单条设置（供智能体调用）
+ * @param {string} key - 设置键，见 SETTINGS_AGENT_KEYS
+ * @param {string|number|boolean} value - 设置值（会做类型转换）
+ * @returns {boolean} 是否成功应用
+ */
+export function applySingleSetting(key, value) {
+    if (!key || typeof key !== 'string') return false;
+    const k = key.trim();
+    let v = value;
+    const boolKeys = ['agent_enter_send', 'canvas_lock_mobile', 'danmaku_enabled'];
+    if (boolKeys.includes(k)) {
+        v = v === true || v === 'true' || v === 1 || v === '1';
+    }
+    if (k === 'calc_math_font_size' || k === 'danmaku_opacity') {
+        const n = typeof v === 'number' ? v : parseFloat(v);
+        if (k === 'danmaku_opacity' && Number.isFinite(n)) v = n <= 1 ? n : n / 100;
+        else if (k === 'calc_math_font_size') v = n;
+    }
+    try {
+        applySettings({ [k]: v });
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
 /** 延迟上报到云端（已登录时） */
 export function persistAfterChange() {
     if (saveToServerTimer) clearTimeout(saveToServerTimer);
@@ -759,7 +786,7 @@ export function openSettings(anchor) {
     syncCanvasLockMobileCheckbox();
     onOpenSettings();
     toggleModal('settings-modal', true);
-    const scrollMap = { shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile', examples: 'settings-examples' };
+    const scrollMap = { appearance: 'settings-appearance', shortcuts: 'settings-shortcuts', agent: 'settings-agent', detect: 'settings-detect', calc: 'settings-calc', devtools: 'settings-devtools', profile: 'settings-profile', examples: 'settings-examples' };
     if (scrollMap[anchor]) {
         requestAnimationFrame(() => {
             const sectionId = scrollMap[anchor];

@@ -1,4 +1,5 @@
 # 智能识别、动态计算动画（含流式）
+# 同步 LLM 调用需放入 run_in_executor，避免阻塞事件循环（渲染时可并发加载算式库、识别等）
 import asyncio
 import base64
 import json
@@ -140,15 +141,19 @@ async def detect_image(file: UploadFile = File(...)):
             "便于后续根据该描述生成 Manim 动画（不要写成解题步骤，只描述“画面里有哪些对象、它们大致长什么样、彼此关系如何”）。\n"
             "务必保证输出是合法的 JSON，且只输出这一行 JSON，不要解释。"
         )
-        completion = client.chat.completions.create(
-            model="qwen-vl-max",
-            messages=[{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt_text},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
-                ],
-            }],
+        loop = asyncio.get_event_loop()
+        completion = await loop.run_in_executor(
+            None,
+            lambda: client.chat.completions.create(
+                model="qwen-vl-max",
+                messages=[{
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt_text},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+                    ],
+                }],
+            ),
         )
         raw = completion.choices[0].message.content.strip()
         # 兼容 ```json ... ``` 包裹的情况
@@ -201,9 +206,13 @@ async def generate_animation_stream(data: CalcModel):
                 "4. 最后写 **结论** 或 **答案**，明确正确选项与理由（若无选项则给出最终结果与总结）。\n"
                 "要求：分条、分项清晰，不要大段连写。**同一行内的整段公式必须放在一对 $ $ 内**，例如 $\\\\lim_{{x\\\\to 0}}\\\\frac{{x+\\\\cos x}}{{x}}$，不要将分子、分母或极限符号拆到不同行，避免 LaTeX 与文字错位。不要输出任何代码。"
             )
-            text_completion = client.chat.completions.create(
-                model="qwen-plus",
-                messages=[{"role": "user", "content": text_prompt}],
+            loop = asyncio.get_event_loop()
+            text_completion = await loop.run_in_executor(
+                None,
+                lambda: client.chat.completions.create(
+                    model="qwen-plus",
+                    messages=[{"role": "user", "content": text_prompt}],
+                ),
             )
             text_result = (text_completion.choices[0].message.content or "").strip()
             if text_result:
@@ -303,7 +312,11 @@ async def generate_animation_stream(data: CalcModel):
                 prompt = return_prompt(op_desc, data.matrixA, data.matrixB, vision_prompt=vision_prompt_text)
                 code = ""
                 try:
-                    completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
+                    _loop = asyncio.get_event_loop()
+                    completion = await _loop.run_in_executor(
+                        None,
+                        lambda p=prompt: client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": p}]),
+                    )
                     code = completion.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
                     code = _inject_autoscale_into_construct(code)
                     yield f"data: {json.dumps({'step': 'code_generated', 'message': f'「{phase_name}」代码生成完毕，准备渲染...', 'code': code, 'progress': 30, 'part': part})}\n\n"
@@ -388,9 +401,13 @@ async def generate_animation_stream(data: CalcModel):
                     "请根据错误信息修正代码。只输出完整 Python 代码，不要解释。必须保留 from manim import * 和类名 GenScene，所有动画在 def construct(self): 中。"
                 )
                 try:
-                    completion2 = client.chat.completions.create(
-                        model="qwen-plus",
-                        messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
+                    _loop = asyncio.get_event_loop()
+                    completion2 = await _loop.run_in_executor(
+                        None,
+                        lambda: client.chat.completions.create(
+                            model="qwen-plus",
+                            messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
+                        ),
                     )
                     code2 = completion2.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
                     code2 = _inject_autoscale_into_construct(code2)
@@ -427,7 +444,11 @@ async def generate_animation_stream(data: CalcModel):
         prompt = generate_manim_prompt(data.matrixA, data.matrixB, data.operation, vision_prompt=vision_prompt_text)
         code = ""
         try:
-            completion = client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": prompt}])
+            _loop = asyncio.get_event_loop()
+            completion = await _loop.run_in_executor(
+                None,
+                lambda p=prompt: client.chat.completions.create(model="qwen-plus", messages=[{"role": "user", "content": p}]),
+            )
             code = completion.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
             code = _inject_autoscale_into_construct(code)
             yield f"data: {json.dumps({'step': 'code_generated', 'message': '代码生成完毕，准备渲染...', 'code': code, 'progress': 30})}\n\n"
@@ -527,9 +548,13 @@ async def generate_animation_stream(data: CalcModel):
             "必须保留 `from manim import *` 和类名 `GenScene`，所有动画逻辑在 `def construct(self):` 中。"
         )
         try:
-            completion2 = client.chat.completions.create(
-                model="qwen-plus",
-                messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
+            _loop = asyncio.get_event_loop()
+            completion2 = await _loop.run_in_executor(
+                None,
+                lambda: client.chat.completions.create(
+                    model="qwen-plus",
+                    messages=[{"role": "user", "content": prompt}, {"role": "assistant", "content": code}, {"role": "user", "content": fix_prompt}],
+                ),
             )
             code2 = completion2.choices[0].message.content.strip().replace("```python", "").replace("```", "").strip()
             code2 = _inject_autoscale_into_construct(code2)

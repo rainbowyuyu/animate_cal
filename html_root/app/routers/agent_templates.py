@@ -1,4 +1,5 @@
 # 智能体模板：保存、列表、删除（数据库存储，登录后同步）
+import asyncio
 import json
 import logging
 from fastapi import APIRouter
@@ -55,8 +56,8 @@ async def save_agent_template(data: AgentTemplateCreate):
             conn.close()
 
 
-@router.get("/list")
-async def list_agent_templates(username: str):
+def _list_agent_templates_sync(username: str):
+    """同步执行，供 run_in_executor 调用，避免阻塞事件循环"""
     conn = None
     cursor = None
     try:
@@ -84,14 +85,21 @@ async def list_agent_templates(username: str):
                 "createdAt": r["created_at"].timestamp() * 1000 if r.get("created_at") else None,
             })
         return {"status": "success", "data": out}
-    except Exception as e:
-        logger.error(f"list_agent_templates: {e}")
-        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
+@router.get("/list")
+async def list_agent_templates(username: str):
+    try:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _list_agent_templates_sync, username)
+    except Exception as e:
+        logger.error(f"list_agent_templates: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
 @router.get("/get")

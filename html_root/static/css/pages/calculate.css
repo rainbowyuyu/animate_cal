@@ -1,5 +1,13 @@
 /* static/css/pages/calculate.css - 动态计算：与主页/智能体/智能识别统一，高级感与交互感 */
 
+/* 选择公式弹窗：仅列表区域滚动，避免双滚动条 */
+#select-formula-modal .modal-content {
+    overflow: hidden;
+}
+#select-formula-modal #selector-list {
+    min-height: 0;
+}
+
 /* ========== 标题与核心布局 ========== */
 #calculate .section-title {
     margin-bottom: 0.5rem;

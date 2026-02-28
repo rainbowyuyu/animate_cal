@@ -245,6 +245,196 @@
         inset -1px -1px 6px rgba(0, 0, 0, 0.15);
 }
 
+/* ========== 星云内渲染进度：展开态进度条 ========== */
+.knowledge-panel-render-progress {
+    margin-bottom: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.05));
+    border: 1px solid rgba(37, 99, 235, 0.15);
+    border-radius: var(--radius-md);
+    transition: opacity 0.35s ease, border-color 0.3s ease;
+}
+
+[data-theme="dark"] .knowledge-panel-render-progress {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(139, 92, 246, 0.06));
+    border-color: rgba(96, 165, 250, 0.2);
+}
+
+.knowledge-render-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-bottom: 0.5rem;
+}
+
+.knowledge-render-source {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    letter-spacing: 0.03em;
+}
+
+.knowledge-render-status {
+    font-size: 0.85rem;
+    color: var(--text-main);
+    font-weight: 500;
+}
+
+.knowledge-render-status em {
+    font-style: normal;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.knowledge-render-bar-wrap {
+    height: 4px;
+    background: rgba(37, 99, 235, 0.12);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+
+[data-theme="dark"] .knowledge-render-bar-wrap {
+    background: rgba(96, 165, 250, 0.15);
+}
+
+.knowledge-render-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 99px;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.knowledge-panel-render-progress.is-indeterminate .knowledge-render-bar {
+    width: 35% !important;
+    animation: knowledgeRenderIndeterminate 1.4s ease-in-out infinite;
+}
+
+@keyframes knowledgeRenderIndeterminate {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(250%); }
+}
+
+.knowledge-render-hint {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+}
+
+/* ========== 折叠态：小球内水面填满 + 「渲染中」 ========== */
+.knowledge-panel-bubble-inner {
+    position: relative;
+}
+
+.knowledge-bubble-logo {
+    transition: opacity 0.3s ease;
+}
+
+.knowledge-bubble-render-wrap {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.knowledge-bubble-water {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(
+        to top,
+        rgba(37, 99, 235, 0.55) 0%,
+        rgba(99, 102, 241, 0.4) 35%,
+        rgba(147, 197, 253, 0.3) 65%,
+        rgba(191, 219, 254, 0.2) 100%
+    );
+    transition: height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* 水面顶部：正弦波起伏形状（path 近似 y=sin(x)），波浪水平流动，波幅适中 */
+.knowledge-bubble-wave {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    /* 正弦波形：中心 y=10，振幅 5，一周期 80；M0,10 Q20,5 40,10 Q60,15 80,10 L80 20 L0 20 Z */
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'%3E%3Cpath fill='%23000' d='M0 10 Q20 5 40 10 Q60 15 80 10 L80 20 L0 20 Z'/%3E%3C/svg%3E");
+    mask-size: 80px 20px;
+    mask-repeat: repeat-x;
+    mask-position: 0 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 50%, transparent 100%);
+    animation: knowledgeWaveMove 2.8s linear infinite;
+}
+
+.knowledge-bubble-wave::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    /* 第二层波：相位差，形成叠加起伏，波幅略小 */
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'%3E%3Cpath fill='%23000' d='M0 13 Q20 8 40 13 Q60 12 80 13 L80 20 L0 20 Z'/%3E%3C/svg%3E");
+    mask-size: 80px 20px;
+    mask-repeat: repeat-x;
+    mask-position: 40px 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.25) 0%, transparent 55%);
+    animation: knowledgeWaveMove 2.4s linear 0.4s infinite reverse;
+}
+
+@keyframes knowledgeWaveMove {
+    from { mask-position: 0 0; }
+    to { mask-position: 80px 0; }
+}
+
+.knowledge-bubble-water.is-indeterminate {
+    animation: knowledgeBubbleWaterPulse 1.2s ease-in-out infinite;
+}
+
+.knowledge-bubble-water.is-indeterminate::before,
+.knowledge-bubble-water.is-indeterminate::after {
+    animation-duration: 2s;
+}
+
+@keyframes knowledgeBubbleWaterPulse {
+    0%, 100% { height: 35% !important; opacity: 0.7; }
+    50% { height: 65% !important; opacity: 1; }
+}
+
+.knowledge-bubble-render-text {
+    position: relative;
+    z-index: 2;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: rgba(30, 41, 59, 0.9);
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .knowledge-bubble-render-text {
+    color: rgba(248, 250, 252, 0.95);
+    text-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
+}
+
+.knowledge-bubble-render-pct {
+    position: relative;
+    z-index: 2;
+    font-size: 0.5rem;
+    font-weight: 600;
+    color: rgba(37, 99, 235, 0.95);
+}
+
+[data-theme="dark"] .knowledge-bubble-render-pct {
+    color: rgba(147, 197, 253, 0.95);
+}
+
 /* ========== 可滚动、不超出视窗 ========== */
 .knowledge-panel-content-scroll {
     display: flex;

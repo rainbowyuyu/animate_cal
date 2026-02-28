@@ -505,6 +505,87 @@ export async function refreshKnowledgePanel(sectionId) {
     ensureCollapsedOnMobile(panel);
 }
 
+/** 星云内渲染进度：展开态显示进度条，折叠态小球水面填满 + 「渲染中」 */
+export function initRenderProgressInNebula() {
+    const panel = document.getElementById('knowledge-panel');
+    const content = document.getElementById('knowledge-panel-content');
+    const bubble = document.getElementById('knowledge-panel-bubble');
+    const bubbleLogo = panel?.querySelector('.knowledge-bubble-logo');
+    const bubbleRenderWrap = document.getElementById('knowledge-bubble-render-wrap');
+    const bubbleWater = document.getElementById('knowledge-bubble-water');
+    const bubblePct = document.getElementById('knowledge-bubble-render-pct');
+    const renderBlock = document.getElementById('knowledge-panel-render-progress');
+    const renderSource = document.getElementById('knowledge-render-source');
+    const renderPercent = document.getElementById('knowledge-render-percent');
+    const renderBar = document.getElementById('knowledge-render-bar');
+
+    if (!panel || !content || !bubble || !bubbleLogo || !bubbleRenderWrap || !renderBlock) return;
+
+    const SOURCE_LABELS = { calculate: '动态计算', devtools: '开发者工具' };
+
+    function updateExpanded(source, progress, isIndeterminate) {
+        if (!renderSource || !renderPercent || !renderBar) return;
+        if (source) renderSource.textContent = SOURCE_LABELS[source] || source;
+        if (isIndeterminate) {
+            renderPercent.textContent = '…';
+            renderBar.style.width = '0%';
+            renderBlock?.classList.add('is-indeterminate');
+        } else if (progress != null && progress >= 0) {
+            renderPercent.textContent = progress.toFixed(1) + '%';
+            renderBar.style.width = progress + '%';
+            renderBlock?.classList.remove('is-indeterminate');
+        }
+    }
+
+    function updateCollapsed(source, progress, isIndeterminate) {
+        if (!bubbleWater || !bubblePct) return;
+        if (isIndeterminate) {
+            bubbleWater.style.height = '50%';
+            bubbleWater.classList.add('is-indeterminate');
+            bubblePct.textContent = '';
+        } else {
+            bubbleWater.style.height = (progress || 0) + '%';
+            bubbleWater.classList.remove('is-indeterminate');
+            bubblePct.textContent = (progress != null && progress >= 0) ? progress.toFixed(0) + '%' : '';
+        }
+    }
+
+    function showRenderUI(source, progress, isIndeterminate) {
+        renderBlock.style.display = '';
+        bubbleLogo.style.display = 'none';
+        bubbleRenderWrap.style.display = 'flex';
+        updateExpanded(source, progress, isIndeterminate);
+        updateCollapsed(source, progress, isIndeterminate);
+    }
+
+    function hideRenderUI() {
+        renderBlock.style.display = 'none';
+        bubbleLogo.style.display = '';
+        bubbleRenderWrap.style.display = 'none';
+        if (bubbleWater) {
+            bubbleWater.style.height = '0%';
+            bubbleWater.classList.remove('is-indeterminate');
+        }
+    }
+
+    window.addEventListener('render-start', (e) => {
+        const source = e.detail?.source || 'calculate';
+        const isIndeterminate = source === 'devtools';
+        showRenderUI(source, 0, isIndeterminate);
+    });
+
+    window.addEventListener('render-progress', (e) => {
+        const { source, progress } = e.detail || {};
+        const isIndeterminate = source === 'devtools';
+        updateExpanded(source, progress, isIndeterminate);
+        updateCollapsed(source, progress, isIndeterminate);
+    });
+
+    window.addEventListener('render-end', () => {
+        hideRenderUI();
+    });
+}
+
 /** 成就轮播：多成就时定时横向滚动 */
 let _carouselInterval = null;
 function startAchievementCarousel() {

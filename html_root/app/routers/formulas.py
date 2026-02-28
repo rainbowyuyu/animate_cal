@@ -1,4 +1,5 @@
 """我的算式：保存、列表、删除、更新 + 主题标签与知识概览"""
+import asyncio
 import logging
 from typing import List, Tuple
 
@@ -171,8 +172,8 @@ async def save_formula(data: FormulaModel):
             conn.close()
 
 
-@router.get("/list")
-async def list_formulas(username: str):
+def _list_formulas_sync(username: str):
+    """同步执行，供 run_in_executor 调用，避免阻塞事件循环（渲染时可并发加载算式库）"""
     conn = None
     cursor = None
     try:
@@ -184,12 +185,22 @@ async def list_formulas(username: str):
             f["created_at"] = f["created_at"].isoformat()
         return {"status": "success", "data": formulas}
     except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
+        raise e
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
+@router.get("/list")
+async def list_formulas(username: str):
+    try:
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, _list_formulas_sync, username)
+        return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
 @router.delete("/delete")

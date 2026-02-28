@@ -1728,10 +1728,17 @@
         <button type="button" aria-label="关闭" id="knowledge-panel-close-btn" class="knowledge-panel-close-btn">
             <i class="fa-solid fa-xmark"></i>
         </button>
-        <!-- 折叠态：仅显示应用 Logo 的立体小球 -->
+        <!-- 折叠态：立体小球；渲染中时显示水面填满 + 「渲染中」字样 -->
         <div id="knowledge-panel-bubble" style="display:none; width:100%; height:100%; align-items:center; justify-content:center;">
-            <div class="knowledge-panel-bubble-inner">
-                <img src="assets/智算视界_avatar.svg" alt="智算星云" draggable="false">
+                <div class="knowledge-panel-bubble-inner" id="knowledge-panel-bubble-inner">
+                <img src="assets/智算视界_avatar.svg" alt="智算星云" class="knowledge-bubble-logo" draggable="false">
+                <div class="knowledge-bubble-render-wrap" id="knowledge-bubble-render-wrap" style="display:none;">
+                    <div class="knowledge-bubble-water" id="knowledge-bubble-water" style="height:0%">
+                        <div class="knowledge-bubble-wave" aria-hidden="true"></div>
+                    </div>
+                    <span class="knowledge-bubble-render-text">渲染中</span>
+                    <span class="knowledge-bubble-render-pct" id="knowledge-bubble-render-pct"></span>
+                </div>
             </div>
         </div>
         <!-- 展开态内容：可滚动，避免超出视窗 -->
@@ -1742,6 +1749,16 @@
                     <h3 id="knowledge-panel-title" class="formulas-panel-title" style="margin:0; font-size:0.95rem;">智算星云</h3>
                     <p id="knowledge-panel-subtitle" style="margin:0.1rem 0 0; font-size:0.78rem; color:var(--text-secondary);">快捷入口与个性化内容</p>
                 </div>
+            </div>
+            <div id="knowledge-panel-render-progress" class="knowledge-panel-render-progress" style="display:none;">
+                <div class="knowledge-render-inner">
+                    <span class="knowledge-render-source" id="knowledge-render-source"></span>
+                    <span class="knowledge-render-status">渲染中 <em class="knowledge-render-percent" id="knowledge-render-percent">0%</em></span>
+                </div>
+                <div class="knowledge-render-bar-wrap">
+                    <div class="knowledge-render-bar" id="knowledge-render-bar" style="width:0%"></div>
+                </div>
+                <small class="knowledge-render-hint">可自由切换页面</small>
             </div>
             <div id="knowledge-panel-metro" class="knowledge-metro-wrap" style="display:none;"></div>
             <div id="knowledge-panel-body" class="knowledge-panel-body knowledge-panel-body-scroll">

@@ -38,41 +38,54 @@ export const NODES = [
   { id: 'detect-save', name: '保存到算式库', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['保存'], val: 9, color: '#67e8f9' },
   { id: 'detect-copy-calc', name: '去动态计算', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-calculator', keywords: ['去计算'], val: 9, color: '#67e8f9' },
   { id: 'calculate', name: '动态计算', section: 'calculate', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-calculator', keywords: ['动态计算','计算','推演','可视化','动画'], val: 14, color: '#34d399' },
-  { id: 'calc-normal', name: '通用推演', section: 'calculate', type: NODE_TYPE.SUBTOOL, keywords: ['通用'], val: 8, color: '#6ee7b7' },
-  { id: 'calc-formula', name: '公式推演', section: 'calculate', type: NODE_TYPE.SUBTOOL, keywords: ['公式推演'], val: 8, color: '#6ee7b7' },
-  { id: 'calc-visual', name: '可视化', section: 'calculate', type: NODE_TYPE.SUBTOOL, keywords: ['可视化'], val: 8, color: '#6ee7b7' },
-  { id: 'calc-solution', name: '完整解题', section: 'calculate', type: NODE_TYPE.SUBTOOL, keywords: ['解题'], val: 8, color: '#6ee7b7' },
+  { id: 'calc-normal', name: '通用推演', section: 'calculate', calc_operation: 'normal', type: NODE_TYPE.SUBTOOL, keywords: ['通用'], val: 8, color: '#6ee7b7' },
+  { id: 'calc-formula', name: '公式推演', section: 'calculate', calc_operation: 'formular', type: NODE_TYPE.SUBTOOL, keywords: ['公式推演'], val: 8, color: '#6ee7b7' },
+  { id: 'calc-visual', name: '可视化', section: 'calculate', calc_operation: 'visualization', type: NODE_TYPE.SUBTOOL, keywords: ['可视化'], val: 8, color: '#6ee7b7' },
+  { id: 'calc-solution', name: '完整解题', section: 'calculate', calc_operation: 'solution', type: NODE_TYPE.SUBTOOL, keywords: ['解题'], val: 8, color: '#6ee7b7' },
   { id: 'calc-import', name: '从库导入', section: 'calculate', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-book-bookmark', keywords: ['导入'], val: 8, color: '#5eead4' },
   { id: 'calc-clear', name: '清空输入', section: 'calculate', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-trash', keywords: ['清空'], val: 7, color: '#6ee7b7' },
   { id: 'calc-generate', name: '生成动画', section: 'calculate', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-clapperboard', keywords: ['生成'], val: 10, color: '#34d399' },
   { id: 'calc-steps', name: '解题步骤', section: 'calculate', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-list-ol', keywords: ['步骤'], val: 8, color: '#6ee7b7' },
   { id: 'calc-save-script', name: '保存到脚本库', section: 'calculate', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['保存脚本'], val: 8, color: '#5eead4' },
   { id: 'examples', name: '教学案例', section: 'examples', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-play', keywords: ['教学案例','案例','视频'], val: 14, color: '#f59e0b' },
-  { id: 'examples-filter-all', name: '全部案例', section: 'examples', type: NODE_TYPE.SUBTOOL, keywords: ['全部'], val: 8, color: '#fbbf24' },
-  { id: 'examples-favorites', name: '收藏', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-regular fa-star', keywords: ['收藏'], val: 8, color: '#fcd34d' },
-  { id: 'examples-watch-later', name: '稍后看', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-regular fa-clock', keywords: ['稍后看'], val: 8, color: '#fde047' },
-  { id: 'examples-courseware', name: '我的课件', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-chalkboard-user', keywords: ['课件'], val: 9, color: '#fbbf24' },
+  { id: 'examples-filter-all', name: '全部案例', section: 'examples', filter_mode: 'all', type: NODE_TYPE.SUBTOOL, keywords: ['全部','全部案例'], val: 8, color: '#fbbf24' },
+  { id: 'examples-favorites', name: '收藏', section: 'examples', filter_mode: 'favorites', type: NODE_TYPE.SUBTOOL, icon: 'fa-regular fa-star', keywords: ['收藏','我的收藏'], val: 8, color: '#fcd34d' },
+  { id: 'examples-watch-later', name: '稍后看', section: 'examples', filter_mode: 'watch_later', type: NODE_TYPE.SUBTOOL, icon: 'fa-regular fa-clock', keywords: ['稍后看'], val: 8, color: '#fde047' },
+  { id: 'examples-courseware', name: '我的课件', section: 'examples', filter_mode: 'courseware', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-chalkboard-user', keywords: ['课件','我的课件','课件包'], val: 9, color: '#fbbf24' },
   { id: 'examples-create-course', name: '创建课包', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-folder-plus', keywords: ['创建课包'], val: 9, color: '#f59e0b' },
   { id: 'examples-tag-filter', name: '标签筛选', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-tags', keywords: ['标签'], val: 8, color: '#fde047' },
   { id: 'errorbook', name: '错题本', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-book', keywords: ['错题本'], val: 9, color: '#fcd34d' },
-  { id: 'examples-notes', name: '时间戳笔记', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['笔记'], val: 8, color: '#fde047' },
+  { id: 'examples-notes', name: '时间戳笔记', section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['笔记','时间戳'], val: 8, color: '#fde047' },
   { id: 'my-formulas', name: '我的算式', section: 'my-formulas', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-book', keywords: ['算式','算式库'], val: 14, color: '#14b8a6' },
   { id: 'formulas-tab', name: '算式库', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-square-root-variable', keywords: ['算式'], val: 10, color: '#2dd4bf' },
   { id: 'formulas-scripts', name: '动画脚本库', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-code', keywords: ['脚本'], val: 10, color: '#2dd4bf' },
   { id: 'formulas-templates', name: '智能体模板', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-wand-magic-sparkles', keywords: ['模板'], val: 9, color: '#5eead4' },
   { id: 'formulas-refresh', name: '刷新列表', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-rotate', keywords: ['刷新'], val: 7, color: '#5eead4' },
   { id: 'formulas-new-script', name: '新建脚本', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-plus', keywords: ['新建'], val: 8, color: '#2dd4bf' },
-  { id: 'formulas-run', name: '运行脚本', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-play', keywords: ['运行'], val: 8, color: '#5eead4' },
+  { id: 'formulas-run', name: '运行', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-play', keywords: ['运行'], val: 8, color: '#5eead4' },
   { id: 'devtools', name: '开发者工具', section: 'devtools', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-code', keywords: ['开发者','工作台'], val: 14, color: '#8b5cf6' },
   { id: 'devtools-latex', name: 'LaTeX 编辑器', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-square-root-variable', keywords: ['LaTeX'], val: 11, color: '#a78bfa' },
   { id: 'devtools-manim', name: 'Manim 工作台', section: 'devtools', devtool: 'manim', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-video', keywords: ['Manim','工作台'], val: 12, color: '#c4b5fd' },
-  { id: 'devtools-ai-edit', name: 'AI 编写代码', section: 'devtools', devtool: 'manim', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-wand-magic-sparkles', keywords: ['AI 编辑','自然语言','Cursor'], val: 10, color: '#a78bfa' },
+  { id: 'devtools-ai-edit', name: 'AI 编写代码', section: 'devtools', devtool: 'manim', devtool_action: 'ai_edit', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-wand-magic-sparkles', keywords: ['AI 编辑','自然语言','Cursor'], val: 10, color: '#a78bfa' },
+  { id: 'devtools-import', name: '导入脚本', section: 'devtools', devtool: 'manim', devtool_action: 'import', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-file-import', keywords: ['导入','脚本','导入脚本'], val: 9, color: '#a78bfa' },
+  { id: 'devtools-save', name: '保存脚本', section: 'devtools', devtool: 'manim', devtool_action: 'save', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-floppy-disk', keywords: ['保存','保存脚本'], val: 9, color: '#a78bfa' },
+  { id: 'devtools-summary', name: '生成视频文案', section: 'devtools', devtool: 'manim', devtool_action: 'summary', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-align-left', keywords: ['总结','文案','视频文案','生成文案'], val: 9, color: '#a78bfa' },
+  { id: 'devtools-keyframe', name: '关键帧预览', section: 'devtools', devtool: 'manim', devtool_action: 'keyframe', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-film', keywords: ['关键帧','预览关键帧','断点'], val: 9, color: '#a78bfa' },
+  { id: 'devtools-run', name: '运行 Manim', section: 'devtools', devtool: 'manim', devtool_action: 'run', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-play', keywords: ['运行','渲染','执行'], val: 10, color: '#a78bfa' },
   { id: 'devtools-rainbow', name: 'Rainbow 拓展', section: 'devtools', devtool: 'rainbow', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-puzzle-piece', keywords: ['Rainbow','拓展'], val: 10, color: '#ddd6fe' },
   { id: 'devtools-shortcuts', name: '快捷键', section: 'devtools', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-keyboard', keywords: ['快捷键'], val: 7, color: '#c4b5fd' },
   { id: 'help', name: '使用文档', section: 'help', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-circle-question', keywords: ['帮助','文档','FAQ','教程'], val: 11, color: '#94a3b8' },
   { id: 'help-update', name: '更新日志', section: 'help', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-file-lines', keywords: ['更新日志'], val: 8, color: '#cbd5e1' },
   { id: 'help-open-doc', name: '打开文档', section: 'help', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-file', keywords: ['文档'], val: 8, color: '#94a3b8' },
-  { id: 'settings', name: '系统设置', section: null, type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-gear', keywords: ['设置','偏好'], val: 9, color: '#64748b' },
+  { id: 'settings', name: '系统设置', section: null, type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-gear', keywords: ['设置','偏好','系统设置'], val: 9, color: '#64748b' },
+  { id: 'settings-appearance', name: '外观与关于', settings_section: 'appearance', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-palette', keywords: ['外观','主题','深色','浅色'], val: 8, color: '#94a3b8' },
+  { id: 'settings-profile', name: '账户与资料', settings_section: 'profile', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-user', keywords: ['账户','资料','头像','昵称'], val: 8, color: '#94a3b8' },
+  { id: 'settings-agent', name: '智能体设置', settings_section: 'agent', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-robot', keywords: ['智能体设置','回车发送'], val: 8, color: '#94a3b8' },
+  { id: 'settings-detect', name: '智能识别与画板', settings_section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-pen', keywords: ['识别设置','画板','手写','上传'], val: 8, color: '#94a3b8' },
+  { id: 'settings-shortcuts', name: '画板快捷键', settings_section: 'shortcuts', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-keyboard', keywords: ['快捷键'], val: 8, color: '#94a3b8' },
+  { id: 'settings-calc', name: '动态计算', settings_section: 'calc', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-calculator', keywords: ['计算设置','默认模式'], val: 8, color: '#94a3b8' },
+  { id: 'settings-devtools', name: '开发者工具', settings_section: 'devtools', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-code', keywords: ['开发设置','默认标签'], val: 8, color: '#94a3b8' },
+  { id: 'settings-examples', name: '教学案例与弹幕', settings_section: 'examples', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-film', keywords: ['弹幕','案例设置'], val: 8, color: '#94a3b8' },
   { id: 'student', name: '学生', section: null, type: NODE_TYPE.ROLE, role: 'student', val: 10, color: '#14b8a6' },
   { id: 'teacher', name: '教师', section: null, type: NODE_TYPE.ROLE, role: 'teacher', val: 10, color: '#f59e0b' },
   { id: 'creator', name: '创作者', section: null, type: NODE_TYPE.ROLE, role: 'creator', val: 10, color: '#8b5cf6' },
@@ -160,6 +173,11 @@ export const EDGES = [
   { source: 'devtools', target: 'devtools-latex' },
   { source: 'devtools', target: 'devtools-manim' },
   { source: 'devtools-manim', target: 'devtools-ai-edit' },
+  { source: 'devtools-manim', target: 'devtools-import' },
+  { source: 'devtools-manim', target: 'devtools-save' },
+  { source: 'devtools-manim', target: 'devtools-summary' },
+  { source: 'devtools-manim', target: 'devtools-keyframe' },
+  { source: 'devtools-manim', target: 'devtools-run' },
   { source: 'devtools', target: 'devtools-rainbow' },
   { source: 'devtools', target: 'devtools-shortcuts' },
   { source: 'devtools', target: 'my-formulas' },
@@ -167,6 +185,19 @@ export const EDGES = [
   { source: 'help', target: 'help-update' },
   { source: 'help', target: 'help-open-doc' },
   { source: 'help', target: 'agent' },
+  { source: 'center', target: 'settings' },
+  { source: 'settings', target: 'settings-appearance' },
+  { source: 'settings', target: 'settings-profile' },
+  { source: 'settings', target: 'settings-agent' },
+  { source: 'settings', target: 'settings-detect' },
+  { source: 'settings', target: 'settings-shortcuts' },
+  { source: 'settings', target: 'settings-calc' },
+  { source: 'settings', target: 'settings-devtools' },
+  { source: 'settings', target: 'settings-examples' },
+  { source: 'agent', target: 'settings-agent' },
+  { source: 'detect', target: 'settings-detect' },
+  { source: 'calculate', target: 'settings-calc' },
+  { source: 'examples', target: 'settings-examples' },
 ];
 
 /** 角色推荐路径（与 ROLE_FLOWS 结构一致） */
@@ -285,6 +316,113 @@ export function getPrevNextForSection(sectionId, devtool) {
   }
 
   return { prev, next };
+}
+
+/**
+ * 执行节点对应的功能（供知识图谱点击、智能体步骤执行使用）
+ * @param {object} node - 知识图谱节点
+ * @param {object} [opts] - { skipFocus: boolean } 是否跳过相机聚焦（role-graph 内部聚焦时传 true）
+ * @returns {boolean} 是否已处理
+ */
+export function executeNodeAction(node, opts = {}) {
+  if (!node) return false;
+  const { skipFocus } = opts;
+
+  if (node.role) {
+    if (typeof window.RoleGraph !== 'undefined' && typeof window.RoleGraph.openFlow === 'function') {
+      window.RoleGraph.openFlow(node.role);
+    }
+    return true;
+  }
+
+  if (node.id === 'center') return true;
+
+  if (node.settings_section) {
+    if (typeof window.openSettings === 'function') {
+      window.openSettings(node.settings_section);
+    }
+    return true;
+  }
+
+  if (node.id === 'settings' && typeof window.openSettings === 'function') {
+    window.openSettings();
+    return true;
+  }
+
+  if (node.section && typeof window.showSection === 'function') {
+    window.showSection(node.section);
+  }
+
+  if (node.section === 'devtools' && node.devtool && typeof window.switchDevTool === 'function') {
+    setTimeout(() => window.switchDevTool(node.devtool), 80);
+  }
+
+  if (node.section === 'examples' && node.filter_mode) {
+    if (typeof window.Examples !== 'undefined' && typeof window.Examples.switchExamplesFilter === 'function') {
+      setTimeout(() => window.Examples.switchExamplesFilter(node.filter_mode), 150);
+    }
+  }
+
+  if (node.section === 'calculate' && node.calc_operation) {
+    const method = document.getElementById('calc-method');
+    if (method) method.value = node.calc_operation;
+  }
+
+  if (node.section === 'devtools' && node.devtool === 'manim' && node.devtool_action) {
+    const D = window.DevTools;
+    const act = () => {
+      switch (node.devtool_action) {
+        case 'ai_edit': if (D?.toggleAiEditPanel) D.toggleAiEditPanel(); break;
+        case 'import': if (D?.toggleImportPanel) D.toggleImportPanel(); break;
+        case 'save': if (D?.saveScriptFromWorkbench) D.saveScriptFromWorkbench(); break;
+        case 'summary': if (D?.generateVideoCopy) D.generateVideoCopy(); break;
+        case 'keyframe': if (D?.previewKeyframes) D.previewKeyframes(); break;
+        case 'run': if (typeof window.runDevManim === 'function') window.runDevManim(); break;
+        default: break;
+      }
+    };
+    setTimeout(act, 400);
+  }
+
+  if (node.section === 'examples' && node.id === 'examples-create-course') {
+    if (typeof window.openCoursePackModal === 'function') setTimeout(() => window.openCoursePackModal(), 200);
+  }
+
+  if (node.section === 'my-formulas' && node.id === 'formulas-refresh') {
+    if (typeof window.loadMyFormulas === 'function') setTimeout(() => window.loadMyFormulas(), 200);
+  }
+
+  return true;
+}
+
+/**
+ * 获取知识图谱摘要（供智能体意图识别与工具调用）
+ * 返回结构化描述，便于 LLM 理解节点与功能映射
+ */
+export function getKnowledgeGraphForAgent() {
+  const items = NODES.filter((n) => n.section && n.type !== NODE_TYPE.ROLE && n.id !== 'center')
+    .map((n) => {
+      const parts = [n.name, `section=${n.section}`];
+      if (n.filter_mode) parts.push(`filter_mode=${n.filter_mode}`);
+      if (n.calc_operation) parts.push(`operation=${n.calc_operation}`);
+      if (n.devtool) parts.push(`devtool=${n.devtool}`);
+      if (n.devtool_action) parts.push(`devtool_action=${n.devtool_action}`);
+      return { id: n.id, keywords: (n.keywords || []).join(','), action: parts.join(', ') };
+    });
+  return items;
+}
+
+/**
+ * 根据节点 id 转为智能体 step 格式
+ */
+export function nodeToAgentStep(node) {
+  if (!node || !node.section) return null;
+  const step = { section: node.section };
+  if (node.filter_mode) step.examples_filter = node.filter_mode;
+  if (node.calc_operation) step.operation = node.calc_operation;
+  if (node.devtool) step.devtool = node.devtool;
+  if (node.devtool_action) step.devtool_action = node.devtool_action;
+  return step;
 }
 
 /**

@@ -78,3 +78,5 @@ ALIYUN_CDN_VIDEO_PATH = os.getenv("ALIYUN_CDN_VIDEO_PATH", "/storage").rstrip("/
 ALIYUN_CDN_AUTH_TTL = _int_env("ALIYUN_CDN_AUTH_TTL", 3600)  # 鉴权 URL 有效时长（秒）
 # 公开 CDN 基地址（可选）：不开启 URL 鉴权时，设为与 ALIYUN_CDN_DOMAIN 相同，列表与预览将直接走 CDN 加速
 ALIYUN_CDN_PUBLIC_BASE = os.getenv("ALIYUN_CDN_PUBLIC_BASE", "").rstrip("/")
+# 教学案例是否走 CDN（0=本地，1=CDN；默认 0，保留 CDN 接口以便后续开启）
+EXAMPLES_USE_CDN = os.getenv("EXAMPLES_USE_CDN", "0").strip() in ("1", "true", "yes")

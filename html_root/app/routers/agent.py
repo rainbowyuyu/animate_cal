@@ -56,6 +56,8 @@ def _classify_intent(text: str) -> dict:
         "prefer_devtools_manim": False,
         "prefer_solution_mode": False,      # 更像“整题解题演示”
         "prefer_visualization_mode": False, # 更像“可视化动画演示”；未明确时默认用 normal 通用推演
+        "examples_filter": None,            # all|favorites|watch_later|courseware
+        "prefer_settings": False,           # 是否要打开/修改设置
     }
     if not t:
         return intent
@@ -101,6 +103,18 @@ def _classify_intent(text: str) -> dict:
 
     if "教学案例" in t or "案例" in t or "视频课" in t or "课程视频" in t:
         intent["prefer_examples"] = True
+    if "收藏" in t or "我的收藏" in t:
+        intent["prefer_examples"] = True
+        intent["examples_filter"] = "favorites"
+    if "稍后看" in t:
+        intent["prefer_examples"] = True
+        intent["examples_filter"] = "watch_later"
+    if "课件" in t or "我的课件" in t or "课件包" in t:
+        intent["prefer_examples"] = True
+        intent["examples_filter"] = "courseware"
+
+    if "设置" in t or "偏好" in t or "配置" in t or "改成" in t or "修改" in t:
+        intent["prefer_settings"] = True
 
     # 角色 → 默认偏好
     role = intent["role"]
@@ -117,6 +131,14 @@ def _classify_intent(text: str) -> dict:
 
     return intent
 
+
+# 知识图谱节点 -> 动作映射（供 LLM 意图识别，与 site-graph.js NODES 保持一致）
+KNOWLEDGE_GRAPH_HINT = (
+    "【知识图谱节点-动作映射】"
+    " (1) 教学案例筛选：收藏→section=examples, examples_filter=favorites；稍后看→examples_filter=watch_later；我的课件→examples_filter=courseware；全部→examples_filter=all。"
+    " (2) 系统设置：用户说「打开设置」「修改xx设置」时，section=settings。可设置 settings_section 定位到子项：appearance|profile|agent|detect|shortcuts|calc|devtools|examples。"
+    " (3) 智能体可帮用户修改设置：在 step 中加 setting_key、setting_value。支持：theme(light|dark)、agent_enter_send(true|false)、detect_default_input(draw|upload)、calc_default_mode(normal|formular|visualization|solution)、devtools_default_tab(latex|manim|rainbow)、hero_effect_mode(gradient|interaction)、canvas_lock_mobile(true|false)、danmaku_enabled(true|false)、danmaku_opacity(0-100)。"
+)
 
 # 网站对外可调用的工具列表，供智能体或外部 Agent（如 function calling）按名称调用
 AGENT_TOOLS = [
@@ -206,6 +228,7 @@ async def agent_execute(data: AgentRequest):
         "devtools=开发者工具（含 LaTeX 可视化编辑器、LaTeX 源码、Manim 工作台/云端渲染、Rainbow 拓展库）、my-formulas=我的算式、examples=教学案例、help=帮助。"
         "网站核心能力：将 LaTeX 算式转为 Manim 动画演示（公式推演、可视化等），可被智能体调用来解题并演示。\n\n"
         + f"【服务器意图预判】{intent_hint_json}。除非用户在当前轮明确提出相反要求，否则请优先依据该预判选择 section/operation/devtool/steps。\n\n"
+        + f"{KNOWLEDGE_GRAPH_HINT}\n\n"
         + context_prefix
         + "当前用户说：" + data.prompt + "\n\n"
         + ("用户上传了图片，识别到的公式为：" + latex_from_image + "。若需用到公式请以此为准。" if latex_from_image else "用户未上传图片，若需公式请从描述或题目中提取 LaTeX。")
@@ -215,12 +238,15 @@ async def agent_execute(data: AgentRequest):
         ' (单公式) 用户只给一个式子或说「把这个公式做成动画/推演」：**默认 operation=normal（通用推演）**；仅当用户明确说「画图」「函数图像」「可视化演示」「做成图像」等时才用 operation=visualization；formular 用于纯公式推演。formula=该式的 LaTeX。'
         '\n\n【重要】根据用户意图决定行为：'
         ' (1) 若用户只是提问、打招呼、闲聊，则 section="chat", 输出 reply 为友好回复。'
+        ' (1b) 若用户说「打开设置」「修改xx设置」「把xx改成xx」等，section=settings；可选 settings_section 定位（appearance/profile/agent/detect/shortcuts/calc/devtools/examples）；若要直接改某项，加 setting_key 与 setting_value，如 setting_key="theme" setting_value="dark" 表示切换到深色模式。'
         ' (2) 若用户说"在 LaTeX 编辑器填入 xxx""打开 LaTeX 并填入质能方程"等，则 section=devtools, devtool=latex, fill_latex 为 LaTeX。'
         '     **常见数学概念转换**：质能方程→E=mc^2；勾股定理→a^2+b^2=c^2；欧拉公式→e^{i\\pi}+1=0 等，转为标准内联 LaTeX。'
         ' (3) 若用户说"打开云端渲染工作台/开发者工具并写一段 Manim 示例代码填入""打开 Manim 工作台并填入代码"等，则 section=devtools, devtool=manim, fill_manim_code 为一段完整的 Manim Python 代码（from manim import * 开头，含 class Scene 的 construct）。'
+        ' (3b) Manim 工作台工具栏动作：用户说「运行/渲染 Manim」「运行代码」「执行」→ devtool_action=run；「关键帧预览」「预览关键帧」→ devtool_action=keyframe；「导入脚本」「打开导入面板」→ devtool_action=import；「保存脚本」「保存到脚本库」→ devtool_action=save；「生成视频文案」「总结脚本」→ devtool_action=summary；「打开 AI 编辑」「用 AI 改代码」→ devtool_action=ai_edit。这些与 fill_manim_code 可同时存在（先填入再执行动作）。'
         ' (4) 若用户说"只识别""识别这张图（不跳转）"，则 section=detect, trigger=recognize。'
         ' (5) 若用户说"识别公式并保存到我的算式""识别并保存"等，则先识别再保存：输出 steps 数组，第一步 section=detect, trigger=recognize；第二步 section=my-formulas 且 save_to_formulas=true（表示把上一步识别结果保存到我的算式）。'
         ' (6) 其他多步需求（如先打开工作台再填入代码、先识别再去计算等）：用 steps 数组按顺序列出每一步。单步则只输出一个 JSON 对象（不含 steps）。'
+        ' (6b) 教学案例子功能：用户说「收藏」「我的收藏」「稍后看」「我的课件」「全部案例」时，section=examples，并设置 examples_filter：收藏→favorites；稍后看→watch_later；我的课件→courseware；全部→all。'
         ' (7) **解题类（调用网站工具）**：当用户给出数学题（选择题、判断题、求极限、问「哪个是无穷小量/等价无穷小」等）或上传题目截图时，请：'
         ' ① 先判断是**整题**还是**单公式**：整题则 operation=solution 且 formula 为整题结构化文字；单公式则 **默认 operation=normal**，仅当用户明确说「画图」「函数图像」「可视化」时才用 visualization，formula 为该公式 LaTeX。'
         ' ② 从题目/图片中提取各选项或待比较的式子，转为标准 LaTeX（如 A: \\frac{x+\\cos x}{x}, B: \\frac{\\sin x}{x}, C: \\frac{\\sin x}{\\sqrt{x}}, D: \\frac{1}{2^x-1}）。'
@@ -235,7 +261,7 @@ async def agent_execute(data: AgentRequest):
         ' (开发者) 优先打开开发者工具：第一步 section="devtools" devtool="rainbow" 或 "manim"，帮助用户载入或编写示例脚本；如用户提到“组件卡片”“可复用模块”，在 reply 中说明推荐的脚本结构与如何整理为组件。'
         '\n\n动态计算页演示模式：**默认 operation=normal**（通用推演）；solution=完整解题过程且 formula 为整题文字；仅当用户明确说「画图」「函数图像」「可视化演示」时才用 visualization；formular 为纯公式推演。'
         '\n\nformula：当 operation=solution 时为整题结构化文字（可含多行、多选项）；当 operation 为 formular/visualization/normal 时为标准内联 LaTeX，不要 \\[ \\]、$$、\\begin{equation}。fill_latex 仅用于 LaTeX 编辑器，标准内联 LaTeX。'
-        '\n\n请只输出一个 JSON。单步格式：{"section":"...", "devtool":"latex|manim|rainbow"(可选), "formula":"", "fill_latex":"", "fill_manim_code":"", "operation":"normal|formular|visualization", "trigger":"generate|recognize|none", "reply":"回复"(chat 或解题时可写结论)}。'
+        '\n\n请只输出一个 JSON。单步格式：{"section":"...", "settings_section":"appearance|profile|agent|detect|shortcuts|calc|devtools|examples"(section=settings 时可选), "setting_key":"", "setting_value":"", "devtool":"...", "devtool_action":"...", "examples_filter":"...", "formula":"", "fill_latex":"", "fill_manim_code":"", "operation":"...", "trigger":"...", "reply":"回复"}。'
         '多步格式：{"steps":[ 上述单步对象1, 单步对象2, ... ]}。可选字段 save_to_formulas: true 表示该步后把当前识别结果保存到我的算式。'
         " trigger：立刻生成动画填 generate；仅识别填 recognize；只跳转填 none。"
     )
@@ -247,7 +273,7 @@ async def agent_execute(data: AgentRequest):
 
         def normalize_step(obj: dict) -> dict:
             section = str(obj.get("section") or "chat").strip()
-            if section not in ("detect", "calculate", "devtools", "my-formulas", "examples", "help", "chat"):
+            if section not in ("detect", "calculate", "devtools", "my-formulas", "examples", "help", "chat", "settings"):
                 section = "chat"
             reply = (str(obj.get("reply") or "")).replace("\\n", "\n").replace("\\\\", "\\").strip()
             devtool = obj.get("devtool") or None
@@ -267,10 +293,26 @@ async def agent_execute(data: AgentRequest):
             trigger = str(obj.get("trigger") or "none")
             if trigger not in ("generate", "recognize", "none"):
                 trigger = "none"
+            devtool_action = str(obj.get("devtool_action") or obj.get("action") or "").strip().lower()
+            if devtool_action not in ("run", "keyframe", "import", "save", "summary", "ai_edit"):
+                devtool_action = None
+            examples_filter = str(obj.get("examples_filter") or "").strip()
+            if examples_filter not in ("all", "favorites", "watch_later", "courseware"):
+                examples_filter = None
+            settings_section = str(obj.get("settings_section") or "").strip()
+            if settings_section not in ("appearance", "profile", "agent", "detect", "shortcuts", "calc", "devtools", "examples"):
+                settings_section = None
+            setting_key = str(obj.get("setting_key") or "").strip() or None
+            setting_value = obj.get("setting_value")
             return {
                 "section": section,
                 "reply": reply,
                 "devtool": devtool,
+                "devtool_action": devtool_action,
+                "examples_filter": examples_filter,
+                "settings_section": settings_section,
+                "setting_key": setting_key,
+                "setting_value": setting_value,
                 "formula": formula,
                 "fill_latex": fill_latex,
                 "fill_manim_code": fill_manim_code,

@@ -75,6 +75,7 @@ class ManimKeyframeModel(BaseModel):
 class ManimCodeEditModel(BaseModel):
     code: str
     instruction: str
+    render_log: Optional[str] = None  # 渲染日志，纠错意图时传入供模型参考
 
 
 class AgentRequest(BaseModel):

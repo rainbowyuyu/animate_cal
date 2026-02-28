@@ -4,7 +4,7 @@
  * 使用 site-graph 数据，依赖全局 THREE / ForceGraph3D / SpriteText（ES 模块）
  */
 
-import { getGraphDataFor3D, ROLE_FLOWS, ROLE_LABELS } from './site-graph.js';
+import { getGraphDataFor3D, ROLE_FLOWS, ROLE_LABELS, executeNodeAction } from './site-graph.js';
 
 /** 图标映射 */
 const ICON_MAP = {
@@ -16,7 +16,8 @@ const ICON_MAP = {
   'fa-eraser': '◻', 'fa-rotate-left': '↺', 'fa-lock': '⌒', 'fa-magnifying-glass': '⌕',
   'fa-bookmark': '▣', 'fa-book-bookmark': '▤', 'fa-clapperboard': '▶', 'fa-list-ol': '≡',
   'fa-star': '★', 'fa-clock': '◷', 'fa-chalkboard-user': '▤', 'fa-tags': '☰',
-  'fa-plus': '+', 'fa-file-lines': '◆', 'fa-file': '◆', 'fa-keyboard': '⌨'
+  'fa-plus': '+', 'fa-file-lines': '◆', 'fa-file': '◆', 'fa-keyboard': '⌨',
+  'fa-palette': '◐', 'fa-user': '◎', 'fa-film': '▣'
 };
 
 /** 获取当前主题 */
@@ -24,23 +25,25 @@ function isDarkTheme() {
   return document.documentElement.getAttribute('data-theme') === 'dark';
 }
 
-/** 主题配色（与主页 feature-card 一致） */
+/** 主题配色：高级柔和，贴合主页 feature-card 风格 */
 const THEME = {
   light: {
-    cardBg: '#ffffff',
-    cardBorder: '#e2e8f0',
-    text: '#0f172a',
-    iconBg: 'rgba(37, 99, 235, 0.1)',
-    iconColor: '#2563eb',
+    cardBg: 'rgba(255, 255, 255, 0.92)',
+    cardBorder: 'rgba(226, 232, 240, 0.6)',
+    text: '#334155',
+    iconBg: 'rgba(99, 102, 241, 0.08)',
+    iconColor: '#6366f1',
     nodeColor: '#6366f1',
+    cardShadow: 'rgba(99, 102, 241, 0.04)',
   },
   dark: {
-    cardBg: '#1e293b',
-    cardBorder: '#334155',
-    text: '#f1f5f9',
-    iconBg: 'rgba(59, 130, 246, 0.2)',
-    iconColor: '#60a5fa',
+    cardBg: 'rgba(30, 41, 59, 0.88)',
+    cardBorder: 'rgba(71, 85, 105, 0.3)',
+    text: '#e2e8f0',
+    iconBg: 'rgba(99, 102, 241, 0.15)',
+    iconColor: '#a5b4fc',
     nodeColor: '#818cf8',
+    cardShadow: 'rgba(0, 0, 0, 0.2)',
   },
 };
 
@@ -102,35 +105,44 @@ function createSphereNodeWithText(node, theme) {
   canvas.width = cardW;
   canvas.height = cardH;
   const c = canvas.getContext('2d');
-  const rad = 12;
+  const rad = 16;
 
+  /* 卡片底色：柔和渐变 / 玻璃感 */
   if (theme === 'dark') {
     const cx = cardW / 2;
     const cy = cardH / 2;
-    const R = Math.sqrt(cx * cx + cy * cy) * 1.2;
-    const parseRgb = (hex) => {
-      const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-      return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [30, 41, 59];
+    const R = Math.sqrt(cx * cx + cy * cy) * 1.3;
+    const parseRgb = (str) => {
+      const m = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+      return m ? [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)] : [30, 41, 59];
     };
     const [cr, cg, cb] = parseRgb(t.cardBg);
     const grad = c.createRadialGradient(cx, cy, 0, cx, cy, R);
-    grad.addColorStop(0, `rgba(${cr},${cg},${cb},0.92)`);
-    grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.75)`);
-    grad.addColorStop(0.85, `rgba(${cr},${cg},${cb},0.15)`);
+    grad.addColorStop(0, `rgba(${cr},${cg},${cb},0.94)`);
+    grad.addColorStop(0.5, `rgba(${cr},${cg},${cb},0.82)`);
+    grad.addColorStop(0.9, `rgba(${cr},${cg},${cb},0.12)`);
     grad.addColorStop(1, 'rgba(0,0,0,0)');
     c.fillStyle = grad;
   } else {
-    c.fillStyle = t.cardBg;
-    c.strokeStyle = t.cardBorder;
-    c.lineWidth = 1;
+    const bgGrad = c.createLinearGradient(0, 0, cardW, cardH);
+    bgGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+    bgGrad.addColorStop(1, 'rgba(248,250,252,0.9)');
+    c.fillStyle = bgGrad;
   }
   if (c.roundRect) {
     c.beginPath();
     c.roundRect(0, 0, cardW, cardH, rad);
     c.fill();
-    if (theme === 'light') c.stroke();
   } else {
     c.fillRect(0, 0, cardW, cardH);
+  }
+  /* 柔和边框 */
+  c.strokeStyle = t.cardBorder;
+  c.lineWidth = 0.5;
+  if (c.roundRect) {
+    c.beginPath();
+    c.roundRect(0, 0, cardW, cardH, rad);
+    c.stroke();
   }
 
   const iconX = padding + iconBoxSize / 2;
@@ -140,8 +152,10 @@ function createSphereNodeWithText(node, theme) {
   c.fillStyle = t.iconBg;
   c.fill();
   c.strokeStyle = t.iconColor;
-  c.lineWidth = 1;
+  c.lineWidth = 0.8;
+  c.globalAlpha = 0.7;
   c.stroke();
+  c.globalAlpha = 1;
   c.fillStyle = t.iconColor;
   c.font = `700 ${iconSize}px "Plus Jakarta Sans","Microsoft YaHei",sans-serif`;
   c.textAlign = 'center';
@@ -158,7 +172,7 @@ function createSphereNodeWithText(node, theme) {
   const labelMat = new THREE.SpriteMaterial({
     map: tex,
     transparent: true,
-    opacity: 0.95,
+    opacity: 0.92,
     depthWrite: false,
     depthTest: false,
   });
@@ -172,9 +186,9 @@ function createSphereNodeWithText(node, theme) {
   const sphereMat = new THREE.MeshLambertMaterial({
     color: nodeColor,
     transparent: true,
-    opacity: 0.95,
+    opacity: 0.9,
     emissive: nodeColor,
-    emissiveIntensity: 0.15,
+    emissiveIntensity: 0.12,
   });
   const sphere = new THREE.Mesh(geo, sphereMat);
   sphere.renderOrder = 0;
@@ -232,7 +246,7 @@ export function initRoleGraph() {
     }, true);
   }
 
-  function openFlow(role) {
+  const openFlow = (role) => {
     const flow = ROLE_FLOWS[role];
     if (!flow) return;
     flowTitle.textContent = ROLE_LABELS[role] + ' · 推荐路径';
@@ -256,7 +270,9 @@ export function initRoleGraph() {
         flowPanel.classList.remove('visible');
       });
     });
-  }
+  };
+  window.RoleGraph = window.RoleGraph || {};
+  window.RoleGraph.openFlow = openFlow;
 
   if (flowBack) flowBack.addEventListener('click', () => flowPanel.classList.remove('visible'));
   flowPanel.addEventListener('click', (e) => { if (e.target === flowPanel) flowPanel.classList.remove('visible'); });
@@ -281,8 +297,8 @@ export function initRoleGraph() {
     const t = THEME[dark ? 'dark' : 'light'];
     return {
       bg: dark ? '#0f172a' : '#f8fafc',
-      link: dark ? 'rgba(139, 92, 246, 0.5)' : 'rgba(37, 99, 235, 0.5)',
-      linkHighlight: dark ? 'rgba(139, 92, 246, 0.9)' : 'rgba(37, 99, 235, 0.85)',
+      link: dark ? 'rgba(139, 92, 246, 0.35)' : 'rgba(99, 102, 241, 0.3)',
+      linkHighlight: dark ? 'rgba(139, 92, 246, 0.7)' : 'rgba(99, 102, 241, 0.6)',
       node: (n) => dark ? softenColorForDarkMode(n.color || t.nodeColor) : (n.color || t.nodeColor),
       theme: dark ? 'dark' : 'light',
     };
@@ -296,7 +312,7 @@ export function initRoleGraph() {
 
     const useCustomNodes = typeof window.THREE !== 'undefined';
     const getLinkColor = (l) => (highlightLinks.has(l) ? colors.linkHighlight : colors.link);
-    const getLinkWidth = (l) => (highlightLinks.has(l) ? 3 : 2);
+    const getLinkWidth = (l) => (highlightLinks.has(l) ? 2.5 : 1.5);
     const getLinkParticles = (l) => (highlightLinks.has(l) ? 5 : 0);
 
     let g = new ForceGraph3D(container, {
@@ -379,20 +395,7 @@ export function initRoleGraph() {
         Graph.cameraPosition(newPos, lookAt, 1200);
         const TRANSITION_MS = 1200;
         setTimeout(() => {
-          if (node.role) {
-            openFlow(node.role);
-          } else if (node.id === 'center') {
-          } else if (node.section && typeof window.showSection === 'function') {
-            window.showSection(node.section);
-            if (node.section === 'devtools' && node.devtool && typeof window.switchDevTool === 'function') {
-              setTimeout(() => window.switchDevTool(node.devtool), 80);
-            }
-            if (node.id === 'devtools-ai-edit' && typeof window.DevTools !== 'undefined' && typeof window.DevTools.toggleAiEditPanel === 'function') {
-              setTimeout(() => window.DevTools.toggleAiEditPanel(), 400);
-            }
-          } else if (node.id === 'settings' && typeof window.openSettings === 'function') {
-            window.openSettings();
-          }
+          executeNodeAction(node);
         }, TRANSITION_MS + 80);
       })
       .showNavInfo(false);

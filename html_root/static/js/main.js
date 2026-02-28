@@ -194,8 +194,6 @@ function isMobileDevice() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    const mobile = isMobileDevice();
-
     Canvas.setupCanvas();
     if (typeof window.currentToolType === 'undefined') window.currentToolType = 'pen';
     window.showSection('home');
@@ -207,10 +205,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     Examples.loadExamples(); // 加载案例
     Theme.initTheme();
 
-    // PC / 平板端：初始化开发者工具工作台；移动端作为「采集器和播放器」，不主动加载代码工作台
-    if (!mobile) {
-        DevTools.initDevTools();
-    }
+    // 全设备初始化开发者工具工作台（含手机端）
+    DevTools.initDevTools();
 
     Agent.initAgent();
     Profile.initProfile();
@@ -245,8 +241,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }
       KnowledgePanel.refreshKnowledgePanel(params.section || 'home');  // 智算星云：首屏即现，按当前 section 展示
-      // 若存在devtool参数，执行switchDevTool（仅非移动端生效）
-      if (params.devtool && !mobile) {
+      // 若存在devtool参数，执行switchDevTool
+      if (params.devtool) {
         switchDevTool(params.devtool);
       }
       // 将当前 section 写入浏览器历史（replace），使后续 pushState 与原生前进/后退一致
@@ -271,15 +267,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 初始化阶段结束，之后跳转到「我的算式」时将允许显示知识星云
     setTimeout(() => { window._initPhase = false; }, 0);
 
-    // 移动端：弱化「开发者工具」入口，仅在大屏设备提供代码编辑与云端工作台
-    if (mobile) {
-      document.querySelectorAll('.nav-btn[onclick*=\"devtools\"]').forEach((btn) => {
-        btn.style.display = 'none';
-      });
-      document.querySelectorAll('.mobile-nav-links button[onclick*=\"devtools\"]').forEach((btn) => {
-        btn.style.display = 'none';
-      });
-    }
 
     // 新增功能条：若用户曾关闭则不再显示
     if (localStorage.getItem('agent_banner_closed')) {
@@ -292,6 +279,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       const active = document.querySelector('.section.active-section');
       KnowledgePanel.refreshKnowledgePanel(active ? active.id : 'home');
     });
+
+    // 星云内渲染进度：展开态进度条，折叠态水面填满小球
+    KnowledgePanel.initRenderProgressInNebula?.();
 
     // 知识星云浮动面板：关闭、展开、全屏拖动
     (function initKnowledgePanelToggle() {
@@ -763,12 +753,6 @@ window.deleteFormula = Formulas.deleteFormula;
 
 // --- 其他挂载 ---
 window.showSection = (sectionId, opts = {}) => {
-    if (sectionId === 'devtools' && isMobileDevice()) {
-        if (window.showToast) {
-            window.showToast('开发者工具仅在电脑或平板端提供，请在大屏设备上使用。', 'info');
-        }
-        sectionId = 'home';
-    }
     if (!opts.fromHistory) {
         SectionHistory.pushSection(sectionId);
         if (!window._initPhase) pushStateForSection(sectionId);
@@ -876,6 +860,8 @@ window.useFormula = (latexEncoded) => {
 window.playExample = Examples.playExample;
 window.closeVideoModal = Examples.closeVideoModal;
 window.loadExamples = Examples.loadExamples;
+window.Examples = window.Examples || {};
+window.Examples.switchExamplesFilter = Examples.switchExamplesFilter;
 
 // --- Docs 挂载 ---
 window.openDoc = Docs.openDoc;

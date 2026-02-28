@@ -704,6 +704,7 @@
     justify-content: center;
     text-align: center;
     z-index: 10;
+    pointer-events: none; /* 渲染中可点击穿透，自由切换页面 */
     background: rgba(30, 30, 30, 0.95);
     border-radius: var(--radius-md);
     margin: 8px;
@@ -1095,12 +1096,12 @@
     box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.45);
 }
 
-/* AI 编辑按钮（紫青渐变，类似 Cursor 风格） */
+/* AI 编辑按钮（紫青渐变，类似 Cursor 风格）- 与其它按钮统一尺寸 */
 .ide-btn-ai-edit {
     background: linear-gradient(180deg, #8b5cf6 0%, #7c3aed 100%);
     color: #fff;
     border: 1px solid rgba(139, 92, 246, 0.5);
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.8rem;
@@ -1120,26 +1121,29 @@
     box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.45);
 }
 
-/* 预览关键帧按钮 */
+/* 预览关键帧按钮 - 与其它按钮统一尺寸 */
 .ide-btn-keyframe {
     background: linear-gradient(180deg, #64748b 0%, #475569 100%);
     color: #fff;
     border: 1px solid rgba(100, 116, 139, 0.5);
-    padding: 6px 10px;
+    padding: 6px 14px;
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.8rem;
     font-weight: 600;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    gap: 8px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 .ide-btn-keyframe:hover {
     border-color: #94a3b8;
+    box-shadow: 0 0 0 1px rgba(100, 116, 139, 0.35);
 }
 .ide-btn-keyframe:focus {
     outline: none;
+    border-color: #94a3b8;
+    box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.45);
 }
 
 .manim-import-wrap {
@@ -1290,5 +1294,193 @@
 
     .rainbow-card .action-btn {
         width: 100%; /* 手机端按钮全宽 */
+    }
+}
+
+/* =========================================
+   手机版开发者工具样式优化
+   ========================================= */
+@media (max-width: 900px) {
+    #devtools .workspace {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-top: 0.5rem;
+        min-height: 480px;
+    }
+
+    #devtools .tools-panel {
+        flex: 1 1 auto !important;
+        min-width: 0;
+        padding: 1rem;
+        max-height: none;
+    }
+
+    #devtools .tools-panel .control-group:last-child {
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    #devtools .tools-list {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    #devtools .tools-list .tab-btn {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.85rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    #devtools .workspace-main {
+        min-height: 420px;
+    }
+
+    #devtools .dev-panel {
+        padding: 1rem;
+        gap: 1rem;
+    }
+
+    #devtools .dev-split-view {
+        flex-direction: column;
+    }
+
+    #devtools .dev-latex-preview-wrap {
+        min-height: 100px;
+        max-height: 200px;
+    }
+
+    #devtools #dev-latex-preview {
+        min-height: 80px;
+        max-height: 160px;
+        padding: 0.75rem 1rem;
+    }
+
+    #devtools #dev-latex-mathfield {
+        font-size: 1.2rem;
+    }
+
+    .ide-layout {
+        min-height: 440px;
+    }
+
+    .ide-top-panel,
+    .ide-left-panel {
+        min-height: 160px;
+    }
+
+    .ide-editor {
+        min-height: 180px;
+    }
+
+    .ide-toolbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        min-height: auto;
+    }
+
+    .ide-toolbar-label {
+        flex: 1 1 100%;
+        font-size: 0.75rem;
+    }
+
+    .ide-toolbar-actions {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .ide-toolbar-actions .ide-btn-import,
+    .ide-toolbar-actions .ide-btn-save,
+    .ide-toolbar-actions .ide-btn-summary,
+    .ide-toolbar-actions .ide-btn-ai-edit,
+    .ide-toolbar-actions .ide-btn-keyframe,
+    .ide-toolbar-actions .ide-btn-run {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+    }
+
+    .manim-import-panel {
+        width: min(340px, calc(100vw - 24px));
+        left: 50%;
+        transform: translateX(-50%);
+        right: auto;
+        max-height: 60vh;
+    }
+
+    .manim-ai-edit-float {
+        left: 8px;
+        right: 8px;
+        width: auto;
+        max-width: none;
+        top: 50%;
+        transform: translateY(-50%);
+        max-height: 85vh;
+        min-height: 360px;
+    }
+
+    .manim-video-float-wrap {
+        left: 8px;
+        right: 8px;
+        width: auto;
+        bottom: env(safe-area-inset-bottom, 12px);
+    }
+
+    .rainbow-header {
+        padding: 1.5rem 1rem;
+    }
+
+    .rainbow-title {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    #devtools .section-title {
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+    }
+
+    #devtools .workspace {
+        min-height: 400px;
+        padding: 0;
+    }
+
+    #devtools .tools-list .tab-btn {
+        flex: 1 1 100%;
+        font-size: 0.8rem;
+    }
+
+    #devtools .tools-list .tab-btn span {
+        font-size: 0.55rem;
+    }
+
+    #devtools .dev-panel {
+        padding: 0.75rem;
+    }
+
+    .ide-layout {
+        min-height: 380px;
+        border-radius: 10px;
+    }
+
+    .ide-resize-v {
+        height: 6px;
+        min-height: 6px;
+    }
+
+    .ide-preview {
+        min-height: 140px;
+    }
+
+    .manim-ai-edit-float {
+        min-height: 320px;
+        height: 70vh;
+    }
+
+    .card-content-wrapper {
+        flex-direction: column;
     }
 }

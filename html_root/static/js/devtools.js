@@ -3,6 +3,7 @@
 import { RAINBOW_LIB_INFO } from './rainbow_data.js';
 import { toggleModal, showToast } from './ui.js';
 import { sanitizeMarkdownHtml } from './sanitize.js';
+import { getIsRenderCooldown, startRenderCooldown, setRenderInProgress } from './render-cooldown.js';
 
 // 全局变量保存编辑器实例
 let monacoEditor = null;
@@ -63,6 +64,7 @@ export function initDevTools() {
     initManimResize();
     initManimVideoFloat();
     initManimAiEdit();
+    initRenderCooldownListeners();
 }
 
 /** 竖排布局：上（代码+日志）/ 下（视频）拖拽调整高度 */
@@ -106,6 +108,73 @@ function initManimResize() {
     // 上/下大块：视频已浮动，仅连接 editor-log（topPane 与 placeholder 无需调整）
     if (handleEditorLog && logPane) {
         dragVertical(handleEditorLog, editorPane, logPane, 200, 120);
+    }
+
+    // 注册内容变化时自动调整代码区与日志区比例（使布局随代码/日志变化）
+    initManimLayoutAutoResize(editorPane, logPane);
+}
+
+/** 存储上次布局比例，用于智能调整 */
+let lastEditorLines = 0;
+let lastLogLines = 0;
+
+/** 供 initMonacoEditor 调用的布局调整函数（Monaco 懒加载后绑定） */
+let scheduleManimLayoutAdjust = null;
+
+/**
+ * 代码区与渲染日志随内容变化自动调整布局
+ * - 代码行数增加时适当放大编辑器
+ * - 日志有新输出（尤其报错）时放大日志区
+ */
+function initManimLayoutAutoResize(editorPane, logPane) {
+    if (!editorPane || !logPane) return;
+
+    const EDITOR_MIN = 200;
+    const LOG_MIN = 120;
+    const topPane = document.getElementById('ide-left-pane');
+    if (!topPane) return;
+
+    function adjustLayout(reason) {
+        const editorLines = monacoEditor ? monacoEditor.getModel()?.getLineCount() || 0 : 0;
+        const logEl = document.getElementById('dev-manim-log');
+        const logText = (logEl?.textContent || '').trim();
+        const logLines = logText ? logText.split('\n').length : 0;
+
+        const topHeight = topPane.getBoundingClientRect().height;
+        if (topHeight < EDITOR_MIN + LOG_MIN) return;
+
+        let editorFlex = 0.6;
+        if (reason === 'code') {
+            if (editorLines > lastEditorLines && editorLines >= 25) {
+                editorFlex = Math.min(0.75, 0.5 + editorLines / 150);
+            }
+            lastEditorLines = editorLines;
+        } else if (reason === 'log') {
+            if (logLines > lastLogLines) {
+                const hasError = /error|错误|Traceback|Exception/i.test(logText);
+                editorFlex = hasError ? 0.4 : Math.max(0.45, 0.7 - logLines / 80);
+            }
+            lastLogLines = logLines;
+        }
+
+        const editorPx = Math.max(EDITOR_MIN, Math.min(topHeight - LOG_MIN, topHeight * editorFlex));
+        editorPane.style.flex = `0 0 ${editorPx}px`;
+        logPane.style.flex = '1 1 0%';
+        if (window.monacoEditor) window.monacoEditor.layout();
+    }
+
+    scheduleManimLayoutAdjust = (reason) => adjustLayout(reason || 'log');
+
+    // 监听渲染日志变化（MutationObserver）
+    const logEl = document.getElementById('dev-manim-log');
+    if (logEl) {
+        const obs = new MutationObserver(() => adjustLayout('log'));
+        obs.observe(logEl, { characterData: true, childList: true, subtree: true });
+    }
+
+    // Monaco 已在时绑定；否则由 initMonacoEditor 在加载后绑定
+    if (monacoEditor?.getModel()) {
+        monacoEditor.getModel().onDidChangeContent(() => adjustLayout('code'));
     }
 }
 
@@ -192,19 +261,21 @@ function getBreakpointLine(code) {
     return null;
 }
 
-/** 选取最能体现 Manim 改动的行号：Create/Write/Transform 等 play 动画行才是显示改动的位置（1-based） */
-function getImportantChangeLine(originalCode, modifiedCode) {
+/** 选取最能体现 Manim 改动的行号：对象在 add 或 play 时才显示，定义行不显示（1-based）。instruction 含「添加」时取最后一个 add/play */
+function getImportantChangeLine(originalCode, modifiedCode, instruction) {
+    const addPattern = /self\.add\s*\(/;
     const animKeywords = /\b(Create|Write|Transform|ReplacementTransform|FadeIn|FadeOut|GrowFromCenter|DrawBorderThenFill)\s*\(/;
     const playPattern = /self\.play\s*\(/;
     const lines = modifiedCode.split('\n');
+    const candidates = [];
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (playPattern.test(line) && animKeywords.test(line)) {
-            return i + 1;
-        }
+        if (addPattern.test(line) || (playPattern.test(line) && animKeywords.test(line))) candidates.push(i + 1);
+        else if (playPattern.test(line)) candidates.push(i + 1);
     }
-    for (let i = 0; i < lines.length; i++) {
-        if (playPattern.test(lines[i])) return i + 1;
+    if (candidates.length > 0) {
+        const isAdd = instruction && (/添加/.test(instruction) || /add/i.test(instruction));
+        return isAdd ? candidates[candidates.length - 1] : candidates[0];
     }
     const orig = originalCode.split('\n');
     const mod = modifiedCode.split('\n');
@@ -391,6 +462,12 @@ function initManimAiEdit() {
     if (acceptBtn) acceptBtn.addEventListener('click', onAccept);
     if (rejectBtn) rejectBtn.addEventListener('click', onReject);
 
+    /** 检测是否为纠错/修复意图（需要传入渲染日志） */
+    function isErrorCorrectionIntent(text) {
+        const t = (text || '').toLowerCase();
+        return /\b(纠错|修复|改正|修正|fix|报错|错误|error|exception|traceback)\b/i.test(t);
+    }
+
     async function doEdit() {
         const user = getCurrentUsername();
         if (!user) {
@@ -409,23 +486,38 @@ function initManimAiEdit() {
             return;
         }
         const code = editor.getValue();
+
+        // 纠错意图时读取渲染日志供模型参考
+        let renderLog = '';
+        if (isErrorCorrectionIntent(instruction)) {
+            const logEl = document.getElementById('dev-manim-log');
+            renderLog = (logEl?.textContent || '').trim();
+            if (renderLog) appendMsg('ai', '已读取渲染日志，将结合报错信息进行修改…');
+        }
+
         appendMsg('user', instruction);
         input.value = '';
         btn.disabled = true;
         btn.title = '处理中...';
         hidePreviewBlock();
         try {
+            const body = { code, instruction };
+            if (renderLog) body.render_log = renderLog;
+
             const res = await fetch('/api/devtools/edit_code', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code, instruction }),
+                body: JSON.stringify(body),
                 credentials: 'include',
             });
             const data = await res.json();
             if (data.status === 'success' && data.code) {
                 appendMsg('ai', '已根据您的指令修改代码。正在生成效果预览…');
-                const importantLine = getImportantChangeLine(code, data.code);
-                const previewUrl = await renderKeyframeForCode(data.code, importantLine);
+                // 优先使用后端返回的关键帧断点（add/play 显示行），其次前端计算的改动行
+                const keyframeLine = Array.isArray(data.keyframe_lines) && data.keyframe_lines.length > 0
+                    ? data.keyframe_lines[0]
+                    : getImportantChangeLine(code, data.code, instruction);
+                const previewUrl = await renderKeyframeForCode(data.code, keyframeLine);
                 if (previewUrl && keyframeImg) {
                     keyframeImg.src = previewUrl;
                 }
@@ -653,18 +745,37 @@ class GenScene(Scene):
     });
     window.monacoEditor = monacoEditor;
 
+    // 绑定代码变化时的布局自动调整（Monaco 懒加载后补绑）
+    if (typeof scheduleManimLayoutAdjust === 'function') {
+        monacoEditor.getModel()?.onDidChangeContent(() => scheduleManimLayoutAdjust('code'));
+    }
+
     // 3. 绑定快捷键 Ctrl+Enter 运行
     monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
         runDevManim();
     });
 }
 
-// --- 运行逻辑 ---
-let isCooldown = false;
+// --- 运行逻辑（与动态计算共享全站渲染冷却）---
+const RUN_BTN_ORIGINAL = '<i class="fa-solid fa-play"></i> 运行';
+
+function updateRunButtonFromCooldown(left) {
+    const btn = document.getElementById('btn-run-manim');
+    if (!btn) return;
+    if (left > 0) {
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btn.innerHTML = `<i class="fa-regular fa-clock"></i> ${left}s`;
+    } else {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+        btn.innerHTML = RUN_BTN_ORIGINAL;
+    }
+}
 
 export async function runDevManim() {
-    if (isCooldown) {
-        if (typeof showAlert === 'function') await showAlert("请等待冷却时间结束", "提示");
+    if (getIsRenderCooldown()) {
+        if (typeof showAlert === 'function') await showAlert("全站渲染冷却中，请稍后再试（开发者工具与动态计算共享冷却）", "提示");
         return;
     }
     if (!monacoEditor) return;
@@ -676,7 +787,9 @@ export async function runDevManim() {
     const loading = document.getElementById('dev-manim-loading');
     const logEl = document.getElementById('dev-manim-log');
 
-    startCooldownTimer(30, btn);
+    startRenderCooldown(30);
+    updateRunButtonFromCooldown(30);
+    setRenderInProgress(true, { source: 'devtools' });
     placeholder.style.display = 'none';
     video.style.display = 'none';
     loading.style.display = 'block';
@@ -737,6 +850,7 @@ export async function runDevManim() {
         placeholder.style.display = 'block';
     } finally {
         loading.style.display = 'none';
+        setRenderInProgress(false);
     }
 }
 
@@ -874,27 +988,9 @@ export function openNewBlankScriptInWorkbench() {
     setTimeout(() => clearInterval(t), 6000);
 }
 
-function startCooldownTimer(seconds, btn) {
-    isCooldown = true;
-    let left = seconds;
-    const originalContent = '<i class="fa-solid fa-play"></i> 运行脚本';
-
-    btn.disabled = true;
-    btn.style.opacity = '0.7';
-    btn.innerHTML = `<i class="fa-regular fa-clock"></i> ${left}s`;
-
-    const timer = setInterval(() => {
-        left--;
-        if (left <= 0) {
-            clearInterval(timer);
-            isCooldown = false;
-            btn.disabled = false;
-            btn.innerHTML = originalContent;
-            btn.style.opacity = '1';
-        } else {
-            btn.innerHTML = `<i class="fa-regular fa-clock"></i> ${left}s`;
-        }
-    }, 1000);
+function initRenderCooldownListeners() {
+    window.addEventListener('render-cooldown-tick', (e) => updateRunButtonFromCooldown(e.detail.left));
+    window.addEventListener('render-cooldown-end', () => updateRunButtonFromCooldown(0));
 }
 
 // [修改] 渲染 Rainbow 库内容
@@ -1041,7 +1137,7 @@ function renderImportScripts() {
         listEl.innerHTML = '<p class="manim-import-msg" style="padding:1rem; font-size:0.85rem;">请先登录后在此选择已保存的脚本。</p>';
         return;
     }
-    listEl.innerHTML = '<div class="formulas-loading" style="text-align:center;padding:2rem;color:var(--text-secondary);"><i class="fa-solid fa-spinner fa-spin"></i> 加载中...</div>';
+    listEl.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><i class="fa-solid fa-spinner fa-spin"></i><p>正在同步云端数据...</p></div>';
     fetch(`/api/animation_scripts/list?username=${encodeURIComponent(user)}`)
         .then(res => res.json())
         .then(data => {

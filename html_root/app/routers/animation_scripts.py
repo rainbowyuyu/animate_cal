@@ -1,4 +1,5 @@
 # 动画脚本库：保存、列表、获取、删除、更新
+import asyncio
 import logging
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -32,8 +33,8 @@ async def save_animation_script(data: AnimationScriptModel):
             conn.close()
 
 
-@router.get("/list")
-async def list_animation_scripts(username: str):
+def _list_animation_scripts_sync(username: str):
+    """同步执行，供 run_in_executor 调用，避免阻塞事件循环"""
     conn = None
     cursor = None
     try:
@@ -47,13 +48,20 @@ async def list_animation_scripts(username: str):
         for r in rows:
             r["created_at"] = r["created_at"].isoformat()
         return {"status": "success", "data": rows}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
     finally:
         if cursor:
             cursor.close()
         if conn:
             conn.close()
+
+
+@router.get("/list")
+async def list_animation_scripts(username: str):
+    try:
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _list_animation_scripts_sync, username)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 
 @router.get("/get")
