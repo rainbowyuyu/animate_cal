@@ -804,6 +804,7 @@ window.setTool = (tool) => {
 };
 window.processRecognition = Detect.processRecognition;
 window.copyToCalc = Detect.copyToCalc;
+window.openInDevLatexFromDetect = Detect.editInDevtoolsFromDetect;
 window.startAnimation = Calculate.startAnimation;
 window.handleLogin = Auth.handleLogin;
 window.handleRegister = Auth.handleRegister;

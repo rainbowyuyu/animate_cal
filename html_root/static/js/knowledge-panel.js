@@ -260,6 +260,8 @@ function renderMetroNav(sectionId) {
     const devtool = sectionId === 'devtools' ? getActiveDevtool() : null;
     const path = getMetroPathForSection(sectionId, devtool);
     if (!path || path.length === 0) return { html: '', hasNav: false };
+    const currentNode = path.find((n) => n.current) || path[path.length - 1];
+    const currentName = currentNode ? escapeHtml(currentNode.name) : '';
     const items = path.map((n) => {
         const node = getNodeById(n.id);
         const icon = node && node.icon ? node.icon : 'fa-solid fa-circle-dot';
@@ -268,7 +270,14 @@ function renderMetroNav(sectionId) {
         const dev = escapeHtml(n.devtool || '');
         return `<button type="button" class="knowledge-metro-station ${isCurrent ? 'current' : ''}" data-section="${sec}" data-devtool="${dev}"><span class="knowledge-metro-dot"></span><span class="knowledge-metro-label">${escapeHtml(n.name)}</span></button>`;
     });
-    const html = `<div class="knowledge-metro-line"><div class="knowledge-metro-track">${items.join('<span class="knowledge-metro-connector"></span>')}</div></div>`;
+    const html = `
+        <div class="knowledge-metro-current">
+            <span class="knowledge-metro-current-pill">
+                <i class="fa-solid fa-location-dot"></i>
+                当前站：${currentName || '未知位置'}
+            </span>
+        </div>
+        <div class="knowledge-metro-line"><div class="knowledge-metro-track">${items.join('<span class="knowledge-metro-connector"></span>')}</div></div>`;
     return { html, hasNav: true };
 }
 

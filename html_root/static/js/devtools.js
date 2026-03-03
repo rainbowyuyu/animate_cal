@@ -110,8 +110,7 @@ function initManimResize() {
         dragVertical(handleEditorLog, editorPane, logPane, 200, 120);
     }
 
-    // 注册内容变化时自动调整代码区与日志区比例（使布局随代码/日志变化）
-    initManimLayoutAutoResize(editorPane, logPane);
+    // 不再自动根据内容调整代码 / 日志高度，保持用户拖拽后的尺寸不变
 }
 
 /** 存储上次布局比例，用于智能调整 */
@@ -126,56 +125,9 @@ let scheduleManimLayoutAdjust = null;
  * - 代码行数增加时适当放大编辑器
  * - 日志有新输出（尤其报错）时放大日志区
  */
+// 旧的自动布局逻辑保留占位，但不再生效，避免渲染日志影响高度
 function initManimLayoutAutoResize(editorPane, logPane) {
-    if (!editorPane || !logPane) return;
-
-    const EDITOR_MIN = 200;
-    const LOG_MIN = 120;
-    const topPane = document.getElementById('ide-left-pane');
-    if (!topPane) return;
-
-    function adjustLayout(reason) {
-        const editorLines = monacoEditor ? monacoEditor.getModel()?.getLineCount() || 0 : 0;
-        const logEl = document.getElementById('dev-manim-log');
-        const logText = (logEl?.textContent || '').trim();
-        const logLines = logText ? logText.split('\n').length : 0;
-
-        const topHeight = topPane.getBoundingClientRect().height;
-        if (topHeight < EDITOR_MIN + LOG_MIN) return;
-
-        let editorFlex = 0.6;
-        if (reason === 'code') {
-            if (editorLines > lastEditorLines && editorLines >= 25) {
-                editorFlex = Math.min(0.75, 0.5 + editorLines / 150);
-            }
-            lastEditorLines = editorLines;
-        } else if (reason === 'log') {
-            if (logLines > lastLogLines) {
-                const hasError = /error|错误|Traceback|Exception/i.test(logText);
-                editorFlex = hasError ? 0.4 : Math.max(0.45, 0.7 - logLines / 80);
-            }
-            lastLogLines = logLines;
-        }
-
-        const editorPx = Math.max(EDITOR_MIN, Math.min(topHeight - LOG_MIN, topHeight * editorFlex));
-        editorPane.style.flex = `0 0 ${editorPx}px`;
-        logPane.style.flex = '1 1 0%';
-        if (window.monacoEditor) window.monacoEditor.layout();
-    }
-
-    scheduleManimLayoutAdjust = (reason) => adjustLayout(reason || 'log');
-
-    // 监听渲染日志变化（MutationObserver）
-    const logEl = document.getElementById('dev-manim-log');
-    if (logEl) {
-        const obs = new MutationObserver(() => adjustLayout('log'));
-        obs.observe(logEl, { characterData: true, childList: true, subtree: true });
-    }
-
-    // Monaco 已在时绑定；否则由 initMonacoEditor 在加载后绑定
-    if (monacoEditor?.getModel()) {
-        monacoEditor.getModel().onDidChangeContent(() => adjustLayout('code'));
-    }
+    return;
 }
 
 /** 浮动视频面板：拖动顶部调整位置 */
@@ -577,40 +529,311 @@ function initAiEditFloatDrag(wrap, header) {
     document.addEventListener('mouseup', () => { isDragging = false; });
 }
 
-// --- LaTeX 模块 (保持不变) ---
-function initLatexTool() {
+// --- LaTeX 模块 ---
+/**
+ * 同步开发者工具中的 LaTeX 三视图：
+ * - MathLive 可视化输入框
+ * - LaTeX 源码 textarea
+ * - KaTeX 最终预览
+ */
+function updateDevLatexView(latex) {
+    const value = latex || '';
     const mf = document.getElementById('dev-latex-mathfield');
     const source = document.getElementById('dev-latex-source');
     const preview = document.getElementById('dev-latex-preview');
 
-    if (mf) {
-        // 初始同步
-        updateLatexView(mf.getValue());
-
-        mf.addEventListener('input', (e) => {
-            updateLatexView(e.target.value);
-        });
+    // 避免 setValue 触发多余 input 事件导致循环
+    if (mf && typeof mf.getValue === 'function' && typeof mf.setValue === 'function') {
+        try {
+            if (mf.getValue() !== value) mf.setValue(value);
+        } catch (_) {}
     }
-
-    function updateLatexView(latex) {
-        if(source) source.value = latex;
-        if(preview) {
-            preview.innerHTML = `\\[ ${latex} \\]`;
-            if (typeof renderMath === 'function') renderMath(preview);
+    if (source && source.value !== value) {
+        source.value = value;
+    }
+    if (preview) {
+        // 与全站一致：用 KaTeX 渲染，渲染失败时至少显示原始 LaTeX
+        if (value) {
+            preview.innerHTML = `\\[ ${value} \\]`;
+        } else {
+            preview.innerHTML = '';
+        }
+        if (typeof renderMath === 'function') {
+            try {
+                renderMath(preview);
+            } catch (_) {
+                // 忽略单次渲染异常，避免阻塞编辑
+            }
         }
     }
 }
 
-// 复制 LaTeX 源码
+function initLatexTool() {
+    const mf = document.getElementById('dev-latex-mathfield');
+    const source = document.getElementById('dev-latex-source');
+
+    // 初始值：优先 MathLive，再退回 textarea
+    let initial = '';
+    if (mf && typeof mf.getValue === 'function') {
+        try {
+            initial = mf.getValue() || '';
+        } catch (_) {
+            initial = '';
+        }
+    } else if (source) {
+        initial = source.value || '';
+    }
+    if (initial) {
+        updateDevLatexView(initial);
+    }
+
+    // MathLive → 源码 & 预览
+    if (mf) {
+        mf.addEventListener('input', (e) => {
+            updateDevLatexView(e.target.value);
+        });
+    }
+
+    // 源码 → MathLive & 预览（支持直接改 LaTeX 字符串）
+    if (source) {
+        source.addEventListener('input', (e) => {
+            updateDevLatexView(e.target.value);
+        });
+    }
+    // Temml 导出设置
+    const modeSel = document.getElementById('dev-latex-temml-mode');
+    const xmlChk = document.getElementById('dev-latex-temml-xml');
+    const annChk = document.getElementById('dev-latex-temml-annotate');
+    if (modeSel) {
+        modeSel.addEventListener('change', () => {
+            const v = modeSel.value;
+            if (v === 'Math' || v === 'MathML' || v === 'FlatMML') temmlExportMode = v;
+        });
+    }
+    if (xmlChk) {
+        temmlExportXml = xmlChk.checked;
+        xmlChk.addEventListener('change', () => {
+            temmlExportXml = xmlChk.checked;
+        });
+    }
+    if (annChk) {
+        temmlExportAnnotate = annChk.checked;
+        annChk.addEventListener('change', () => {
+            temmlExportAnnotate = annChk.checked;
+        });
+    }
+}
+
+// 复制 LaTeX 源码（纯文本）
 export function copyDevLatex() {
     const source = document.getElementById('dev-latex-source');
-    if(source) {
+    if (!source) return;
+    const text = source.value || '';
+
+    // 优先使用现代 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {
+            // 降级到旧方案
+            source.select();
+            document.execCommand('copy');
+        });
+    } else {
         source.select();
         document.execCommand('copy');
-        // 简单的视觉反馈
-        const originalBg = source.style.backgroundColor;
-        source.style.backgroundColor = '#dcfce7';
-        setTimeout(() => source.style.backgroundColor = originalBg, 200);
+    }
+
+    // 简单的视觉反馈
+    const originalBg = source.style.backgroundColor;
+    source.style.backgroundColor = '#dcfce7';
+    setTimeout(() => { source.style.backgroundColor = originalBg; }, 200);
+}
+
+// 供外部模块调用：填充 LaTeX 编辑器
+export function fillLatexInDevtools(latex) {
+    updateDevLatexView(latex || '');
+}
+
+// Temml 按需加载：用于生成 MathML / 可粘贴到 Word 的内容
+let temmlLoadingPromise = null;
+let temmlExportMode = 'Math';      // Math | MathML | FlatMML（参考 temml.org）
+let temmlExportXml = true;
+let temmlExportAnnotate = false;
+function ensureTemmlLoaded() {
+    if (window.temml) return Promise.resolve();
+    if (temmlLoadingPromise) return temmlLoadingPromise;
+    temmlLoadingPromise = new Promise((resolve, reject) => {
+        const existing = document.getElementById('temml-loader-script');
+        if (existing) {
+            existing.addEventListener('load', () => resolve());
+            existing.addEventListener('error', () => reject(new Error('Temml 加载失败')));
+            return;
+        }
+        const script = document.createElement('script');
+        script.id = 'temml-loader-script';
+        script.src = 'https://cdn.jsdelivr.net/npm/temml@0.13.1/dist/temml.min.js';
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Temml 加载失败'));
+        document.body.appendChild(script);
+    });
+    return temmlLoadingPromise;
+}
+
+/**
+ * 复制为 MathML / HTML，便于直接粘贴到 Word / PowerPoint 等
+ * - 剪贴板同时写入 text/html + text/plain
+ * - 浏览器不支持 rich clipboard 时退化为复制 MathML 文本
+ */
+export async function copyDevLatexAsMathML() {
+    const source = document.getElementById('dev-latex-source');
+    const latex = (source && source.value) || '';
+    if (!latex.trim()) {
+        if (typeof showToast === 'function') showToast('请先输入或识别公式', 'info');
+        return;
+    }
+
+    try {
+        await ensureTemmlLoaded();
+    } catch (_) {
+        if (typeof showToast === 'function') showToast('Temml 加载失败，已退回复制 LaTeX 源码', 'error');
+        copyDevLatex();
+        return;
+    }
+
+    if (!window.temml || typeof window.temml.render !== 'function') {
+        if (typeof showToast === 'function') showToast('Temml 未正确初始化，已退回复制 LaTeX 源码', 'error');
+        copyDevLatex();
+        return;
+    }
+
+    // 使用 Temml 生成 MathML
+    const container = document.createElement('div');
+    let mathml = '';
+    try {
+        // 传递部分选项给 Temml（若版本不支持会自动忽略）
+        window.temml.render(latex, container, {
+            displayMode: true,
+            xml: temmlExportXml,
+            annotate: temmlExportAnnotate
+        });
+        mathml = container.innerHTML || '';
+    } catch (e) {
+        // 当选择 Math 模式时，即便 Temml 失败仍可退回纯 LaTeX
+        if (temmlExportMode !== 'Math') {
+            if (typeof showToast === 'function') showToast('转换 MathML 失败，已退回复制 LaTeX 源码', 'error');
+        }
+        mathml = '';
+    }
+
+    // 根据设置选择最终导出内容（既作为 text/plain，也作为 text/html）
+    let payload = '';
+    if (temmlExportMode === 'Math') {
+        payload = latex;
+    } else if (temmlExportMode === 'MathML') {
+        if (!mathml) {
+            copyDevLatex();
+            return;
+        }
+        payload = mathml;
+    } else if (temmlExportMode === 'FlatMML') {
+        if (!mathml) {
+            copyDevLatex();
+            return;
+        }
+        payload = mathml.replace(/\s+/g, ' ').trim();
+    } else {
+        // 未知模式时退回 MathML
+        if (!mathml) {
+            copyDevLatex();
+            return;
+        }
+        payload = mathml;
+    }
+
+    const htmlPayload = payload;
+
+    let success = false;
+    if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+        try {
+            const item = new ClipboardItem({
+                'text/html': new Blob([htmlPayload], { type: 'text/html' }),
+                'text/plain': new Blob([payload], { type: 'text/plain' }),
+            });
+            await navigator.clipboard.write([item]);
+            success = true;
+        } catch (_) {
+            success = false;
+        }
+    }
+
+    if (!success) {
+        // 退化为复制纯文本
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(payload);
+        } else {
+            const ta = document.createElement('textarea');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            ta.value = payload;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+        }
+    }
+
+    if (typeof showToast === 'function') {
+        showToast('已复制为 Word 友好的数学公式（MathML）', 'success');
+    }
+}
+
+// 从 LaTeX 编辑器保存当前公式到「我的算式」库
+export async function saveCurrentLatexToFormulas() {
+    const latexSource = document.getElementById('dev-latex-source');
+    const latex = (latexSource && latexSource.value || '').trim();
+    if (!latex) {
+        if (typeof showToast === 'function') showToast('请先输入公式后再保存', 'info');
+        return;
+    }
+    const user = getCurrentUsername();
+    if (!user) {
+        if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
+        if (typeof showToast === 'function') showToast('请先登录后再保存算式', 'info');
+        return;
+    }
+    let note = '来自开发者工具的公式';
+    if (typeof window.showPrompt === 'function') {
+        const result = await window.showPrompt('请输入公式备注：', note, '保存算式');
+        if (result === null) return;
+        note = result || note;
+    }
+    try {
+        const res = await fetch('/api/formulas/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user, latex, note })
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            if (typeof showToast === 'function') showToast('已保存到「我的算式」', 'success');
+        } else {
+            if (typeof showToast === 'function') showToast(data.message || '保存失败', 'error');
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('网络错误，保存失败', 'error');
+    }
+}
+
+// 从 LaTeX 编辑器跳转到「我的算式」，由用户选择要导入/编辑的算式
+export function goToFormulasForImport() {
+    const user = getCurrentUsername();
+    if (!user) {
+        if (typeof window.toggleAuthModal === 'function') window.toggleAuthModal(true);
+        if (typeof showToast === 'function') showToast('请先登录后再从算式库导入', 'info');
+        return;
+    }
+    if (typeof window.showSection === 'function') window.showSection('my-formulas');
+    if (typeof showToast === 'function') {
+        showToast('已跳转到「我的算式」，在列表中点击「编辑 → 去 LaTeX 编辑器」即可导入', 'info');
     }
 }
 

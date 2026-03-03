@@ -197,6 +197,9 @@ export function openEditor(imageId, context) {
     } else if (context === 'canvas') {
         const fileInput = document.getElementById('image-upload');
         originalFile = (fileInput && fileInput.files && fileInput.files[0]) || null;
+    } else if (context === 'devtools-latex') {
+        const fileInput = document.getElementById('dev-latex-image');
+        originalFile = (fileInput && fileInput.files && fileInput.files[0]) || null;
     } else {
         originalFile = null;
     }
@@ -326,6 +329,13 @@ export function applyEdit() {
                         // 传递 skipAutoOpen=true 防止移动端再次自动打开编辑器
                         window.handleImageFile(file, true);
                     }
+                }
+            } else if (savedContext === 'devtools-latex') {
+                const fileInput = document.getElementById('dev-latex-image');
+                if (fileInput) {
+                    const dt = new DataTransfer();
+                    dt.items.add(file);
+                    fileInput.files = dt.files;
                 }
             }
 

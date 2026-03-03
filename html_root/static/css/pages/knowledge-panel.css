@@ -1034,6 +1034,24 @@
     border-bottom: 1px solid rgba(148, 163, 184, 0.18);
 }
 
+.knowledge-metro-current {
+    margin-bottom: 0.25rem;
+    display: flex;
+    justify-content: flex-start;
+}
+
+.knowledge-metro-current-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
 .knowledge-metro-line {
     position: relative;
     overflow-x: auto;

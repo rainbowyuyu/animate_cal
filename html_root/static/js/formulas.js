@@ -417,6 +417,29 @@ export async function submitFormulaEdit() {
     }
 }
 
+// 从「我的算式」编辑弹窗跳转到开发者工具的 LaTeX 编辑器继续编辑
+export function openInDevLatexFromEdit() {
+    const mathField = document.getElementById('edit-formula-mathlive');
+    const codeArea = document.getElementById('edit-formula-latex');
+    let latex = "";
+    if (mathField && mathField.getValue) latex = mathField.getValue();
+    else if (codeArea) latex = codeArea.value;
+    latex = (latex || "").trim();
+    if (!latex) {
+        if (typeof showAlert === 'function') showAlert("公式为空，无法跳转编辑", "提示");
+        return;
+    }
+    // 先关闭编辑弹窗，再跳转到 LaTeX 编辑器
+    closeEditModal();
+    showSection('devtools');
+    setTimeout(() => {
+        if (typeof window.switchDevTool === 'function') window.switchDevTool('latex');
+        if (DevTools && typeof DevTools.fillLatexInDevtools === 'function') {
+            DevTools.fillLatexInDevtools(latex);
+        }
+    }, 200);
+}
+
 // --- 7. 动画脚本库（子页：算式库 | 动画脚本库）---
 
 let formulasMonacoEditor = null;

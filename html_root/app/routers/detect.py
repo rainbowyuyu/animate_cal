@@ -15,6 +15,7 @@ from logic.prompt import return_prompt
 
 from ..config import client, api_key, VIDEOS_DIR
 from ..models import CalcModel
+from .agent import sanitize_latex_for_mathlive
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["detect"])
@@ -134,9 +135,11 @@ async def detect_image(file: UploadFile = File(...)):
         # - latex: 识别出的 LaTeX 公式
         # - vision_prompt: 面向后续 Manim 代码生成的几何/结构自然语言描述
         prompt_text = (
-            "你是一名数学视觉理解助手。请仔细观察图片中的公式和几何/图像结构，输出一个 JSON 对象：\n"
+            "你是一名数学视觉理解助手。请仔细、逐符号比对图片中的公式和几何/图像结构，只根据图片内容输出一个 JSON 对象：\n"
             '{ "latex": "...", "vision_prompt": "..." }\n\n'
             "- latex：只包含主要的数学表达式或题目中的核心公式，使用标准 LaTeX，不要任何解释或多余文字；\n"
+            "- 严格按照图片中的公式抄写，**不要自行添加/删除/修改任何数字、系数、上下标或积分上下限**，看不清时用 ? 占位而不要猜测；\n"
+            "- 特别注意区分 **1 与 \\infty、0 与 6/9** 等相似符号：例如图片为 “∫_0^1 x^2 dx”，则 latex 必须是 `\\\\int_0^1 x^{2} \\\\, dx`，绝不能写成 `\\\\int_0^\\\\infty 3x^{2} dx` 之类；\n"
             "- vision_prompt：用中文简洁描述图像中的空间/几何/函数关系，例如坐标轴、曲线形状、圆/直线/点的位置关系等，"
             "便于后续根据该描述生成 Manim 动画（不要写成解题步骤，只描述“画面里有哪些对象、它们大致长什么样、彼此关系如何”）。\n"
             "务必保证输出是合法的 JSON，且只输出这一行 JSON，不要解释。"
@@ -172,7 +175,8 @@ async def detect_image(file: UploadFile = File(...)):
             latex = raw
             vision_prompt = None
 
-        latex = latex.replace("```latex", "").replace("```", "").replace("\\[", "").replace("\\]", "").strip()
+        # 统一对识别出的 LaTeX 做规范化处理，去掉 $$、\[ \]、```latex 等包裹，便于 MathLive 正确解析
+        latex = sanitize_latex_for_mathlive(latex)
         return {"status": "success", "latex": latex, "vision_prompt": vision_prompt}
     except Exception as e:
         return {"status": "success", "latex": r"\text{Error}"}

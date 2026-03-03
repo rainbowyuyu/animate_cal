@@ -1,15 +1,18 @@
 // static/js/detect.js
 import { getCanvasBlob } from './canvas.js';
 import { showSection } from './ui.js';
+import * as DevTools from './devtools.js';
 
 // 辅助：设置按钮可用状态
 function setButtonsState(enabled) {
     const btnSave = document.getElementById('btn-save-check');
     const btnCalc = document.getElementById('btn-copy-calc');
+    const btnLatex = document.getElementById('btn-edit-in-latex');
 
     // 当 enabled 为 true 时，disabled 属性应为 false
     if (btnSave) btnSave.disabled = !enabled;
     if (btnCalc) btnCalc.disabled = !enabled;
+    if (btnLatex) btnLatex.disabled = !enabled;
 }
 
 // 辅助：检查内容是否为有效公式
@@ -213,4 +216,30 @@ export async function copyToCalc() {
     } else {
         if (typeof showAlert === 'function') await showAlert("请先进行识别或输入有效公式", "提示");
     }
+}
+
+// 从识别结果跳转到开发者工具中的 LaTeX 编辑器进行进一步编辑
+export function editInDevtoolsFromDetect() {
+    const mathField = document.getElementById('latex-output');
+    const codeArea = document.getElementById('latex-code-detect');
+
+    let latex = "";
+    if (mathField && mathField.getValue) {
+        latex = mathField.getValue();
+    } else if (codeArea) {
+        latex = codeArea.value;
+    }
+    if (!checkContent(latex)) {
+        if (typeof showAlert === 'function') showAlert("请先识别出有效公式后再编辑", "提示");
+        return;
+    }
+
+    // 先切到开发者工具，再切换到 LaTeX 标签并填入公式
+    showSection('devtools');
+    setTimeout(() => {
+        if (typeof window.switchDevTool === 'function') window.switchDevTool('latex');
+        if (DevTools && typeof DevTools.fillLatexInDevtools === 'function') {
+            DevTools.fillLatexInDevtools(latex);
+        }
+    }, 200);
 }

@@ -9,6 +9,10 @@ const historyStack = [];
 let historyStep = -1;
 const MAX_HISTORY = 50;
 
+// 画笔 / 橡皮各自的粗细（与滑块解耦：切换工具时滑块展示当前工具粗细）
+let penBrushSize = 3;
+let eraserBrushSize = 12;
+
 // 画笔光标（小圆圈）与 Alt+右键拖动调笔刷
 let brushCursorEl = null;
 let isResizeGesture = false;
@@ -99,7 +103,24 @@ export function setupCanvas() {
         }
     });
 
-    // 5. 文件上传 Input 监听
+    // 5. 画笔粗细滑块：根据当前工具单独记录粗细（画笔 / 橡皮互不影响）
+    const brushSlider = document.getElementById('brush-size');
+    if (brushSlider) {
+        // 初始显示当前工具的粗细（默认画笔）
+        brushSlider.value = String(penBrushSize);
+        brushSlider.addEventListener('input', () => {
+            let v = parseInt(brushSlider.value, 10);
+            if (Number.isNaN(v)) v = 3;
+            v = Math.max(1, Math.min(20, v));
+            if (window.currentToolType === 'eraser') {
+                eraserBrushSize = v;
+            } else {
+                penBrushSize = v;
+            }
+        });
+    }
+
+    // 6. 文件上传 Input 监听
     const uploadInput = document.getElementById('image-upload');
     if (uploadInput) {
         uploadInput.addEventListener('change', function(e) {
@@ -445,8 +466,9 @@ function startResizeGesture(e) {
     e.preventDefault();
     isResizeGesture = true;
     resizeStartX = e.clientX;
-    const el = document.getElementById('brush-size');
-    resizeStartVal = el ? parseInt(el.value, 10) : 3;
+    // 记录当前工具对应的初始粗细
+    const currentSize = window.currentToolType === 'eraser' ? eraserBrushSize : penBrushSize;
+    resizeStartVal = currentSize || 3;
 }
 
 /** Alt + 右键拖动：左滑变小、右滑变大，实时更新滑块与光标 */
@@ -457,8 +479,13 @@ function updateBrushByDrag(e) {
     const step = 2; // 每 2 像素改变 1 档
     let v = resizeStartVal + Math.round(deltaX / step);
     v = Math.max(1, Math.min(20, v));
+    // 仅更新当前工具的粗细，并同步到滑块
+    if (window.currentToolType === 'eraser') {
+        eraserBrushSize = v;
+    } else {
+        penBrushSize = v;
+    }
     el.value = String(v);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
 function endResizeGesture() {
@@ -601,9 +628,14 @@ function stopDraw() {
 }
 
 function getBrushSize() {
-    const el = document.getElementById('brush-size');
-    const val = el ? parseInt(el.value) : 3;
-    return window.currentToolType === 'eraser' ? val * 5 : val;
+    // 返回当前工具各自维护的粗细值（画笔 / 橡皮互不影响）
+    let base = window.currentToolType === 'eraser' ? eraserBrushSize : penBrushSize;
+    if (!base) base = 3;
+    // 橡皮默认物理尺寸更大一些，方便擦除（不影响各自独立的逻辑粗细值）
+    if (window.currentToolType === 'eraser') {
+        return Math.max(4, base * 4);
+    }
+    return base;
 }
 
 function getBrushColor() {
@@ -671,14 +703,26 @@ export function clearCanvas() {
 
 export function setTool(tool) {
     window.currentToolType = tool;
+    // 切换工具时，将滑块同步为该工具当前的粗细
+    const el = document.getElementById('brush-size');
+    if (el) {
+        const v = tool === 'eraser' ? eraserBrushSize : penBrushSize;
+        el.value = String(v || 3);
+    }
 }
 
 /** 笔刷粗细增减（供快捷键调用），delta 为 +1 或 -1 */
 export function setBrushSizeDelta(delta) {
     const el = document.getElementById('brush-size');
-    if (!el) return;
-    const v = Math.max(1, Math.min(20, parseInt(el.value, 10) + delta));
-    el.value = String(v);
+    let base = window.currentToolType === 'eraser' ? eraserBrushSize : penBrushSize;
+    if (!base) base = 3;
+    base = Math.max(1, Math.min(20, base + delta));
+    if (window.currentToolType === 'eraser') {
+        eraserBrushSize = base;
+    } else {
+        penBrushSize = base;
+    }
+    if (el) el.value = String(base);
 }
 
 export function getCanvasBlob() {

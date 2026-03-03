@@ -266,7 +266,7 @@ function runDriverTour(driverFn) {
                 element: '.logo',
                 popover: {
                     title: '👋 欢迎使用智算视界',
-                    description: '本站是<b>数学公式识别 + 动态可视化</b>一体化平台：可<b>手写或上传</b>公式 → 【智能识别】 → 存入【我的算式】 → 在【动态计算】中生成 Manim 动画；也可用【智能体】一句话完成上述流程，或用【开发者工具】直接编辑 LaTeX / Manim。下面用约 30 秒带您走一遍经典路径。',
+                    description: '本站是<b>数学公式识别 + 动态可视化</b>一体化平台：可<b>手写或上传</b>公式 → 【智能识别】 → 存入【我的算式】 → 在【动态计算】中生成 Manim 动画；也可用【智能体】一句话完成上述流程。所有功能都汇聚在右侧的<b>全站知识图谱</b>中，节点即工具，一图总览全站能力。下面用约 30 秒带您走一遍经典路径。',
                     side: "bottom",
                     align: 'start'
                 },
@@ -281,6 +281,17 @@ function runDriverTour(driverFn) {
                     side: "right"
                 },
                 onHighlightStarted: (el) => goToAndScroll('agent', el)
+            },
+            // --- 全站知识图谱 ---
+            {
+                element: '#role-graph-3d',
+                popover: {
+                    title: '0. 全站知识图谱（可选）',
+                    description: '这一块是<b>全站知识图谱</b>：每个发光的圆球代表一个功能（如「智能识别」「动态计算」「开发者工具」「课件包」等），连线表示常用路径。你可以拖动旋转 3D 图谱，点击任意节点跳转到对应页面；右侧「推荐路径」会根据学生 / 教师 / 创作者 / 开发者给出 3 步最佳上手路线。',
+                    side: 'top',
+                    align: 'center'
+                },
+                onHighlightStarted: (el) => goToAndScroll('home', el)
             },
             // --- 阶段一：识别（先切区块再滚动，保证 Driver.js 高亮位置正确）---
             {
@@ -388,17 +399,57 @@ function runDriverTour(driverFn) {
                 element: '#devtools .tools-list',
                 popover: {
                     title: '11. 进阶：开发者工具',
-                    description: '【LaTeX 编辑器】写公式；【Manim 工作台】写 Manim 代码并云端渲染，可导入已保存脚本或 rainbow 拓展库示例；【rainbow鱼拓展库】免安装使用拓展案例。适合想精细控制动画或直接写代码的用户。',
+                    description: '【LaTeX 编辑器】写公式；【Manim 工作台】写 Manim 代码并云端渲染，可导入已保存脚本或 Rainbow 拓展库示例；【Rainbow 拓展库】免安装使用拓展案例。开发者工具中出现的所有子功能（如 AI 编辑、导入脚本、关键帧预览）也都在知识图谱中有对应节点，方便用智能体或图谱一键直达。',
                     side: "right"
                 },
                 onHighlightStarted: (el) => goToAndScroll('devtools', el)
+            },
+            // --- 开发者工具功能 1：LaTeX 可视化编辑器 ---
+            {
+                element: '#dev-latex-mathfield',
+                popover: {
+                    title: '12. LaTeX 可视化编辑器',
+                    description: '这里是可视化公式输入区：像在 Word 里一样点击输入数学公式。下方会用 KaTeX 实时渲染，右侧同步维护对应的 LaTeX 源码。<br><br>上方工具栏支持：从「我的算式」<b>导入算式</b>、将当前公式<b>保存回算式库</b>、一键<b>复制 LaTeX</b>，以及通过 Temml 把公式导出为<b>适合粘贴到 Word 的 MathML</b>。',
+                    side: 'bottom'
+                },
+                onHighlightStarted: (el) => {
+                    goToAndScroll('devtools', el);
+                    if (typeof window.switchDevTool === 'function') window.switchDevTool('latex');
+                }
+            },
+            // --- 开发者工具功能 2：Manim 工作台 + AI 编辑 ---
+            {
+                element: '#btn-manim-ai-edit',
+                popover: {
+                    title: '13. Manim 云端工作台 + AI 编辑',
+                    description: '切换到「Manim 工作台」后，可以在上方的 Monaco 编辑器里写 Python Manim 代码。点击这里的 <b>AI</b> 按钮，会在左侧弹出一块<b>AI 编辑助手</b>浮窗：你只需用自然语言描述修改（例如「把圆改成红色并在右下角加标题」），系统会自动生成<b>代码变更对比 + 效果关键帧预览</b>，确认后点击「接受」即可把改动应用到脚本中。',
+                    side: 'left'
+                },
+                onHighlightStarted: (el) => {
+                    goToAndScroll('devtools', el);
+                    // 确保切到 manim 标签，方便用户理解
+                    if (typeof window.switchDevTool === 'function') window.switchDevTool('manim');
+                }
+            },
+            // --- 开发者工具功能 3：关键帧预览 + 运行渲染 ---
+            {
+                element: '#btn-manim-keyframe',
+                popover: {
+                    title: '14. 关键帧预览与完整渲染',
+                    description: '写好脚本后，推荐先点击<b>关键帧</b>渲染一张预览图，快速检查画面构图与元素位置；确认无误后再点击旁边的<b>运行</b>按钮，在右下角浮动的视频窗口中查看完整动画。下方「渲染日志」会实时打印 Manim 输出，出现错误时可直接在这里排查问题。',
+                    side: 'left'
+                },
+                onHighlightStarted: (el) => {
+                    goToAndScroll('devtools', el);
+                    if (typeof window.switchDevTool === 'function') window.switchDevTool('manim');
+                }
             },
             // --- 教学案例（跳转到案例页并高亮内容区）---
             {
                 element: '#examples .section-title',
                 popover: {
-                    title: '12. 教学案例',
-                    description: '观看现成的数学动画示例与教学场景，了解本站能做出的可视化效果。',
+                    title: '15. 教学案例',
+                    description: '最后，到「教学案例」中查看现成的动画示例与你的渲染结果，配合时间戳笔记、错题本和课件包，形成完整的学习闭环。',
                     side: "bottom"
                 },
                 onHighlightStarted: (el) => goToAndScroll('examples', el)

@@ -35,8 +35,9 @@ export const NODES = [
   { id: 'detect-clear', name: '清空画布', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-trash', keywords: ['清空'], val: 7, color: '#a5f3fc' },
   { id: 'detect-lock', name: '锁定画板', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-lock', keywords: ['锁定'], val: 7, color: '#a5f3fc' },
   { id: 'detect-recognize', name: '立即识别', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-magnifying-glass', keywords: ['识别'], val: 9, color: '#22d3ee' },
-  { id: 'detect-save', name: '保存到算式库', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['保存'], val: 9, color: '#67e8f9' },
+  { id: 'detect-save', name: '保存并查看算式', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-bookmark', keywords: ['保存并查看','保存算式'], val: 9, color: '#67e8f9' },
   { id: 'detect-copy-calc', name: '去动态计算', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-calculator', keywords: ['去计算'], val: 9, color: '#67e8f9' },
+  { id: 'detect-open-devtools-latex', name: '去 LaTeX 编辑器', section: 'detect', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-pen-to-square', keywords: ['去 LaTeX 编辑器','编辑公式'], val: 9, color: '#67e8f9' },
   { id: 'calculate', name: '动态计算', section: 'calculate', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-calculator', keywords: ['动态计算','计算','推演','可视化','动画'], val: 14, color: '#34d399' },
   { id: 'calc-normal', name: '通用推演', section: 'calculate', calc_operation: 'normal', type: NODE_TYPE.SUBTOOL, keywords: ['通用'], val: 8, color: '#6ee7b7' },
   { id: 'calc-formula', name: '公式推演', section: 'calculate', calc_operation: 'formular', type: NODE_TYPE.SUBTOOL, keywords: ['公式推演'], val: 8, color: '#6ee7b7' },
@@ -61,10 +62,18 @@ export const NODES = [
   { id: 'formulas-scripts', name: '动画脚本库', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-code', keywords: ['脚本'], val: 10, color: '#2dd4bf' },
   { id: 'formulas-templates', name: '智能体模板', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-wand-magic-sparkles', keywords: ['模板'], val: 9, color: '#5eead4' },
   { id: 'formulas-refresh', name: '刷新列表', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-rotate', keywords: ['刷新'], val: 7, color: '#5eead4' },
+  { id: 'formulas-edit', name: '编辑算式', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-pen-to-square', keywords: ['编辑算式','修改公式'], val: 9, color: '#2dd4bf' },
+  { id: 'formulas-edit-open-devtools-latex', name: '在 LaTeX 编辑器中编辑', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-square-root-variable', keywords: ['去 LaTeX 编辑器','继续编辑'], val: 8, color: '#2dd4bf' },
+  { id: 'formulas-edit-save', name: '保存算式修改', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-floppy-disk', keywords: ['保存修改','更新公式'], val: 8, color: '#2dd4bf' },
   { id: 'formulas-new-script', name: '新建脚本', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-plus', keywords: ['新建'], val: 8, color: '#2dd4bf' },
   { id: 'formulas-run', name: '运行', section: 'my-formulas', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-play', keywords: ['运行'], val: 8, color: '#5eead4' },
   { id: 'devtools', name: '开发者工具', section: 'devtools', type: NODE_TYPE.SECTION, icon: 'fa-solid fa-code', keywords: ['开发者','工作台'], val: 14, color: '#8b5cf6' },
   { id: 'devtools-latex', name: 'LaTeX 编辑器', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-square-root-variable', keywords: ['LaTeX'], val: 11, color: '#a78bfa' },
+  { id: 'devtools-latex-import', name: '导入算式', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-database', keywords: ['导入算式','从算式库导入'], val: 8, color: '#c4b5fd' },
+  { id: 'devtools-latex-save', name: '保存算式', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-floppy-disk', keywords: ['保存算式','保存公式'], val: 8, color: '#c4b5fd' },
+  { id: 'devtools-latex-copy', name: '复制 LaTeX', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-regular fa-copy', keywords: ['复制','复制 LaTeX'], val: 7, color: '#c4b5fd' },
+  { id: 'devtools-latex-word', name: '复制到 Word', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-file-word', keywords: ['Word','MathML','Temml'], val: 8, color: '#c4b5fd' },
+  { id: 'devtools-latex-temml', name: 'Temml 导出设置', section: 'devtools', devtool: 'latex', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-sliders', keywords: ['Temml','MathML','Flat MML','XML','Annotate'], val: 7, color: '#c4b5fd' },
   { id: 'devtools-manim', name: 'Manim 工作台', section: 'devtools', devtool: 'manim', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-video', keywords: ['Manim','工作台'], val: 12, color: '#c4b5fd' },
   { id: 'devtools-ai-edit', name: 'AI 编写代码', section: 'devtools', devtool: 'manim', devtool_action: 'ai_edit', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-wand-magic-sparkles', keywords: ['AI 编辑','自然语言','Cursor'], val: 10, color: '#a78bfa' },
   { id: 'devtools-import', name: '导入脚本', section: 'devtools', devtool: 'manim', devtool_action: 'import', type: NODE_TYPE.SUBTOOL, icon: 'fa-solid fa-file-import', keywords: ['导入','脚本','导入脚本'], val: 9, color: '#a78bfa' },
@@ -138,6 +147,7 @@ export const EDGES = [
   { source: 'detect', target: 'detect-recognize' },
   { source: 'detect', target: 'detect-save' },
   { source: 'detect', target: 'detect-copy-calc' },
+  { source: 'detect', target: 'detect-open-devtools-latex' },
   { source: 'detect', target: 'calculate' },
   { source: 'detect', target: 'my-formulas' },
   { source: 'calculate', target: 'calc-normal' },
@@ -165,12 +175,20 @@ export const EDGES = [
   { source: 'my-formulas', target: 'formulas-scripts' },
   { source: 'my-formulas', target: 'formulas-templates' },
   { source: 'my-formulas', target: 'formulas-refresh' },
+  { source: 'my-formulas', target: 'formulas-edit' },
+  { source: 'formulas-edit', target: 'formulas-edit-open-devtools-latex' },
+  { source: 'formulas-edit', target: 'formulas-edit-save' },
   { source: 'formulas-scripts', target: 'formulas-new-script' },
   { source: 'formulas-scripts', target: 'formulas-run' },
   { source: 'my-formulas', target: 'detect' },
   { source: 'my-formulas', target: 'calculate' },
   { source: 'my-formulas', target: 'devtools' },
   { source: 'devtools', target: 'devtools-latex' },
+  { source: 'devtools-latex', target: 'devtools-latex-import' },
+  { source: 'devtools-latex', target: 'devtools-latex-save' },
+  { source: 'devtools-latex', target: 'devtools-latex-copy' },
+  { source: 'devtools-latex', target: 'devtools-latex-word' },
+  { source: 'devtools-latex', target: 'devtools-latex-temml' },
   { source: 'devtools', target: 'devtools-manim' },
   { source: 'devtools-manim', target: 'devtools-ai-edit' },
   { source: 'devtools-manim', target: 'devtools-import' },
@@ -382,6 +400,12 @@ export function executeNodeAction(node, opts = {}) {
       }
     };
     setTimeout(act, 400);
+  }
+
+  if (node.section === 'detect' && node.id === 'detect-open-devtools-latex') {
+    if (typeof window.openInDevLatexFromDetect === 'function') {
+      setTimeout(() => window.openInDevLatexFromDetect(), 200);
+    }
   }
 
   if (node.section === 'examples' && node.id === 'examples-create-course') {

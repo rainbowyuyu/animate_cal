@@ -65,9 +65,11 @@
    ========================================= */
 .dev-split-view {
     display: flex;
+    flex-direction: column; /* LaTeX 可视化输入 / 源码 / 预览 统一上下排版 */
     gap: 1.5rem;
     flex: 1;
-    min-height: 0;
+    min-height: 260px;
+    margin-bottom: 1.25rem; /* 与下方图片识别/预览区域拉开合理间距，避免视觉遮挡 */
 }
 
 .dev-col {
@@ -80,6 +82,152 @@
     padding: 1rem;
     transition: all 0.3s ease;
     overflow: hidden;
+}
+
+/* LaTeX 编辑器顶部两个主要区域：给足高度以便可视化输入与源码编辑都更舒适 */
+#dev-latex .dev-split-view > .dev-col:first-child {
+    min-height: 200px;
+}
+
+#dev-latex .dev-split-view > .dev-col:nth-child(2) {
+    min-height: 150px;
+}
+
+/* LaTeX 源码工具栏 + Temml 设置 */
+.dev-latex-toolbar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    align-items: flex-end;
+}
+
+.dev-latex-toolbar-main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    justify-content: flex-end;
+}
+
+.dev-latex-temml-settings {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    flex-wrap: wrap;
+}
+
+.temml-settings-label {
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.temml-select {
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    font-size: 0.7rem;
+    color: var(--text-main);
+}
+
+.temml-checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+/* 开发者工具 LaTeX 图片预览区域：复用智能体风格，略微压缩留白 */
+/* 开发者工具 LaTeX 图片上传 & 预览区域 */
+.dev-latex-upload-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.dev-latex-upload-input {
+    display: none;
+}
+
+.dev-latex-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(124,58,237,0.12));
+    border: 1px solid rgba(37,99,235,0.35);
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--primary-color);
+    white-space: nowrap;
+}
+
+.dev-latex-upload-label i {
+    font-size: 0.85rem;
+}
+
+.dev-latex-upload-label:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(37,99,235,0.2);
+}
+
+.dev-latex-upload-filename {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    max-width: 220px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#dev-latex-image-preview-wrap {
+    background: var(--bg-surface);
+    border-radius: 10px;
+    border: 1px dashed var(--border-color);
+    padding: 0.6rem 0.8rem;
+}
+
+#dev-latex-image-preview-wrap .agent-image-preview-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#dev-latex-image-preview {
+    max-height: 120px;
+    max-width: 200px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+#dev-latex-image-preview-wrap .agent-image-edit-btn {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+}
+
+/* 图片识别 LaTeX 区域整体间距与按钮样式微调 */
+#dev-latex .dev-col:last-child {
+    gap: 0.5rem;
+}
+
+#dev-latex-detect-btn {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    border: none;
+    color: #fff;
+}
+
+@media (max-width: 900px) {
+    /* 移动端：预览回到面板内部，不使用浮动，以免遮挡 */
+    #devtools #dev-latex .dev-latex-preview-wrap {
+        position: static;
+        width: 100%;
+        max-width: 100%;
+        box-shadow: none;
+        margin-top: 1rem;
+        padding: 0.75rem 0.9rem 0.9rem;
+    }
 }
 
 .dev-col:focus-within {
@@ -112,11 +260,11 @@
     color: var(--text-main);
 }
 
-/* 最终渲染预览：加大高度，避免遮挡公式、完整显示并支持滚动 */
+/* 最终渲染预览：放回 LaTeX 面板内部，非浮动 */
 .dev-latex-preview-wrap {
     flex: 0 0 auto;
-    min-height: 120px;
-    max-height: 280px;
+    min-height: 140px;
+    max-height: 320px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -377,7 +525,7 @@
 /* AI 编辑独立面板：固定长度，预览+对比+接受/拒绝一体化 */
 .manim-ai-edit-float {
     position: fixed;
-    right: 24px;
+    left: 24px;
     top: 50%;
     transform: translateY(-50%);
     width: 540px;

@@ -38,6 +38,33 @@ def sanitize_latex_for_mathlive(latex: str) -> str:
     return s.strip()
 
 
+def looks_like_single_formula(text: str) -> bool:
+    """
+    粗略判断一个字符串是否“更像单个公式而不是整道题”：
+    - 没有中文字符
+    - 没有换行
+    - 不包含明显选项标记（A. / B. / （A）等）
+    仅用于当 operation=solution 时，发现 formula 仍然只是一个式子时回退为“整题=用户原始提问”。
+    """
+    if not text or not isinstance(text, str):
+        return False
+    s = text.strip()
+    if len(s) < 3:
+        return False
+    # 有中文说明更像题目描述
+    if re.search(r"[\u4e00-\u9fff]", s):
+        return False
+    # 有多行一般也是题面
+    if "\n" in s or "\r" in s:
+        return False
+    # 典型选项标记
+    if re.search(r"\b[ABCD][\.\)]", s):
+        return False
+    if re.search(r"[（(][ABCD][)）]", s):
+        return False
+    return True
+
+
 def _classify_intent(text: str) -> dict:
     """
     基于关键词的轻量级意图识别模块：
@@ -92,7 +119,25 @@ def _classify_intent(text: str) -> dict:
     elif "生成动画" in t or "做成动画" in t or "生成" in t:
         intent["prefer_calculate"] = True
 
+    # 明确提到“整题/题解”的强信号
     if "完整解题演示" in t or "完整解题" in t or "做一遍题解" in t or "帮我把这道题解出来" in t or "详细解答这道题" in t:
+        intent["prefer_calculate"] = True
+        intent["prefer_solution_mode"] = True
+
+    # 题目型关键词：选择题/填空题/证明/求极限/微分方程/泰勒展开/幂级数等
+    problem_keywords = [
+        "这道题", "本题", "下列", "选择题", "填空题", "解答题",
+        "已知", "若", "设", "其中", "求极限", "求导", "求积分", "求和",
+        "证明", "说明", "求证", "判断", "求解", "解出",
+        "微分方程", "方程组", "收敛域", "敛散性",
+        "泰勒", "Taylor", "幂级数", "级数展开", "展开式", "展开成", "展开为",
+    ]
+    if any(kw in t for kw in problem_keywords):
+        intent["prefer_calculate"] = True
+        intent["prefer_solution_mode"] = True
+
+    # 长文本 + 题目风格词汇时，也倾向整题模式
+    if len(t) >= 60 and any(kw in t for kw in ("已知", "若", "其中", "设", "如下", "如图")):
         intent["prefer_calculate"] = True
         intent["prefer_solution_mode"] = True
 
@@ -271,6 +316,8 @@ async def agent_execute(data: AgentRequest):
         if "```" in raw:
             raw = raw.split("```")[1].replace("json", "").strip()
 
+        user_prompt = data.prompt or ""
+
         def normalize_step(obj: dict) -> dict:
             section = str(obj.get("section") or "chat").strip()
             if section not in ("detect", "calculate", "devtools", "my-formulas", "examples", "help", "chat", "settings"):
@@ -283,9 +330,19 @@ async def agent_execute(data: AgentRequest):
             operation = str(obj.get("operation") or "normal")
             if operation not in ("formular", "visualization", "normal", "solution"):
                 operation = "normal"
+            # 服务器预判：若明显是整道题，更倾向使用 solution 模式
+            if section == "calculate" and intent_hint.get("prefer_solution_mode"):
+                operation = "solution"
             # 整题（solution）时 formula 为结构化题目文字，不做 LaTeX 清洗；单公式时再做清洗供 MathLive
             if operation != "solution":
                 formula = sanitize_latex_for_mathlive(formula)
+            else:
+                # 若 operation=solution 但 formula 看上去仍只是单个公式，而用户原始提问更长，
+                # 则优先使用用户原始提问作为“整题”内容传给动态计算页。
+                if user_prompt and looks_like_single_formula(formula):
+                    up = user_prompt.strip()
+                    if len(up) > len(formula.strip()) + 8:
+                        formula = up
             fill_latex = str(obj.get("fill_latex") or "").replace("\\\\", "\\").strip()
             fill_latex = sanitize_latex_for_mathlive(fill_latex) if fill_latex else ""
             fill_manim_code = str(obj.get("fill_manim_code") or "").replace("\\n", "\n").replace("\\\\", "\\").strip()

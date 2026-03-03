@@ -170,6 +170,7 @@
 
                 <div class="hero-links">
                     <span class="tutorial-link" onclick="showSection('agent')"><i class="fa-solid fa-robot"></i> 用一句话完成识别与动画</span>
+                    <span class="tutorial-link" onclick="document.querySelector('.site-graph-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });"><i class="fa-solid fa-diagram-project"></i> 查看全站知识图谱</span>
                     <span class="tutorial-link" onclick="startTutorial()"><i class="fa-regular fa-circle-question"></i> 30 秒教程</span>
                 </div>
             </div>
@@ -476,7 +477,7 @@
                                 <i class="fa-regular fa-keyboard"></i> 点击公式可直接修改
                             </div>
 
-                            <div style="display: flex; gap: 10px;">
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                                 <!-- 修改 1: 添加 id="btn-save-check" 和 disabled -->
                                 <button id="btn-save-check" class="btn-calc-go" onclick="saveAndShowFormula()" disabled
                                         style="background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
@@ -487,6 +488,11 @@
                                 <button id="btn-copy-calc" class="action-btn secondary" onclick="copyToCalc()" disabled
                                         style="padding: 0.8rem 1.5rem; border-radius: 99px;" title="仅跳转到计算页，不保存">
                                     去计算 <i class="fa-solid fa-arrow-right"></i>
+                                </button>
+                                <!-- 新增：跳转到 LaTeX 编辑器 -->
+                                <button id="btn-edit-in-latex" class="action-btn tertiary" type="button" onclick="openInDevLatexFromDetect()" disabled
+                                        style="padding: 0.8rem 1.5rem; border-radius: 99px;">
+                                    <i class="fa-solid fa-pen-to-square"></i> 去 LaTeX 编辑器
                                 </button>
                             </div>
                         </div>
@@ -795,7 +801,7 @@
                     <button type="button" class="examples-filter-tab" data-filter="watch_later" title="登录后可用"><i class="fa-regular fa-clock"></i> 稍后看</button>
                     <button type="button" class="examples-filter-tab" data-filter="courseware" title="教师：我的课件包"><i class="fa-solid fa-chalkboard-user"></i> 我的课件</button>
                 </div>
-                <button type="button" class="action-btn secondary examples-create-course-btn" id="examples-create-course-btn" title="创建课包（公式→动画→课堂案例）">
+                <button type="button" class="action-btn secondary examples-create-course-btn" id="examples-create-course-btn" title="创建课包功能开发中，敬请期待" disabled>
                     <i class="fa-solid fa-folder-plus"></i> 创建课包
                 </button>
                 <div class="examples-tag-filter">
@@ -866,13 +872,41 @@
 
                             <!-- 源码预览区 -->
                             <div class="dev-col">
-                                <div class="dev-label">
-                                    <span><i class="fa-solid fa-code"></i> LaTeX 源码</span>
-                                    <button class="action-btn secondary" style="padding: 2px 8px; font-size:0.7rem;" onclick="copyDevLatex()">
-                                        <i class="fa-regular fa-copy"></i> 复制
-                                    </button>
+                            <div class="dev-label">
+                                <span><i class="fa-solid fa-code"></i> LaTeX 源码</span>
+                                <div class="dev-latex-toolbar">
+                                    <div class="dev-latex-toolbar-main">
+                                        <button class="action-btn tertiary" type="button" onclick="DevTools.goToFormulasForImport()">
+                                            <i class="fa-solid fa-database"></i> 导入算式
+                                        </button>
+                                        <button class="action-btn secondary" type="button" onclick="DevTools.saveCurrentLatexToFormulas()">
+                                            <i class="fa-solid fa-floppy-disk"></i> 保存算式
+                                        </button>
+                                        <button class="action-btn secondary" type="button" onclick="copyDevLatex()">
+                                            <i class="fa-regular fa-copy"></i> 复制 LaTeX
+                                        </button>
+                                        <button class="action-btn tertiary" type="button" onclick="DevTools.copyDevLatexAsMathML()">
+                                            <i class="fa-solid fa-file-word"></i> 复制到 Word
+                                        </button>
+                                    </div>
+                                    <!-- Temml 导出设置（参考 temml.org） -->
+                                    <div class="dev-latex-temml-settings">
+                                        <span class="temml-settings-label">Temml 导出</span>
+                                        <select id="dev-latex-temml-mode" class="temml-select">
+                                            <option value="Math" selected>Math</option>
+                                            <option value="MathML">MathML</option>
+                                            <option value="FlatMML">Flat MML</option>
+                                        </select>
+                                        <label class="temml-checkbox">
+                                            <input type="checkbox" id="dev-latex-temml-xml" checked> XML
+                                        </label>
+                                        <label class="temml-checkbox">
+                                            <input type="checkbox" id="dev-latex-temml-annotate"> Annotate
+                                        </label>
+                                    </div>
                                 </div>
-                                <textarea id="dev-latex-source" class="tech-input" style="flex:1; margin:0; font-family:monospace; resize:none;" readonly></textarea>
+                            </div>
+                                <textarea id="dev-latex-source" class="tech-input" style="flex:1; margin:0; font-family:monospace; resize:none;"></textarea>
                             </div>
                         </div>
 
@@ -1667,6 +1701,9 @@
 
                 <div style="text-align: right;">
                     <button class="action-btn secondary" onclick="closeEditModal()" style="margin-right: 10px;">取消</button>
+                    <button class="action-btn tertiary" type="button" onclick="Formulas.openInDevLatexFromEdit()" style="margin-right: 10px;">
+                        去 LaTeX 编辑器
+                    </button>
                     <button class="action-btn" onclick="submitFormulaEdit()">保存修改</button>
                 </div>
             </div>
