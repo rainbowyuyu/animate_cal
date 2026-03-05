@@ -4,7 +4,7 @@
  */
 // showSection / openDoc / switchDevTool 由 window 全局提供
 
-import { getMetroPathForSection, getNodeById } from './site-graph.js';
+import { getMetroPathForSection, getNodeById, executeNodeAction } from './site-graph.js';
 
 const WRONGBOOK_STORAGE_KEY = 'wcp_examples_wrongbook_v1';
 
@@ -129,17 +129,19 @@ function renderBadge(label, value, icon, unlocked) {
     return `<div class="${cls}"><i class="fa-solid ${ico}"></i><span>${escapeHtml(label)} ${value}</span></div>`;
 }
 
-/** 获取成就列表（含 DB 读写） */
+/** 获取成就列表（含 DB 读写，仅登录用户参与成就系统） */
 async function fetchAchievements(stats) {
     const user = getCurrentUser();
+    // 未登录：不参与成就系统，不请求后端
+    if (!user) return [];
     const params = new URLSearchParams({
         formulas: String(stats.formulas || 0),
         scripts: String(stats.scripts || 0),
         templates: String(stats.templates || 0),
         wrongbook: String(stats.wrongbook || 0),
         tutorial_done: stats.tutorialDone ? 'true' : 'false',
+        username: user,
     });
-    if (user) params.set('username', user);
     try {
         const res = await fetch(`/api/achievements/list?${params}`);
         const d = await res.json();
@@ -162,6 +164,141 @@ async function syncAchievementToDb(achievementId, progress, unlocked) {
 }
 
 let _lastAllAchievements = [];
+
+/** 根据成就 ID 跳转到对应功能区域（在统计面板与解锁弹窗中复用） */
+function navigateToAchievement(achievement) {
+    if (!achievement || !achievement.id) return;
+    const id = String(achievement.id);
+    // 新手教程：跳到帮助 Section
+    if (id === 'tutorial') {
+        if (typeof window.showSection === 'function') window.showSection('help');
+        const helpSection = document.getElementById('help');
+        if (helpSection && helpSection.scrollIntoView) {
+            setTimeout(() => helpSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
+        }
+        return;
+    }
+    // 公式相关成就：跳转到「我的算式」
+    if (id.startsWith('formulas_')) {
+        if (typeof window.showSection === 'function') window.showSection('my-formulas');
+        return;
+    }
+    // 脚本 / 模板成就：跳转到开发者工具 Manim 工作台
+    if (id.startsWith('scripts_') || id.startsWith('templates_')) {
+        if (typeof window.showSection === 'function') window.showSection('devtools');
+        if (typeof window.switchDevTool === 'function') {
+            setTimeout(() => window.switchDevTool('manim'), 120);
+        }
+        return;
+    }
+    // 错题本成就：跳转到教学案例页
+    if (id.startsWith('wrongbook_')) {
+        if (typeof window.showSection === 'function') window.showSection('examples');
+        if (window.Examples && typeof window.Examples.switchExamplesFilter === 'function') {
+            setTimeout(() => window.Examples.switchExamplesFilter('all'), 150);
+        }
+    }
+}
+
+/** 解锁成就弹窗：展示立体徽章与跳转按钮，仅在首次解锁时出现 */
+function showAchievementUnlockModal(achievement) {
+    const modal = document.getElementById('achievement-unlock-modal');
+    if (!modal || !achievement) return;
+    const titleEl = document.getElementById('achievement-unlock-title');
+    const descEl = document.getElementById('achievement-unlock-desc');
+    const iconEl = document.getElementById('achievement-unlock-icon');
+    const badgeInner = document.getElementById('achievement-unlock-badge-inner');
+    if (titleEl) titleEl.textContent = achievement.label || '解锁新成就';
+    if (descEl) {
+        const cond = achievement.condition || '';
+        const progressText = (achievement.target && achievement.progress != null)
+            ? `进度：${achievement.progress} / ${achievement.target}`
+            : '';
+        descEl.textContent = cond || progressText || '继续探索，解锁更多徽章。';
+    }
+    if (iconEl) {
+        const ico = achievement.icon || 'fa-trophy';
+        iconEl.className = 'fa-solid ' + ico + ' achievement-unlock-icon';
+    }
+    if (badgeInner) {
+        badgeInner.style.transform = '';
+        badgeInner.classList.remove('is-interacting');
+    }
+
+    const closeAll = () => {
+        if (typeof window.toggleModal === 'function') {
+            window.toggleModal('achievement-unlock-modal', false);
+        } else {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+    };
+
+    const closeBtn = document.getElementById('achievement-unlock-close-btn');
+    const xBtn = document.getElementById('achievement-unlock-close-x');
+    const openPanelBtn = document.getElementById('achievement-unlock-open-panel-btn');
+    if (closeBtn) closeBtn.onclick = (e) => { e.stopPropagation(); closeAll(); };
+    if (xBtn) xBtn.onclick = (e) => { e.stopPropagation(); closeAll(); };
+    if (openPanelBtn) {
+        openPanelBtn.onclick = (e) => {
+            e.stopPropagation();
+            // 只打开成就统计面板，不再跳转页面
+            openAchievementPanel(_lastAllAchievements);
+            closeAll();
+        };
+    }
+
+    // 立体徽章交互：鼠标或触控移动时轻微旋转
+    const badge = document.getElementById('achievement-unlock-badge');
+    if (badge && badgeInner) {
+        const onMove = (e) => {
+            const rect = badge.getBoundingClientRect();
+            const point = e.touches ? e.touches[0] : e;
+            const x = point.clientX - rect.left;
+            const y = point.clientY - rect.top;
+            const dx = (x / rect.width) - 0.5;
+            const dy = (y / rect.height) - 0.5;
+            const maxAngle = 16;
+            const rotateY = dx * maxAngle;
+            const rotateX = -dy * maxAngle;
+            badgeInner.classList.add('is-interacting');
+            badgeInner.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        };
+        const reset = () => {
+            badgeInner.style.transform = '';
+            setTimeout(() => {
+                badgeInner.classList.remove('is-interacting');
+            }, 180);
+        };
+        badge.onmousemove = onMove;
+        badge.ontouchmove = (e) => { onMove(e); e.preventDefault(); };
+        badge.onmouseleave = reset;
+        badge.ontouchend = reset;
+    }
+
+    if (typeof window.toggleModal === 'function') {
+        window.toggleModal('achievement-unlock-modal', true);
+    } else {
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('show'));
+    }
+}
+
+/** 处理本次刷新中新解锁的成就：写入 DB 并弹出解锁页面（只展示一枚） */
+function handleNewlyUnlockedAchievements(achievements) {
+    if (!Array.isArray(achievements) || !achievements.length) return;
+    // 后端返回的 db_unlocked 表示历史是否已解锁；仅在 db_unlocked 为 false 且当前 unlocked 为 true 时视为首次解锁
+    const newly = achievements.filter(a => a && a.unlocked && !a.db_unlocked);
+    if (!newly.length) return;
+    // 先将这些成就写入数据库，标记为已解锁，避免下次再弹
+    newly.forEach(a => {
+        const progress = a.target || a.progress || 0;
+        syncAchievementToDb(a.id, progress, true);
+    });
+    // 仅展示其中一枚成就的解锁页面（优先选择目标值较高的，代表“更大”成就）
+    newly.sort((a, b) => (b.target || 0) - (a.target || 0));
+    showAchievementUnlockModal(newly[0]);
+}
 
 /** 选取 5 个最接近完成的成就（未达成优先，按进度从高到低） */
 function getTop5ClosestAchievements(achievements) {
@@ -268,7 +405,8 @@ function renderMetroNav(sectionId) {
         const isCurrent = !!n.current;
         const sec = escapeHtml(n.section || '');
         const dev = escapeHtml(n.devtool || '');
-        return `<button type="button" class="knowledge-metro-station ${isCurrent ? 'current' : ''}" data-section="${sec}" data-devtool="${dev}"><span class="knowledge-metro-dot"></span><span class="knowledge-metro-label">${escapeHtml(n.name)}</span></button>`;
+        const nodeId = escapeHtml(n.id || '');
+        return `<button type="button" class="knowledge-metro-station ${isCurrent ? 'current' : ''}" data-section="${sec}" data-devtool="${dev}" data-node-id="${nodeId}"><span class="knowledge-metro-dot"></span><span class="knowledge-metro-label">${escapeHtml(n.name)}</span></button>`;
     });
     const html = `
         <div class="knowledge-metro-current">
@@ -458,6 +596,14 @@ export async function refreshKnowledgePanel(sectionId) {
             metroEl.querySelectorAll('.knowledge-metro-station').forEach((btn) => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    const nodeId = btn.dataset.nodeId;
+                    if (nodeId) {
+                        const node = getNodeById(nodeId);
+                        if (node) {
+                            executeNodeAction(node, { skipFocus: true });
+                            return;
+                        }
+                    }
                     const sec = btn.dataset.section;
                     const dev = btn.dataset.devtool;
                     if (sec && typeof window.showSection === 'function') window.showSection(sec);
@@ -496,6 +642,7 @@ export async function refreshKnowledgePanel(sectionId) {
     const stats = await fetchUserStats();
     const achievements = await fetchAchievements(stats);
     if (stats.tutorialDone) syncAchievementToDb('tutorial', 1, true);
+    handleNewlyUnlockedAchievements(achievements);
     _lastAllAchievements = achievements;
     const chartsHtml = config.renderCharts ? config.renderCharts(stats, achievements) : '';
     staticEl.innerHTML = (chartsHtml ? chartsHtml + '<div class="knowledge-panel-divider"></div>' : '') + config.body;
@@ -619,11 +766,31 @@ function openAchievementPanel(achievements) {
     const listEl = modal.querySelector('.achievement-panel-list');
     if (!listEl) return;
     const list = Array.isArray(achievements) ? achievements : [];
-    listEl.innerHTML = list.map(a => {
+    const unlocked = list.filter(a => a && a.unlocked);
+    const locked = list.filter(a => a && !a.unlocked);
+    const badgeWallHtml = `
+        <div class="achievement-badge-wall">
+            ${unlocked.map(a => {
+                const ico = a.icon || 'fa-trophy';
+                const label = escapeHtml(a.label || a.id || '');
+                return `<div class="achievement-badge-tile" data-achievement-id="${escapeHtml(a.id || '')}" title="${label}">
+                    <div class="achievement-badge-hanger"></div>
+                    <div class="achievement-badge-medal">
+                        <div class="achievement-badge-medal-inner">
+                            <i class="fa-solid ${ico}"></i>
+                        </div>
+                    </div>
+                    <div class="achievement-badge-label">${label}</div>
+                </div>`;
+            }).join('')}
+            ${locked.length ? `<div class="achievement-badge-hint">继续使用站内功能，解锁更多挂在这里的徽章～</div>` : ''}
+        </div>
+    `;
+    const cardsHtml = list.map(a => {
         const pct = a.target > 0 ? Math.min(100, Math.round(a.progress / a.target * 100)) : 0;
         const cls = a.unlocked ? 'knowledge-badge unlocked' : 'knowledge-badge';
         return `
-            <div class="achievement-panel-item">
+            <div class="achievement-panel-item" data-achievement-id="${escapeHtml(a.id || '')}">
                 <div class="${cls} achievement-panel-badge"><i class="fa-solid ${a.icon || 'fa-star'}"></i><span>${escapeHtml(a.label)}</span></div>
                 <p class="achievement-panel-condition">${escapeHtml(a.condition || '')}</p>
                 <div class="achievement-panel-progress">
@@ -633,6 +800,35 @@ function openAchievementPanel(achievements) {
             </div>
         `;
     }).join('');
+    listEl.innerHTML = badgeWallHtml + cardsHtml;
+    // 徽章墙点击：弹出 3D 徽章页面
+    listEl.querySelectorAll('.achievement-badge-tile').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const aid = el.getAttribute('data-achievement-id') || '';
+            const ach = list.find(a => a && String(a.id) === aid);
+            if (ach) {
+                showAchievementUnlockModal(ach);
+            }
+            if (typeof window.toggleModal === 'function') {
+                window.toggleModal('achievement-panel-modal', false);
+            }
+        });
+    });
+    // 成就列表卡片点击：进入具体功能（保持导航能力）
+    listEl.querySelectorAll('.achievement-panel-item').forEach((el) => {
+        el.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const aid = el.getAttribute('data-achievement-id') || '';
+            const ach = list.find(a => a && String(a.id) === aid);
+            if (ach) {
+                navigateToAchievement(ach);
+            }
+            if (typeof window.toggleModal === 'function') {
+                window.toggleModal('achievement-panel-modal', false);
+            }
+        });
+    });
     if (typeof window.toggleModal === 'function') {
         window.toggleModal('achievement-panel-modal', true);
     } else {

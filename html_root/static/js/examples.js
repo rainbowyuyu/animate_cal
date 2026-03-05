@@ -6,6 +6,10 @@ let examplesFilterMode = 'all';
 let examplesTag = '';
 let allTagsSet = new Set();
 let examplesFilterTabsInited = false;
+let examplesPage = 1;
+const EXAMPLES_PAGE_SIZE_DESKTOP = 9;
+const EXAMPLES_PAGE_SIZE_MOBILE = 4;
+let examplesLastVideos = [];
 
 function escapeAttr(str) { if (!str) return ''; return String(str).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -48,6 +52,7 @@ export async function loadExamples() {
                     if (cur) tagSelect.value = cur;
                 }
             }
+            examplesPage = 1; // 每次重新加载重置到第一页
             renderExampleCards(videos);
             if (data.error) {
                 grid.innerHTML = grid.innerHTML + '<div class="video-grid-error" style="margin-top:0.5rem;"><i class="fa-solid fa-info-circle"></i> ' + escapeHtml(data.error) + '</div>';
@@ -181,8 +186,11 @@ function renderExampleCards(videos) {
             : '<div class="video-grid-empty"><i class="fa-solid fa-film"></i>暂无视频案例</div>';
         const inlineBtn = document.getElementById('examples-create-course-btn-inline');
         if (inlineBtn) inlineBtn.onclick = () => document.getElementById('examples-create-course-btn')?.click();
+        examplesLastVideos = videos;
         return;
     }
+
+    examplesLastVideos = videos;
 
     const escapeHtml = (str) => {
         if (!str) return '';
@@ -200,7 +208,16 @@ function renderExampleCards(videos) {
             .replace(/>/g, '&gt;');
     };
 
-    grid.innerHTML = videos.map(v => {
+    const isMobile = window.innerWidth <= 768;
+    const pageSize = isMobile ? EXAMPLES_PAGE_SIZE_MOBILE : EXAMPLES_PAGE_SIZE_DESKTOP;
+    const total = videos.length;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    if (examplesPage > totalPages) examplesPage = totalPages;
+    if (examplesPage < 1) examplesPage = 1;
+    const start = (examplesPage - 1) * pageSize;
+    const pageVideos = videos.slice(start, start + pageSize);
+
+    const cardsHtml = pageVideos.map(v => {
         const url = escapeHtml(v.url || '');
         const title = escapeHtml(v.title || '');
         const description = escapeHtml(v.description || '');
@@ -237,6 +254,41 @@ function renderExampleCards(videos) {
             '</div>'
         ].join('');
     }).join('');
+
+    let paginationHtml = '';
+    if (totalPages > 1) {
+        paginationHtml =
+            '<div class="examples-pagination">' +
+                '<button class="examples-page-btn examples-page-prev" ' + (examplesPage === 1 ? 'disabled' : '') + '>上一页</button>' +
+                '<span class="examples-page-info">第 <span class="examples-page-number">' + examplesPage + '</span> / ' + totalPages + ' 页</span>' +
+                '<button class="examples-page-btn examples-page-next" ' + (examplesPage === totalPages ? 'disabled' : '') + '>下一页</button>' +
+            '</div>';
+    }
+
+    grid.innerHTML = cardsHtml + paginationHtml;
+
+    if (totalPages > 1) {
+        const prevBtn = grid.querySelector('.examples-page-prev');
+        const nextBtn = grid.querySelector('.examples-page-next');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (examplesPage > 1) {
+                    examplesPage -= 1;
+                    renderExampleCards(examplesLastVideos);
+                }
+            });
+        }
+        if (nextBtn) {
+            nextBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (examplesPage < totalPages) {
+                    examplesPage += 1;
+                    renderExampleCards(examplesLastVideos);
+                }
+            });
+        }
+    }
 
     if (!grid.dataset.delegateBound) {
         grid.dataset.delegateBound = '1';

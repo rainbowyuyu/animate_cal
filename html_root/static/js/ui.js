@@ -217,7 +217,12 @@ export function toggleMobileMenu() {
 }
 
 export function mobileNavClick(sectionId) {
-    showSection(sectionId);
+    // 手机版导航：优先走全局 window.showSection，这样会自动联动智算星云等全局浮动组件
+    if (typeof window.showSection === 'function') {
+        window.showSection(sectionId);
+    } else {
+        showSection(sectionId);
+    }
     toggleMobileMenu(); // 点击后自动关闭菜单
 }
 

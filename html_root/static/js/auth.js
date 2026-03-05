@@ -120,6 +120,52 @@ function setupUsernameCheck() {
     });
 }
 
+// 简单密码强度打分：仅提示，不做限制
+function calculatePasswordScore(pw) {
+    if (!pw) return 0;
+    let score = 0;
+    if (pw.length >= 6) score += 1;
+    if (pw.length >= 10) score += 1;
+    if (/[A-Z]/.test(pw)) score += 1;
+    if (/[0-9]/.test(pw)) score += 1;
+    if (/[^A-Za-z0-9]/.test(pw)) score += 1;
+    return score;
+}
+
+function updatePasswordStrength(pw) {
+    const meter = document.getElementById('password-strength-meter');
+    const bar = meter ? meter.querySelector('.password-strength-bar') : null;
+    const textEl = document.getElementById('password-strength-text');
+    if (!meter || !bar || !textEl) return;
+    meter.classList.remove('password-strength--weak', 'password-strength--medium', 'password-strength--strong');
+    if (!pw) {
+        bar.style.width = '0%';
+        textEl.textContent = '';
+        return;
+    }
+    const score = calculatePasswordScore(pw);
+    if (score <= 2) {
+        meter.classList.add('password-strength--weak');
+        textEl.textContent = '密码强度：较弱（建议包含大小写、数字和符号）';
+    } else if (score <= 4) {
+        meter.classList.add('password-strength--medium');
+        textEl.textContent = '密码强度：中等（可以再增强一些复杂度）';
+    } else {
+        meter.classList.add('password-strength--strong');
+        textEl.textContent = '密码强度：较强';
+    }
+}
+
+// 注册表单密码强度监听
+document.addEventListener('DOMContentLoaded', () => {
+    const passInput = document.getElementById('reg-pass');
+    if (passInput) {
+        passInput.addEventListener('input', () => {
+            updatePasswordStrength(passInput.value || '');
+        });
+    }
+});
+
 /** 切换回注册 Tab 时清空用户名提示（由 main 在 switchAuthMode('register') 时调用） */
 export function clearUsernameHint() {
     setUsernameHint('', 'idle');

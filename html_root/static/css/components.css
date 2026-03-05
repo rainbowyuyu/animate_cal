@@ -1358,6 +1358,50 @@ textarea:focus {
     color: #f87171;
 }
 
+.password-strength-wrap {
+    margin-bottom: 1rem;
+}
+
+.password-strength-meter {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.3);
+    overflow: hidden;
+    margin-top: 0.35rem;
+}
+
+.password-strength-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #f97316, #22c55e);
+    transition: width 0.25s ease, background 0.25s ease;
+}
+
+.password-strength-text {
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    min-height: 1.1em;
+}
+
+.password-strength--weak .password-strength-bar {
+    width: 30%;
+    background: linear-gradient(90deg, #dc2626, #f97316);
+}
+
+.password-strength--medium .password-strength-bar {
+    width: 60%;
+    background: linear-gradient(90deg, #f97316, #eab308);
+}
+
+.password-strength--strong .password-strength-bar {
+    width: 100%;
+    background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
 .modal-content input.tech-input {
     background: var(--bg-input);
     border: 1px solid var(--border-color);

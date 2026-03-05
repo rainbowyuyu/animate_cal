@@ -1495,6 +1495,16 @@
         flex-direction: column;
     }
 
+    /* LaTeX 工具栏：移动端左对齐、适度换行，避免一行挤满 */
+    #devtools .dev-latex-toolbar {
+        align-items: flex-start;
+    }
+    #devtools .dev-latex-toolbar-main {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
     #devtools .dev-latex-preview-wrap {
         min-height: 100px;
         max-height: 200px;

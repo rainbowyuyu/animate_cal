@@ -144,6 +144,36 @@ function initNavSearch() {
   function escapeAttr(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 }
 
+// 帮助页面内搜索：在当前页面内过滤/展开问答
+function initHelpSearch() {
+  const input = document.getElementById('help-search-input');
+  const helpSection = document.getElementById('help');
+  if (!input || !helpSection) return;
+  const entries = Array.from(helpSection.querySelectorAll('details'));
+  if (!entries.length) return;
+
+  input.addEventListener('input', () => {
+    const q = (input.value || '').trim().toLowerCase();
+    if (!q) {
+      entries.forEach(d => {
+        d.style.display = '';
+        // 恢复默认展开状态：只保留页面原有的 open 属性
+        // 不强制关闭，避免干扰用户手动展开的结果
+      });
+      return;
+    }
+    entries.forEach(d => {
+      const text = (d.textContent || '').toLowerCase();
+      if (text.includes(q)) {
+        d.style.display = '';
+        d.open = true;
+      } else {
+        d.style.display = 'none';
+      }
+    });
+  });
+}
+
 function initCanvasLockButton() {
     const btn = document.getElementById('canvas-lock-btn');
     const icon = document.getElementById('canvas-lock-icon');
@@ -249,6 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const initSection = params.section || 'home';
       replaceStateForSection(initSection, (initSection === 'examples' && params.video) ? { video: params.video, t: params.t } : {});
     initNavSearch();
+    initHelpSearch();
     window.appSectionBack = () => history.back();
     window.appSectionForward = () => history.forward();
     window.appSectionCanBack = SectionHistory.canGoBack;

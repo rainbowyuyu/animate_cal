@@ -14,3 +14,8 @@ yty_math/__pycache__/manim_result.cpython-310.pyc
 *.pyc
 /venv
 /html_root/static/videos/
+html_root/.env
+html_root/.env
+html_root/.env
+.idea/misc.xml
+.idea/animate_cal.iml

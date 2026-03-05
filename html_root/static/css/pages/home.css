@@ -347,6 +347,8 @@
     font-size: 0.85rem;
     text-decoration: none;
     transition: transform 0.2s, opacity 0.2s;
+    line-height: 1;       /* 确保问号不把圆形撑高 */
+    flex-shrink: 0;       /* 防止在窄屏下被压扁变椭圆 */
 }
 .agent-update-detail:hover {
     opacity: 0.9;

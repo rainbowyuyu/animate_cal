@@ -10,12 +10,117 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/achievements", tags=["achievements"])
 
 # 成就定义：id, label, icon, stat_key, target
+# 尽量围绕现有统计维度（formulas/scripts/templates/wrongbook/tutorial），避免额外埋点
 ACHIEVEMENT_DEFS = [
-    {"id": "tutorial", "label": "新手教程", "icon": "fa-circle-check", "stat_key": "tutorial", "target": 1, "condition": "完成新手引导"},
-    {"id": "formulas_10", "label": "算式积累", "icon": "fa-calculator", "stat_key": "formulas", "target": 10, "condition": "保存 10 个算式"},
-    {"id": "scripts_5", "label": "脚本达人", "icon": "fa-video", "stat_key": "scripts", "target": 5, "condition": "创建 5 个动画脚本"},
-    {"id": "templates_3", "label": "模板就绪", "icon": "fa-wand-magic-sparkles", "stat_key": "templates", "target": 3, "condition": "保存 3 个智能体模板"},
-    {"id": "wrongbook_5", "label": "错题收录", "icon": "fa-bookmark", "stat_key": "wrongbook", "target": 5, "condition": "收录 5 道错题"},
+    # 教程相关
+    {
+        "id": "tutorial",
+        "label": "新手教程",
+        "icon": "fa-circle-check",
+        "stat_key": "tutorial",
+        "target": 1,
+        "condition": "完成新手引导",
+    },
+    # 公式类：从“入门”到“收藏家”
+    {
+        "id": "formulas_1",
+        "label": "第一条公式",
+        "icon": "fa-seedling",
+        "stat_key": "formulas",
+        "target": 1,
+        "condition": "保存你的第一条云端公式",
+    },
+    {
+        "id": "formulas_10",
+        "label": "算式积累",
+        "icon": "fa-calculator",
+        "stat_key": "formulas",
+        "target": 10,
+        "condition": "累计保存 10 条算式",
+    },
+    {
+        "id": "formulas_30",
+        "label": "公式笔记本",
+        "icon": "fa-book",
+        "stat_key": "formulas",
+        "target": 30,
+        "condition": "让云端笔记里躺满 30 条公式",
+    },
+    # 脚本类：鼓励多写 Manim 脚本
+    {
+        "id": "scripts_1",
+        "label": "第一段动画脚本",
+        "icon": "fa-clapperboard",
+        "stat_key": "scripts",
+        "target": 1,
+        "condition": "在工作台中创建第一段 Manim 脚本",
+    },
+    {
+        "id": "scripts_5",
+        "label": "脚本达人",
+        "icon": "fa-video",
+        "stat_key": "scripts",
+        "target": 5,
+        "condition": "创建 5 个动画脚本",
+    },
+    {
+        "id": "scripts_12",
+        "label": "可视化导演",
+        "icon": "fa-film",
+        "stat_key": "scripts",
+        "target": 12,
+        "condition": "累计创建 12 个动画脚本",
+    },
+    # 模板类：引导更多使用智能体模板
+    {
+        "id": "templates_1",
+        "label": "模板启航",
+        "icon": "fa-wand-magic-sparkles",
+        "stat_key": "templates",
+        "target": 1,
+        "condition": "保存第一个属于你的智能体模板",
+    },
+    {
+        "id": "templates_3",
+        "label": "模板就绪",
+        "icon": "fa-wand-magic-sparkles",
+        "stat_key": "templates",
+        "target": 3,
+        "condition": "保存 3 个智能体模板",
+    },
+    {
+        "id": "templates_6",
+        "label": "多角色编队",
+        "icon": "fa-users-gear",
+        "stat_key": "templates",
+        "target": 6,
+        "condition": "为不同场景准备 6 个以上智能体模板",
+    },
+    # 错题本：鼓励形成学习闭环
+    {
+        "id": "wrongbook_1",
+        "label": "第一道错题",
+        "icon": "fa-bookmark",
+        "stat_key": "wrongbook",
+        "target": 1,
+        "condition": "将第一道题加入错题本，开启复盘习惯",
+    },
+    {
+        "id": "wrongbook_5",
+        "label": "错题收录",
+        "icon": "fa-bookmark",
+        "stat_key": "wrongbook",
+        "target": 5,
+        "condition": "收录 5 道错题",
+    },
+    {
+        "id": "wrongbook_12",
+        "label": "复习星轨",
+        "icon": "fa-chart-line",
+        "stat_key": "wrongbook",
+        "target": 12,
+        "condition": "错题本里累计记录 12 条学习轨迹",
+    },
 ]
 
 
@@ -57,11 +162,18 @@ def _compute_achievements(stats, db_progress):
         stat_key = defn["stat_key"]
         target = defn["target"]
         db = db_progress.get(aid)
+        # 基于当前统计的进度（本次会话）
         if stat_key == "tutorial":
-            progress = 1 if stats.get("tutorialDone") else 0
+            stat_progress = 1 if stats.get("tutorialDone") else 0
         else:
-            progress = min(int(stats.get(stat_key) or 0), target)
-        unlocked = progress >= target
+            stat_progress = min(int(stats.get(stat_key) or 0), target)
+        # DB 中已保存的历史进度与解锁状态
+        db_progress_value = int(db.get("progress") or 0) if db else 0
+        db_unlocked = bool(db.get("unlocked")) if db else False
+        # 进度取“历史记录”和“当前统计”的较大值，避免回退
+        progress = max(stat_progress, db_progress_value)
+        # 是否解锁：一旦 DB 中标记为已解锁则永久解锁；否则依据进度判断
+        unlocked = db_unlocked or (progress >= target)
         out.append({
             "id": aid,
             "label": defn["label"],
@@ -70,6 +182,7 @@ def _compute_achievements(stats, db_progress):
             "target": target,
             "progress": progress,
             "unlocked": unlocked,
+            "db_unlocked": db_unlocked,
         })
     return out
 

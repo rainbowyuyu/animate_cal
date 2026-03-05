@@ -51,6 +51,74 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+/* 分页条：占满整行，和卡片对齐 */
+.examples-pagination {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.examples-page-info {
+    color: var(--text-secondary);
+}
+
+.examples-page-btn {
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.examples-page-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.06);
+    transform: translateY(-1px);
+}
+
+.examples-page-btn[disabled] {
+    opacity: 0.5;
+    cursor: default;
+    transform: none;
+}
+
+.examples-page-number {
+    min-width: 32px;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .examples-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    .examples-filter-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    .examples-filter-tab {
+        white-space: nowrap; /* 防止“全部 / 收藏 / 稍后看”换行 */
+    }
+    .examples-pagination {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+    }
+    .examples-page-btn {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+}
 .examples-filter-tabs {
     display: flex;
     gap: 6px;

@@ -1042,6 +1042,15 @@
             <h2 class="section-title">常见问题与指南</h2>
             <div class="help-container" style="max-width:800px; margin:0 auto;">
 
+                <!-- 帮助内搜索：实时过滤下方问答 -->
+                <div class="help-search-bar">
+                    <div class="help-search-inner">
+                        <i class="fa-solid fa-magnifying-glass help-search-icon"></i>
+                        <input id="help-search-input" type="search" placeholder="在帮助中搜索，例如：智能体 / 教学案例 / 动画超时…" autocomplete="off">
+                    </div>
+                    <p class="help-search-hint">输入关键字后，将自动筛选下方问题，并展开包含该关键字的问答。</p>
+                </div>
+
                 <!-- 智能体入口 -->
                 <div class="tutorial-banner agent-help-banner" onclick="showSection('agent')">
                     <div class="banner-icon">
@@ -1195,7 +1204,13 @@
                         <input type="text" placeholder="设置用户名" class="tech-input" id="reg-user" autocomplete="username">
                         <span id="reg-username-hint" class="username-hint" aria-live="polite"></span>
                     </div>
-                    <input type="password" placeholder="设置密码" class="tech-input" id="reg-pass">
+                    <div class="password-strength-wrap">
+                        <input type="password" placeholder="设置密码" class="tech-input" id="reg-pass" autocomplete="new-password">
+                        <div class="password-strength-meter" id="password-strength-meter">
+                            <div class="password-strength-bar"></div>
+                        </div>
+                        <div class="password-strength-text" id="password-strength-text"></div>
+                    </div>
 
                     <!-- 新增：确认密码 -->
                     <input type="password" placeholder="确认密码" class="tech-input" id="reg-pass-confirm">
@@ -1845,6 +1860,34 @@
                 <span class="close-modal" onclick="typeof window.toggleModal==='function'&&window.toggleModal('achievement-panel-modal',false)">&times;</span>
             </div>
             <div class="achievement-panel-list"></div>
+        </div>
+    </div>
+
+    <!-- 成就解锁弹窗：首次解锁时展示立体徽章 -->
+    <div id="achievement-unlock-modal" class="modal achievement-unlock-modal">
+        <div class="modal-content glass-panel achievement-unlock-content">
+            <button type="button" class="close-modal achievement-unlock-close" id="achievement-unlock-close-x" aria-label="关闭">&times;</button>
+            <div class="achievement-unlock-body">
+                <div class="achievement-unlock-badge-wrap">
+                    <div class="achievement-unlock-badge" id="achievement-unlock-badge">
+                        <div class="achievement-unlock-badge-inner" id="achievement-unlock-badge-inner">
+                            <div class="achievement-unlock-badge-ring"></div>
+                            <div class="achievement-unlock-badge-core">
+                                <i id="achievement-unlock-icon" class="fa-solid fa-trophy achievement-unlock-icon"></i>
+                            </div>
+                            <div class="achievement-unlock-badge-glow"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="achievement-unlock-text">
+                    <h3 id="achievement-unlock-title">解锁新成就</h3>
+                    <p id="achievement-unlock-desc"></p>
+                </div>
+                <div class="achievement-unlock-actions">
+                    <button type="button" class="action-btn secondary" id="achievement-unlock-close-btn">稍后再看</button>
+                    <button type="button" class="action-btn" id="achievement-unlock-open-panel-btn"><i class="fa-solid fa-trophy"></i> 查看所有成就</button>
+                </div>
+            </div>
         </div>
     </div>
 

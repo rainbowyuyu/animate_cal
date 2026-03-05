@@ -921,13 +921,277 @@
     gap: 0.75rem;
 }
 
+.achievement-badge-wall {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 0.75rem;
+    margin-bottom: 0.6rem;
+    padding: 0.4rem 0.1rem 0.2rem;
+    border-bottom: 1px dashed rgba(148,163,184,0.35);
+}
+
+.achievement-badge-tile {
+    min-width: 72px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: default;
+}
+
+.achievement-badge-hanger {
+    width: 22px;
+    height: 4px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(148,163,184,0.7), rgba(203,213,225,0.9));
+    box-shadow: 0 1px 3px rgba(15,23,42,0.25);
+}
+
+.achievement-badge-medal {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.95), rgba(191,219,254,0.65), rgba(59,130,246,0.9));
+    box-shadow:
+        0 6px 12px rgba(15,23,42,0.45),
+        0 0 0 1px rgba(148,163,184,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.achievement-badge-medal-inner {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 20%, rgba(248,250,252,0.95), rgba(191,219,254,0.6), rgba(37,99,235,0.9));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        inset 0 2px 4px rgba(255,255,255,0.9),
+        inset 0 -2px 6px rgba(30,64,175,0.8);
+}
+
+.achievement-badge-medal-inner i {
+    font-size: 1.15rem;
+    background: linear-gradient(135deg, #fde68a, #fbbf24, #ea580c);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.55));
+}
+
+.achievement-badge-label {
+    font-size: 0.7rem;
+    max-width: 88px;
+    text-align: center;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.achievement-badge-hint {
+    width: 100%;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+    margin-top: 0.2rem;
+}
+
 .achievement-panel-item {
     padding: 0.65rem 0.75rem;
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.06), rgba(124, 58, 237, 0.05));
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.18s ease;
 }
 
+.achievement-panel-item:hover {
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.16);
+    transform: translateY(-1px);
+}
+
+/* 成就解锁弹窗：立体徽章、物理旋转 */
+.achievement-unlock-modal {
+    z-index: 2300;
+}
+
+.achievement-unlock-content {
+    width: 420px;
+    max-width: 92vw;
+    padding: 1.5rem 1.75rem 1.4rem;
+    background: radial-gradient(circle at 0% 0%, rgba(59,130,246,0.22), transparent 55%), rgba(15,23,42,0.96);
+    border-radius: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .achievement-unlock-content {
+    background: radial-gradient(circle at 0% 0%, rgba(59,130,246,0.3), transparent 55%), rgba(15,23,42,0.98);
+}
+
+.achievement-unlock-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: none;
+    background: transparent;
+    color: rgba(148,163,184,0.9);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.achievement-unlock-close:hover {
+    color: #e5e7eb;
+    transform: scale(1.05);
+}
+
+.achievement-unlock-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.achievement-unlock-badge-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.achievement-unlock-badge {
+    width: 140px;
+    height: 140px;
+    perspective: 900px;
+}
+
+.achievement-unlock-badge-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    position: relative;
+    transform-style: preserve-3d;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.9), rgba(191,219,254,0.4), rgba(79,70,229,0.9));
+    box-shadow:
+        0 10px 30px rgba(15,23,42,0.8),
+        0 0 0 1px rgba(148,163,184,0.4),
+        inset 0 2px 6px rgba(255,255,255,0.8),
+        inset 0 -3px 8px rgba(30,64,175,0.9);
+    transition: transform 0.22s ease-out;
+}
+
+.achievement-unlock-badge-inner.is-interacting {
+}
+
+.achievement-unlock-badge-ring {
+    position: absolute;
+    inset: 10px;
+    border-radius: 50%;
+    border: 2px solid rgba(248,250,252,0.85);
+    box-shadow: 0 0 12px rgba(248,250,252,0.9);
+    opacity: 0.95;
+    transform: translateZ(8px);
+}
+
+.achievement-unlock-badge-core {
+    position: absolute;
+    inset: 30px;
+    border-radius: 32px;
+    background: linear-gradient(135deg, rgba(15,23,42,0.9), rgba(30,64,175,0.9));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 6px 18px rgba(15,23,42,0.9),
+        inset 0 1px 3px rgba(248,250,252,0.35);
+    transform: translateZ(20px);
+}
+
+.achievement-unlock-icon {
+    font-size: 2.3rem;
+    background: linear-gradient(135deg, #fde68a, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+}
+
+.achievement-unlock-badge-glow {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 0%, rgba(248,250,252,0.3), transparent 55%);
+    mix-blend-mode: screen;
+    opacity: 0.9;
+    transform: translateZ(26px);
+}
+
+@keyframes achievementBadgeSpin {
+    0%, 100% { transform: rotateX(12deg) rotateY(-18deg); }
+    50% { transform: rotateX(-8deg) rotateY(16deg); }
+}
+
+.achievement-unlock-text {
+    text-align: center;
+    margin-top: 0.25rem;
+}
+
+.achievement-unlock-text h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    color: #e5e7eb;
+}
+
+.achievement-unlock-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(148,163,184,0.95);
+}
+
+.achievement-unlock-actions {
+    display: flex;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.achievement-unlock-actions .action-btn.secondary {
+    background: rgba(15,23,42,0.8);
+    border-color: rgba(148,163,184,0.6);
+    color: rgba(209,213,219,0.95);
+}
+
+.achievement-unlock-actions .action-btn.secondary:hover {
+    background: rgba(30,64,175,0.75);
+}
+
+@media (max-width: 600px) {
+    .achievement-unlock-content {
+        width: 92vw;
+        padding: 1.25rem 1.2rem 1.1rem;
+    }
+    .achievement-unlock-badge {
+        width: 120px;
+        height: 120px;
+    }
+    .achievement-unlock-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    .achievement-unlock-actions .action-btn,
+    .achievement-unlock-actions .action-btn.secondary {
+        width: 100%;
+        justify-content: center;
+    }
+}
 .achievement-panel-badge {
     margin-bottom: 0.35rem;
 }
@@ -1071,7 +1335,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    width: 24px;
+    width: 0; /* 取消两端白色渐变遮罩，保留结构但不占宽度 */
     z-index: 2;
     pointer-events: none;
 }

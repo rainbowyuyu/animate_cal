@@ -5,6 +5,54 @@
     margin: 0 auto;
 }
 
+/* 帮助内搜索条 */
+.help-search-bar {
+    margin: 0 0 1.75rem;
+}
+
+.help-search-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.02);
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.help-search-icon {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+}
+
+#help-search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+#help-search-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.help-search-hint {
+    margin: 0.4rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+[data-theme="dark"] .help-search-inner {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(148, 163, 184, 0.7);
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.6);
+}
+
 details {
     background: var(--bg-surface); /* 适配深色 */
     margin-bottom: 1rem;
