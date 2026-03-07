@@ -9,7 +9,7 @@
       <excludeFolder url="file://$MODULE_DIR$/yty_math/dist" />
       <excludeFolder url="file://$MODULE_DIR$/yty_math/media" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.10 (animate_cal)" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3.10 (Wisdom_Computing_Perspective)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
 </module>
