@@ -1,0 +1,6 @@
+# 基础 robots 配置
+User-agent: *
+Allow: /
+
+Sitemap: https://www.wiscomper.com/sitemap.xml
+

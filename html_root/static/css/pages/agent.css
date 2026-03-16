@@ -294,12 +294,14 @@
 
 /* 功能与示例：独立扩展窗体（弹窗） */
 .agent-examples-modal .modal-content.agent-examples-modal-content {
-    width: 90%;
-    max-width: 520px;
-    max-height: 85vh;
+    width: min(720px, 96vw);
+    max-height: min(640px, 82vh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    border-radius: 18px;
+    background: var(--bg-surface);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
 }
 .agent-examples-modal-header {
     flex-shrink: 0;
@@ -322,7 +324,8 @@
 .agent-examples-modal-body {
     flex: 1;
     overflow-y: auto;
-    padding: 1rem 1.25rem;
+    padding: 1.1rem 1.4rem 1.2rem;
+    background: linear-gradient(to bottom, rgba(15, 23, 42, 0.015), rgba(15, 23, 42, 0.05));
 }
 .agent-examples-modal-body .agent-examples-group {
     margin-bottom: 1.25rem;
@@ -355,30 +358,454 @@
 }
 
 .agent-examples-group-title {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.12em;
 }
 
+/* 示例 chip（兼容旧结构，也用于「一键试试」按钮） */
 .agent-example-chip {
-    display: block;
-    width: 100%;
-    padding: 0.5rem 0.75rem;
-    font-size: 0.88rem;
-    text-align: left;
-    color: var(--text-main);
-    background: var(--bg-input);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.86rem;
+    color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.06);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    border-radius: 999px;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    white-space: nowrap;
 }
 
 .agent-example-chip:hover {
-    background: rgba(37, 99, 235, 0.08);
+    background: rgba(37, 99, 235, 0.12);
     border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+/* --- 功能与示例：知识图谱式布局 --- */
+.agent-examples-graph {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: flex-start;
+}
+
+.agent-examples-graph-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: linear-gradient(to bottom, rgba(248,250,252,1), rgba(241,245,249,0.96));
+    border-radius: 14px;
+    padding: 0.6rem 0.55rem;
+}
+
+.agent-graph-node {
+    padding: 0.65rem 0.8rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,0.6);
+    background: linear-gradient(135deg, rgba(248,250,252,0.98), rgba(226,232,240,0.98));
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.agent-graph-node-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.agent-graph-node-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.agent-graph-node-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.agent-graph-node-icon {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    background: radial-gradient(circle at 30% 0%, rgba(248,250,252,0.8), transparent 60%), linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.agent-graph-node:hover {
+    border-color: rgba(37,99,235,0.68);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
+
+.agent-graph-node.active {
+    background:
+        linear-gradient(135deg, rgba(34,197,94,0.12), rgba(56,189,248,0.12)),
+        linear-gradient(135deg, #f9fafb, #e5f3ff);
+    border-color: rgba(37,99,235,0.75);
+}
+
+.agent-graph-node.active .agent-graph-node-title {
+    color: var(--text-main);
+}
+
+.agent-graph-node.active .agent-graph-node-sub {
+    color: var(--text-secondary);
+}
+
+.agent-graph-node.hover-link:not(.active) {
+    border-color: rgba(37,99,235,0.8);
+    box-shadow: 0 8px 22px rgba(37,99,235,0.28);
+}
+
+.agent-examples-graph-right {
+    background: var(--bg-surface);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    padding: 0.9rem 0.95rem;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.24);
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.agent-graph-node-desc {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 0.2rem;
+}
+
+.agent-graph-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.1rem;
+}
+
+.agent-graph-example-card {
+    position: relative;
+    border-radius: 12px;
+    border: 1px solid rgba(148,163,184,0.7);
+    background: linear-gradient(135deg, rgba(248,250,252,0.98), rgba(229,231,235,0.98));
+    padding: 0.65rem 0.7rem 0.58rem;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.agent-graph-example-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    border-color: var(--primary-color);
+}
+
+.agent-graph-example-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.agent-graph-example-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.agent-graph-example-footer {
+    margin-top: 0.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
+}
+
+.agent-graph-example-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    color: rgba(156,163,175,0.98);
+}
+
+.agent-graph-example-meta i {
+    font-size: 0.75rem;
+    color: rgba(96,165,250,0.95);
+}
+
+.agent-graph-example-try {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    border: none;
+    padding: 0.25rem 0.8rem;
+    /* 一键试试按钮：实心蓝色渐变胶囊，hover 时仅略微加深 */
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.35);
+    transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.agent-graph-example-try:hover {
+    background: linear-gradient(135deg, #1d4ed8, #4338ca);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.45);
+}
+
+.agent-graph-example-try i {
+    font-size: 0.7rem;
+}
+
+.agent-graph-demo {
+    margin: 0.4rem 0 0.8rem;
+    border-radius: 14px;
+    border: 1px solid rgba(148,163,184,0.75);
+    background: linear-gradient(135deg, rgba(248,250,252,0.98), rgba(229,231,235,1));
+    padding: 0.8rem 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.agent-graph-demo-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.18rem;
+    position: relative;
+}
+
+.agent-graph-demo-title {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.agent-graph-demo-sub {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+}
+
+.agent-graph-demo-header::after {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 80px;
+    height: 80px;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(56,189,248,0.25), transparent 70%);
+    animation: agentDemoGlow 3s ease-in-out infinite;
+}
+
+@keyframes agentDemoGlow {
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.12); }
+}
+
+.agent-graph-demo-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.agent-graph-demo-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.35rem 0.5rem;
+    align-items: flex-start;
+}
+
+.agent-graph-demo-label {
+    font-size: 0.78rem;
+    color: rgba(156,163,175,0.98);
+    white-space: nowrap;
+}
+
+.agent-graph-demo-input,
+.agent-graph-demo-steps {
+    min-height: 1.5rem;
+    padding: 0.3rem 0.45rem;
+    border-radius: 6px;
+    background: var(--bg-input);
+    border: 1px solid rgba(148,163,184,0.9);
+    font-size: 0.8rem;
+    color: var(--text-main);
+    overflow: hidden;
+}
+
+.agent-graph-demo-input-text {
+    display: inline-block;
+    white-space: nowrap;
+    overflow: hidden;
+    border-right: 1px solid rgba(56,189,248,0.9);
+    animation: agentTypingCursor 0.9s steps(1, end) infinite;
+}
+
+@keyframes agentTypingCursor {
+    0%, 60% { border-color: rgba(56,189,248,0.95); }
+    61%, 100% { border-color: transparent; }
+}
+
+.agent-graph-demo-step {
+    opacity: 0;
+    transform: translateY(4px);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.agent-graph-demo-step.agent-graph-demo-step-show {
+    animation: agentDemoFadeIn 0.32s ease forwards;
+}
+
+@keyframes agentDemoFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .agent-examples-modal .modal-content.agent-examples-modal-content {
+        width: 100vw;
+        max-width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .agent-examples-modal-body {
+        padding: 0.75rem 0.85rem 0.9rem;
+    }
+
+    .agent-examples-graph {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    .agent-examples-graph-left {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.2rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .agent-graph-node {
+        min-width: 180px;
+    }
+
+    .agent-examples-graph-right {
+        margin-top: 0.1rem;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.85);
+    }
+
+    .agent-graph-examples {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .agent-graph-demo {
+        margin-top: 0.35rem;
+    }
+}
+
+/* 深色模式适配：覆盖浅色渐变，使用站点 data-theme 机制 */
+[data-theme="dark"] .agent-examples-modal .modal-content.agent-examples-modal-content {
+    background: var(--bg-surface);
+    box-shadow: 0 22px 50px rgba(0,0,0,0.75);
+}
+
+[data-theme="dark"] .agent-examples-modal-body {
+    background: linear-gradient(to bottom, rgba(15,23,42,0.9), rgba(15,23,42,0.96));
+}
+
+[data-theme="dark"] .agent-examples-graph-left {
+    background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(15,23,42,0.96));
+    border: 1px solid rgba(30,64,175,0.7);
+}
+
+[data-theme="dark"] .agent-graph-node {
+    background: linear-gradient(135deg, rgba(15,23,42,0.95), rgba(15,23,42,1));
+    border-color: rgba(51,65,85,0.9);
+}
+
+[data-theme="dark"] .agent-graph-node.active {
+    background: linear-gradient(135deg, rgba(16,185,129,0.28), rgba(37,99,235,0.35));
+    border-color: rgba(56,189,248,0.9);
+}
+
+[data-theme="dark"] .agent-examples-graph-right {
+    background: radial-gradient(circle at 0% 0%, rgba(15,23,42,0.98), rgba(15,23,42,1));
+    border-color: rgba(30,64,175,0.7);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.9);
+}
+
+[data-theme="dark"] .agent-graph-node-desc {
+    color: rgba(209,213,219,0.9);
+}
+
+[data-theme="dark"] .agent-graph-example-card {
+    background: radial-gradient(circle at 0% 0%, rgba(30,64,175,0.45), rgba(15,23,42,1));
+    border-color: rgba(30,64,175,0.9);
+}
+
+[data-theme="dark"] .agent-graph-example-title {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .agent-graph-example-desc {
+    color: rgba(148,163,184,0.95);
+}
+
+[data-theme="dark"] .agent-graph-demo {
+    background: radial-gradient(circle at 0% 0%, rgba(30,64,175,0.5), rgba(15,23,42,1));
+    border-color: rgba(37,99,235,0.8);
+}
+
+[data-theme="dark"] .agent-graph-demo-title {
+    color: #e5e7eb;
+}
+
+[data-theme="dark"] .agent-graph-demo-sub,
+[data-theme="dark"] .agent-graph-demo-step {
+    color: rgba(209,213,219,0.9);
+}
+
+[data-theme="dark"] .agent-graph-demo-input,
+[data-theme="dark"] .agent-graph-demo-steps {
+    background: rgba(15,23,42,0.9);
+    border-color: rgba(51,65,85,0.95);
+    color: #e5e7eb;
 }
 
 /* 多步执行列表（助手气泡内） */

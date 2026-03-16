@@ -3,10 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="智算视界 (Wisdom Computing Perspective) - 基于 AI 视觉识别与 Manim 动态引擎的下一代数学可视化计算平台。">
-    <title>智算视界 · Wisdom Computing Perspective</title>
+    <meta name="description" content="智算视界 (Wisdom Computing Perspective) - 面向学生和老师的数学可视化计算平台，支持拍照识别数学公式 (OCR)、一键生成 LaTeX 代码与 Manim 数学动画讲解。">
+    <meta name="keywords" content="智算视界, 数学可视化, 公式识别, 手写公式识别, OCR 数学, LaTeX 识别, Manim 动画, 数学动画, 数学学习工具, 线性代数可视化, math visualization, formula OCR, handwritten formula recognition, math animation, Manim, linear algebra visualization, math learning tool">
+    <meta name="application-name" content="智算视界 · Wisdom Computing Perspective">
+    <meta name="apple-mobile-web-app-title" content="智算视界">
+    <title>智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台</title>
 
     <link rel="icon" href="assets/智算视界_avatar.svg" type="image/png">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台">
+    <meta property="og:description" content="一款面向学生与教师的数学可视化平台，支持拍照识别数学公式 (OCR)、生成 LaTeX 代码和 Manim 数学动画讲解。">
+    <meta property="og:url" content="https://www.wiscomper.com/">
+    <meta property="og:image" content="https://www.wiscomper.com/static/assets/智算视界_horizontal.svg">
+    <meta property="og:locale" content="zh_CN">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台">
+    <meta name="twitter:description" content="用 OCR 识别数学公式，生成 LaTeX 与 Manim 动画，帮助学生和老师更直观地理解数学。">
+    <meta name="twitter:image" content="https://www.wiscomper.com/static/assets/智算视界_horizontal.svg">
 
     <!-- 预连接字体源优化加载速度 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -52,6 +69,27 @@
     <!-- Cropper.js (图片裁剪编辑) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+
+    <!-- 结构化数据：声明为教育类 Web 应用 -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "智算视界 · Wisdom Computing Perspective",
+      "alternateName": "Wisdom Computing Perspective",
+      "description": "一款面向学生和老师的数学可视化平台，支持公式 OCR 识别、生成 LaTeX 代码与 Manim 数学动画讲解，帮助直观理解抽象数学概念。",
+      "url": "https://www.wiscomper.com/",
+      "image": "https://www.wiscomper.com/static/assets/智算视界_horizontal.svg",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "inLanguage": ["zh-CN", "en"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CNY"
+      }
+    }
+    </script>
 
     <!-- 核心样式 -->
     <link rel="stylesheet" href="css/main.css">
@@ -156,6 +194,15 @@
                     将枯燥的公式转化为直观的视觉语言，专为新一代学习者打造。
                 </p>
 
+                <div class="hero-intro">
+                    <p>
+                        适用于中学与高校学生、自学者和一线教师，支持拍照识别数学公式、自动生成 LaTeX 代码，并一键生成 Manim 数学动画讲解。
+                    </p>
+                    <p class="hero-intro-en">
+                        Wisdom Computing Perspective is a math visualization platform that turns formulas into interactive animations, with OCR-powered formula recognition and LaTeX export.
+                    </p>
+                </div>
+
                 <div class="hero-btns">
                     <button class="cta-btn primary" onclick="showSection('agent')">
                         <i class="fa-solid fa-wand-magic-sparkles"></i> 试试智能体
@@ -246,6 +293,67 @@
                     <p>不仅仅是计算器。支持实时修改公式参数，通过可视化过程深入理解底层数学逻辑。</p>
                 </div> -->
             </div>
+
+            <!-- 面向搜索意图的使用场景内容块 -->
+            <section class="seo-usecases-section" aria-label="典型使用场景">
+                <h2 class="section-title">你可以用智算视界做什么？</h2>
+                <p class="subtitle">
+                    针对常见的学习与教学场景，我们为你准备了几种典型用法，你可以直接点击卡片中的入口开始体验。
+                </p>
+
+                <div class="features-grid seo-usecases-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="fa-solid fa-camera"></i>
+                        </div>
+                        <h3>拍照识别数学公式（OCR）</h3>
+                        <p>
+                            上传试题或手写板照片，自动识别为规范的 LaTeX 公式，一键跳转到
+                            <a href="#detect" onclick="showSection('detect')">智能算式识别</a> 页面进行编辑与复用。
+                        </p>
+                        <p class="hero-intro-en">
+                            Convert photos of handwritten or printed formulas into clean LaTeX using our formula OCR, then reuse them in your documents or tools.
+                        </p>
+                        <button class="cta-btn secondary" type="button" onclick="showSection('detect')">
+                            前往公式识别
+                        </button>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="fa-solid fa-film"></i>
+                        </div>
+                        <h3>生成数学动画讲解</h3>
+                        <p>
+                            将线性代数、矩阵运算等抽象概念制作成可视化动画，在
+                            <a href="#calculate" onclick="showSection('calculate')">动态计算</a> 中逐步展示推理过程。
+                        </p>
+                        <p class="hero-intro-en">
+                            Turn algebra and linear algebra formulas into step-by-step Manim animations to make classroom explanations more vivid.
+                        </p>
+                        <button class="cta-btn secondary" type="button" onclick="showSection('calculate')">
+                            前往动态推演
+                        </button>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon-box">
+                            <i class="fa-solid fa-chalkboard-user"></i>
+                        </div>
+                        <h3>制作教学案例与课件</h3>
+                        <p>
+                            为课堂或网课准备互动式数学示例，在
+                            <a href="#examples" onclick="showSection('examples')">教学案例</a> 中集中管理与展示。
+                        </p>
+                        <p class="hero-intro-en">
+                            Build interactive math examples and visual explanations that you can reuse in lessons, demos, or online courses.
+                        </p>
+                        <button class="cta-btn secondary" type="button" onclick="showSection('examples')">
+                            查看教学案例
+                        </button>
+                    </div>
+                </div>
+            </section>
         </section>
 
         <!-- 2. 智能体 Section：侧边栏 + 主聊天区布局 -->
@@ -1628,7 +1736,7 @@
         </div>
     </div>
 
-    <!-- 智能体：功能与示例 独立扩展窗体 -->
+    <!-- 智能体：功能与示例 独立扩展窗体（知识图谱式示例面板） -->
     <div id="agent-examples-modal" class="modal agent-examples-modal">
         <div class="modal-content glass-panel agent-examples-modal-content">
             <div class="agent-examples-modal-header">
@@ -1636,43 +1744,36 @@
                 <span class="close-modal" onclick="Agent.toggleFeaturesExamples()">&times;</span>
             </div>
             <div class="agent-examples-modal-body">
-                <p class="agent-examples-hint">点击示例将自动填入并执行（上传图片后可用「识别」相关示例）</p>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">识别与公式</span>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
-                    <button type="button" class="agent-example-chip" data-prompt="只识别这张图里的公式，不用保存">仅识别（不保存）</button>
-                    <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图里的公式并告诉我结果">识别并告诉我结果</button>
+                <p class="agent-examples-hint">
+                    点击左侧功能节点查看对应示例，右侧会展示简单动效演示；点击示例卡片中的「一键试试」将自动填入并执行。
+                </p>
+                <!-- 顶部动画演示区：整体浮动在功能与示例标题下方 -->
+                <div class="agent-graph-demo" id="agent-graph-demo">
+                    <div class="agent-graph-demo-header">
+                        <span class="agent-graph-demo-title" id="agent-graph-demo-title">选择左侧一个功能节点</span>
+                        <span class="agent-graph-demo-sub" id="agent-graph-demo-sub">这里会以小动画演示智能体将如何帮你操作页面</span>
+                    </div>
+                    <div class="agent-graph-demo-body">
+                        <div class="agent-graph-demo-row">
+                            <span class="agent-graph-demo-label">你说：</span>
+                            <div class="agent-graph-demo-input" id="agent-graph-demo-input"></div>
+                        </div>
+                        <div class="agent-graph-demo-row">
+                            <span class="agent-graph-demo-label">智能体将会：</span>
+                            <div class="agent-graph-demo-steps" id="agent-graph-demo-steps"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">LaTeX / 编辑器</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
-                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
-                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 里填入勾股定理 a^2+b^2=c^2">填入勾股定理 a²+b²=c²</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">动画与计算</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开动态计算页">打开动态计算页</button>
-                    <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用可视化模式画 y=x^2">可视化：画 y=x²</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用完整解题演示做这道题">完整解题演示（需先上传题目图）</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">组合示例</span>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并去计算页生成动画">识别图片 → 去计算页生成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并保存到我的算式再去计算">识别 → 保存到算式库 → 去计算</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入勾股定理 a^2+b^2=c^2 并去动态计算页做可视化">填入勾股定理并做可视化</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入 \int_0^1 x^2 dx 再去动态计算生成动画">LaTeX 填积分公式 → 动态计算生成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入，然后告诉我完成了">打开工作台并填入 Manim 示例</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">开发者工具</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 Manim 工作台">打开 Manim 工作台</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开拓展库">打开拓展库</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
+                <div class="agent-examples-graph">
+                    <div class="agent-examples-graph-left" id="agent-examples-graph-left">
+                        <!-- 由 JS 根据 AGENT_EXAMPLE_GRAPH_DATA 渲染功能节点 -->
+                    </div>
+                    <div class="agent-examples-graph-right">
+                        <div class="agent-graph-node-desc" id="agent-graph-node-desc"></div>
+                        <div class="agent-graph-examples" id="agent-graph-examples">
+                            <!-- 由 JS 渲染当前节点下的示例卡片 -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

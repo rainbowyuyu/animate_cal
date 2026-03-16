@@ -14,13 +14,12 @@
     display: flex;
     align-items: center;
     gap: 0.6rem;
-    padding: 0.6rem 0.85rem;
+    padding: 0.7rem 1rem;
     border-radius: 999px;
-    background: rgba(15, 23, 42, 0.02);
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: linear-gradient(135deg, rgba(248,250,252,0.95), rgba(226,232,240,0.98));
+    border: 1px solid rgba(148, 163, 184, 0.7);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;
 }
 
 .help-search-icon {
@@ -48,9 +47,21 @@
 }
 
 [data-theme="dark"] .help-search-inner {
-    background: rgba(15, 23, 42, 0.6);
-    border-color: rgba(148, 163, 184, 0.7);
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.6);
+    background: linear-gradient(135deg, rgba(15,23,42,0.98), rgba(15,23,42,0.96));
+    border-color: rgba(148, 163, 184, 0.8);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.55);
+}
+
+.help-search-inner:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.18);
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, rgba(239,246,255,0.98), rgba(219,234,254,0.98));
+}
+
+[data-theme="dark"] .help-search-inner:focus-within {
+    background: linear-gradient(135deg, rgba(30,64,175,0.48), rgba(15,23,42,0.96));
+    box-shadow: 0 10px 26px rgba(15,23,42,0.9);
 }
 
 details {
@@ -198,6 +209,13 @@ details p b {
 
 /* 适配移动端 */
 @media (max-width: 600px) {
+    .help-search-inner {
+        border-radius: 12px;
+        padding: 0.6rem 0.75rem;
+    }
+    .help-search-hint {
+        font-size: 0.75rem;
+    }
     .tutorial-banner {
         flex-direction: column;
         text-align: center;
