@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="智算视界（Wisdom Computing Perspective）是面向学生、老师和开发者的下一代数学可视化平台，融合数学公式识别（OCR）、手写公式识别、Manim 数学动画、线性代数与矩阵计算器、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。"
+    />
+    <meta
+      name="keywords"
+      content="智算视界,wiscomper,Wisdom Computing Perspective,数学公式识别,手写公式识别,数学OCR,公式OCR,Manim,Manim 数学动画,数学可视化,线性代数计算器,矩阵计算器,AI 数学助手,数学智能体,数学教学可视化"
+    />
+    <title>
+      智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手
+    </title>
+
+    <!-- Canonical & Open Graph / Twitter cards for SEO & sharing -->
+    <link rel="canonical" href="https://wiscomper.com/" />
+    <meta
+      property="og:title"
+      content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手"
+    />
+    <meta
+      property="og:description"
+      content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://wiscomper.com/" />
+    <meta property="og:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手"
+    />
+    <meta
+      name="twitter:description"
+      content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。"
+    />
+    <meta name="twitter:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png" />
+
+    <link rel="icon" href="/static/assets/智算视界_avatar.svg" type="image/png" />
+
+    <!-- 预连接字体源优化加载速度 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!-- 字体与图标 -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- 第三方库：KaTeX 全站公式渲染 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+      crossorigin="anonymous"
+    />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      window.App = window.App || {};
+      window.App.config = window.App.config || {};
+      window.App.config.KATEX_RENDER_OPTS = {
+        delimiters: [
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+          { left: "\\(", right: "\\)", display: false },
+          { left: "\\[", right: "\\]", display: true }
+        ],
+        throwOnError: false
+      };
+      function renderMath(container) {
+        if (container && window.renderMathInElement) {
+          var opts =
+            (window.App && window.App.config && window.App.config.KATEX_RENDER_OPTS) || {};
+          try {
+            window.renderMathInElement(container, opts);
+          } catch (e) {
+            console.warn("KaTeX render", e);
+          }
+        }
+      }
+    </script>
+
+    <!-- Driver.js (用于新手引导) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+
+    <!-- MathLive (用于可视化公式编辑) -->
+    <script defer src="https://unpkg.com/mathlive"></script>
+
+    <!-- Marked (Markdown 解析) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Highlight.js (代码高亮) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- Cropper.js (图片裁剪编辑) -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
+
+    <!-- 核心样式：沿用原有 main.css 与静态资源路径 -->
+    <link rel="stylesheet" href="/static/css/main.css" />
+
+    <!-- 3d-force-graph：全站知识图谱 3D 渲染（内部自带 THREE） -->
+    <script>
+      window.process = { env: { NODE_ENV: "production" } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.79.1/dist/3d-force-graph.min.js"></script>
+    <!-- 仅引入知识图谱模块，不再加载旧站点 main.js -->
+    <script type="module" src="/static/js/role-graph-bootstrap.js"></script>
+
+    <!-- 结构化数据：WebSite + SearchAction -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "智算视界 · Wisdom Computing Perspective",
+        "url": "https://wiscomper.com/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://wiscomper.com/?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+

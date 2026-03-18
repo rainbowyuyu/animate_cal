@@ -3,27 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="智算视界 (Wisdom Computing Perspective) - 面向学生和老师的数学可视化计算平台，支持拍照识别数学公式 (OCR)、一键生成 LaTeX 代码与 Manim 数学动画讲解。">
-    <meta name="keywords" content="智算视界, 数学可视化, 公式识别, 手写公式识别, OCR 数学, LaTeX 识别, Manim 动画, 数学动画, 数学学习工具, 线性代数可视化, math visualization, formula OCR, handwritten formula recognition, math animation, Manim, linear algebra visualization, math learning tool">
-    <meta name="application-name" content="智算视界 · Wisdom Computing Perspective">
-    <meta name="apple-mobile-web-app-title" content="智算视界">
-    <title>智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台</title>
+    <meta name="description" content="智算视界（Wisdom Computing Perspective）是面向学生、老师和开发者的下一代数学可视化平台，融合数学公式识别（OCR）、手写公式识别、Manim 数学动画、线性代数与矩阵计算器、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta name="keywords" content="智算视界,wiscomper,Wisdom Computing Perspective,数学公式识别,手写公式识别,数学OCR,公式OCR,Manim,Manim 数学动画,数学可视化,线性代数计算器,矩阵计算器,AI 数学助手,数学智能体,数学教学可视化">
+    <title>智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手</title>
+
+    <!-- Canonical & Open Graph / Twitter cards for SEO & sharing -->
+    <link rel="canonical" href="https://wiscomper.com/">
+    <meta property="og:title" content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手">
+    <meta property="og:description" content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://wiscomper.com/">
+    <meta property="og:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手">
+    <meta name="twitter:description" content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta name="twitter:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png">
 
     <link rel="icon" href="assets/智算视界_avatar.svg" type="image/png">
-
-    <!-- Open Graph -->
-    <meta property="og:type" content="website">
-    <meta property="og:title" content="智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台">
-    <meta property="og:description" content="一款面向学生与教师的数学可视化平台，支持拍照识别数学公式 (OCR)、生成 LaTeX 代码和 Manim 数学动画讲解。">
-    <meta property="og:url" content="https://www.wiscomper.com/">
-    <meta property="og:image" content="https://www.wiscomper.com/static/assets/智算视界_horizontal.svg">
-    <meta property="og:locale" content="zh_CN">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="智算视界 · Wisdom Computing Perspective - 数学可视化与公式识别平台">
-    <meta name="twitter:description" content="用 OCR 识别数学公式，生成 LaTeX 与 Manim 动画，帮助学生和老师更直观地理解数学。">
-    <meta name="twitter:image" content="https://www.wiscomper.com/static/assets/智算视界_horizontal.svg">
 
     <!-- 预连接字体源优化加载速度 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -70,29 +66,23 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.css">
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.5.13/dist/cropper.min.js"></script>
 
-    <!-- 结构化数据：声明为教育类 Web 应用 -->
+    <!-- 核心样式 -->
+    <link rel="stylesheet" href="css/main.css">
+
+    <!-- 结构化数据：WebSite + SearchAction -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
+      "@type": "WebSite",
       "name": "智算视界 · Wisdom Computing Perspective",
-      "alternateName": "Wisdom Computing Perspective",
-      "description": "一款面向学生和老师的数学可视化平台，支持公式 OCR 识别、生成 LaTeX 代码与 Manim 数学动画讲解，帮助直观理解抽象数学概念。",
-      "url": "https://www.wiscomper.com/",
-      "image": "https://www.wiscomper.com/static/assets/智算视界_horizontal.svg",
-      "applicationCategory": "EducationalApplication",
-      "operatingSystem": "Web",
-      "inLanguage": ["zh-CN", "en"],
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "CNY"
+      "url": "https://wiscomper.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://wiscomper.com/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
       }
     }
     </script>
-
-    <!-- 核心样式 -->
-    <link rel="stylesheet" href="css/main.css">
 </head>
 <body>
     <!-- 占位：main.js 为 type=module 异步加载，此前点击导航不报错。全局能力挂到 window 供 onclick 使用，尽量通过 ES Modules 管理。 -->
@@ -190,18 +180,9 @@
                 </h1>
 
                 <p class="subtitle">
-                    融合 <b>OCR</b> 手写识别 <b>Manim</b> 动态引擎。<br>
-                    将枯燥的公式转化为直观的视觉语言，专为新一代学习者打造。
+                    融合 <b>数学公式识别（OCR）</b>、手写公式识别与 <b>Manim</b> 动态引擎。<br>
+                    将枯燥的公式转化为直观的数学动画与可视化过程，服务学生、老师与开发者。
                 </p>
-
-                <div class="hero-intro">
-                    <p>
-                        适用于中学与高校学生、自学者和一线教师，支持拍照识别数学公式、自动生成 LaTeX 代码，并一键生成 Manim 数学动画讲解。
-                    </p>
-                    <p class="hero-intro-en">
-                        Wisdom Computing Perspective is a math visualization platform that turns formulas into interactive animations, with OCR-powered formula recognition and LaTeX export.
-                    </p>
-                </div>
 
                 <div class="hero-btns">
                     <button class="cta-btn primary" onclick="showSection('agent')">
@@ -268,22 +249,22 @@
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-robot"></i>
                     </div>
-                    <h3>智能体</h3>
-                    <p>用一句话调用全站功能。例如："把 sin(x) = 1/2 做成动画" 或 "识别这张图并去计算"，自动跳转并完成任务。</p>
+                    <h3>智能体 · AI 数学助手</h3>
+                    <p>用一句话调用全站功能：从数学公式识别、Manim 数学动画到矩阵与线性代数计算，一位 AI 数学助手帮你完成整套流程。</p>
                 </div>
                 <div class="feature-card" onclick="showSection('detect')">
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-eye"></i>
                     </div>
-                    <h3>视觉识别</h3>
-                    <p>支持手写公式与图片上传，毫秒级精准转换 LaTeX 代码，复杂矩阵也能一键提取。</p>
+                    <h3>视觉识别 · 数学 OCR</h3>
+                    <p>支持手写公式与图片上传，毫秒级精准完成数学公式识别与 LaTeX 转换，复杂矩阵和推导过程也能一键提取。</p>
                 </div>
                 <div class="feature-card" onclick="showSection('calculate')">
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </div>
-                    <h3>动态推演</h3>
-                    <p>拒绝死板的答案。基于 Python Manim 引擎，实时渲染矩阵变换、行列式展开过程。</p>
+                    <h3>动态推演 · 数学可视化</h3>
+                    <p>拒绝死板的答案。基于 Python Manim 引擎，像线性代数计算器一样实时演示矩阵变换、行列式展开与几何推导全过程。</p>
                 </div>
                 <!-- <div class="feature-card" onclick="showSection('examples')">
                     <div class="feature-icon-box">
@@ -293,67 +274,6 @@
                     <p>不仅仅是计算器。支持实时修改公式参数，通过可视化过程深入理解底层数学逻辑。</p>
                 </div> -->
             </div>
-
-            <!-- 面向搜索意图的使用场景内容块 -->
-            <section class="seo-usecases-section" aria-label="典型使用场景">
-                <h2 class="section-title">你可以用智算视界做什么？</h2>
-                <p class="subtitle">
-                    针对常见的学习与教学场景，我们为你准备了几种典型用法，你可以直接点击卡片中的入口开始体验。
-                </p>
-
-                <div class="features-grid seo-usecases-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon-box">
-                            <i class="fa-solid fa-camera"></i>
-                        </div>
-                        <h3>拍照识别数学公式（OCR）</h3>
-                        <p>
-                            上传试题或手写板照片，自动识别为规范的 LaTeX 公式，一键跳转到
-                            <a href="#detect" onclick="showSection('detect')">智能算式识别</a> 页面进行编辑与复用。
-                        </p>
-                        <p class="hero-intro-en">
-                            Convert photos of handwritten or printed formulas into clean LaTeX using our formula OCR, then reuse them in your documents or tools.
-                        </p>
-                        <button class="cta-btn secondary" type="button" onclick="showSection('detect')">
-                            前往公式识别
-                        </button>
-                    </div>
-
-                    <div class="feature-card">
-                        <div class="feature-icon-box">
-                            <i class="fa-solid fa-film"></i>
-                        </div>
-                        <h3>生成数学动画讲解</h3>
-                        <p>
-                            将线性代数、矩阵运算等抽象概念制作成可视化动画，在
-                            <a href="#calculate" onclick="showSection('calculate')">动态计算</a> 中逐步展示推理过程。
-                        </p>
-                        <p class="hero-intro-en">
-                            Turn algebra and linear algebra formulas into step-by-step Manim animations to make classroom explanations more vivid.
-                        </p>
-                        <button class="cta-btn secondary" type="button" onclick="showSection('calculate')">
-                            前往动态推演
-                        </button>
-                    </div>
-
-                    <div class="feature-card">
-                        <div class="feature-icon-box">
-                            <i class="fa-solid fa-chalkboard-user"></i>
-                        </div>
-                        <h3>制作教学案例与课件</h3>
-                        <p>
-                            为课堂或网课准备互动式数学示例，在
-                            <a href="#examples" onclick="showSection('examples')">教学案例</a> 中集中管理与展示。
-                        </p>
-                        <p class="hero-intro-en">
-                            Build interactive math examples and visual explanations that you can reuse in lessons, demos, or online courses.
-                        </p>
-                        <button class="cta-btn secondary" type="button" onclick="showSection('examples')">
-                            查看教学案例
-                        </button>
-                    </div>
-                </div>
-            </section>
         </section>
 
         <!-- 2. 智能体 Section：侧边栏 + 主聊天区布局 -->
