@@ -164,7 +164,7 @@ html_root/
 
 - **作者**: rainbow_yu
 - **网站**: [智算视界](https://wiscomper.com/)
-- **Email**: rainbowyu619@wiscomper.cn
+- **Email**: rainbowyu619@gmail.com 
 
 ---
 
@@ -172,4 +172,4 @@ html_root/
 
 本项目仅供学习与交流使用，后端核心渲染逻辑保留所有权。
 
-Copyright © 2026 Visdom Computing Perspective.
+Copyright © 2026 Wisdom Computing Perspective.
