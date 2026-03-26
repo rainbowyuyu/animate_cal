@@ -19,3 +19,5 @@ html_root/.env
 html_root/.env
 .idea/misc.xml
 .idea/animate_cal.iml
+/intro-video/node_modules
+/vue_root/node_modules

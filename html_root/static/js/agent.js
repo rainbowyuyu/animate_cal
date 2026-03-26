@@ -254,6 +254,400 @@ function scrollMessagesToBottom() {
     }
 }
 
+/** 功能与示例：知识图谱式示例面板 */
+const AGENT_EXAMPLE_GRAPH_DATA = [
+    {
+        id: 'detect',
+        icon: 'fa-camera',
+        title: '识别与公式',
+        subtitle: '从图片 / 手写到 LaTeX',
+        desc: '将题目图片或手写算式识别为可编辑 LaTeX，可选择仅识别、保存到我的算式或直接去计算页。',
+        examples: [
+            {
+                id: 'detect-basic',
+                title: '识别这张图',
+                summary: '上传/粘贴题目图片，一句话让智能体识别其中的公式。',
+                prompt: '识别这张图',
+                steps: [
+                    '读取你刚刚上传或粘贴的图片。',
+                    '调用「智能识别」工具，将图片中的公式转成 LaTeX。',
+                    '把识别结果展示在识别页的公式栏中，便于你修改或保存。'
+                ]
+            },
+            {
+                id: 'detect-save',
+                title: '识别并保存到我的算式',
+                summary: '识别后自动写入「我的算式」，方便后续在计算页或工作台复用。',
+                prompt: '帮我识别公式并保存到我的算式',
+                steps: [
+                    '打开「智能识别」页并识别当前图片中的公式。',
+                    '把识别出来的 LaTeX 填入结果区域。',
+                    '自动点击「保存并查看」，将公式写入「我的算式」。'
+                ]
+            },
+            {
+                id: 'detect-explain',
+                title: '识别并告诉我结果',
+                summary: '不仅识别公式，还用文字解释结果含义或计算值。',
+                prompt: '识别这张图里的公式并告诉我结果',
+                steps: [
+                    '用多模态大模型识别题目中的公式与文字。',
+                    '将公式统一整理为规范 LaTeX 表达。',
+                    '在聊天区给出文字版的计算结果或结论说明。'
+                ]
+            }
+        ]
+    },
+    {
+        id: 'calculate',
+        icon: 'fa-calculator',
+        title: '动态计算与可视化',
+        subtitle: '从公式到动画',
+        desc: '在动态计算页进行推演、可视化或完整解题演示，智能体会自动选择合适模式。',
+        examples: [
+            {
+                id: 'calc-sin-anim',
+                title: '把 sin(x)=1/2 做成动画',
+                summary: '自动选择可视化模式，生成解方程 + 图像的联动动画。',
+                prompt: '把 sin(x)=1/2 做成动画',
+                steps: [
+                    '切换到「动态计算」页并选中合适的演示模式。',
+                    '在主输入框中填入 sin(x)=1/2 的 LaTeX 表达。',
+                    '生成一段包含解方程与函数图像的 Manim 脚本，并开始渲染预览。'
+                ]
+            },
+            {
+                id: 'calc-solution',
+                title: '完整解题演示',
+                summary: '针对一整道题生成「整题模式」的逐步演示。',
+                prompt: '用完整解题演示做这道题',
+                steps: [
+                    '分析你粘贴的整道题或刚识别的题目图片。',
+                    '在动态计算中选择「完整解题演示」模式，将整题文字填入输入框。',
+                    '先给出文字版解题步骤，再生成对应的 Manim 动画视频。'
+                ]
+            },
+            {
+                id: 'calc-visual-yx2',
+                title: '可视化：画 y=x²',
+                summary: '用可视化模式绘制基础函数曲线，适合课堂讲解。',
+                prompt: '用可视化模式画 y=x^2',
+                steps: [
+                    '打开「动态计算」页并切换到「可视化」模式。',
+                    '填入 y = x^2 的公式，并设置合理的取值区间。',
+                    '生成一段展示抛物线形状与关键点的动画。'
+                ]
+            }
+        ]
+    },
+    {
+        id: 'devtools',
+        icon: 'fa-code',
+        title: '开发者工具与脚本',
+        subtitle: 'LaTeX / Manim / Rainbow',
+        desc: '在云端代码工作台中编辑、运行 Manim 脚本，或在 LaTeX 编辑器中整理公式。',
+        examples: [
+            {
+                id: 'devtools-open-latex',
+                title: '打开 LaTeX 编辑器',
+                summary: '快速跳到开发者工具中的 LaTeX 子页。',
+                prompt: '打开 LaTeX 编辑器',
+                steps: [
+                    '切换到「开发者工具」页。',
+                    '在顶部标签中选中「LaTeX 编辑器」。',
+                    '准备好预览区域，方便你一边写一边看公式排版。'
+                ]
+            },
+            {
+                id: 'devtools-open-manim',
+                title: '打开工作台并填入示例',
+                summary: '在云端工作台中填入一段可直接运行的 Manim 示例代码。',
+                prompt: '打开云端渲染工作台并帮我写一段 Manim 示例代码填入',
+                steps: [
+                    '切换到「开发者工具」页并选中「云端代码工作台」。',
+                    '在编辑器中填入一段简单的 Manim 示例脚本（如几何图形或数轴演示）。',
+                    '准备好渲染区域，你可以手动点击「运行」查看动画效果。'
+                ]
+            }
+        ]
+    },
+    {
+        id: 'flows',
+        icon: 'fa-route',
+        title: '组合路径与流程',
+        subtitle: '识别 → 计算 → 案例',
+        desc: '按一条「知识图谱路径」组合多个工具，用一句话完成整条流水线。',
+        examples: [
+            {
+                id: 'flow-detect-to-calc',
+                title: '识别图片 → 去计算页生成动画',
+                summary: '一键走完「识别 → 动态计算 → 生成动画」的整条链路。',
+                prompt: '识别这张图并去计算页生成动画',
+                steps: [
+                    '在「智能识别」中识别你上传的题目图片，得到 LaTeX 公式。',
+                    '自动跳转到「动态计算」页并填入识别到的公式。',
+                    '选择合适的模式，自动点击「生成可视化动画」，渲染完成后给出视频入口。'
+                ]
+            },
+            {
+                id: 'flow-save-and-calc',
+                title: '识别 → 保存到算式库 → 去计算',
+                summary: '适合先把题目收集进资料库，再进入计算页统一整理。',
+                prompt: '识别这张图并保存到我的算式再去计算',
+                steps: [
+                    '识别图片中的公式并将其规范化为 LaTeX。',
+                    '点击「保存并查看」，把题目写入「我的算式」。',
+                    '跳转到「动态计算」页，从算式库中载入该公式开始推演或可视化。'
+                ]
+            },
+            {
+                id: 'flow-to-courseware',
+                title: '从案例到课件包',
+                summary: '把已经生成好的教学案例整理成课件包，方便课堂或分享。',
+                prompt: '帮我把这几个我收藏的教学案例整理成一个「导数入门」课件包。',
+                steps: [
+                    '在「教学案例」页中根据收藏与标签筛选出你需要的几个视频。',
+                    '为这些视频创建一个名为「导数入门」的课件包分组，并添加相应的元信息说明。',
+                    '生成一个方便课堂使用的入口链接，供你在上课或分享时一键打开这一组案例。'
+                ]
+            },
+            {
+                id: 'flow-errorbook',
+                title: '错题本联动智能体练习',
+                summary: '基于看过的视频和错题记录，自动出同类练习题。',
+                prompt: '根据我最近在错题本里记录的内容，出 3 道同类练习题并带解析。',
+                steps: [
+                    '读取最近几条错题本记录，分析其中涉及的知识点与题型。',
+                    '调用智能体生成若干同类型但数值不同的新题目，并给出详细解析过程。',
+                    '提供将这些练习题再次写入错题本或交给动态计算/教学案例继续可视化的选项。'
+                ]
+            }
+        ]
+    },
+    {
+        id: 'agent',
+        icon: 'fa-robot',
+        title: '智能体总控',
+        subtitle: '用一句话调度全站工具',
+        desc: '智能体是整个站点的总控中枢，可以根据你的自然语言，在知识图谱上自动选择节点并执行（识别、计算、脚本、案例、课包、设置等）。',
+        examples: [
+            {
+                id: 'agent-role-student',
+                title: '按学生角色带我学一节课',
+                summary: '智能体基于知识图谱自动串联「教学案例 → 动态计算 → 错题本」。',
+                prompt: '我是学生，帮我用教学案例和动态计算学一节关于极限的课，并记录错题到错题本。',
+                steps: [
+                    '分析你当前的学习需求，并从教学案例中推荐合适的极限类视频。',
+                    '在知识图谱上依次走「教学案例 → 动态计算」，选出一个关键公式做可视化推演。',
+                    '在你做题时，将容易错的地方记录到错题本，方便后续复习。'
+                ]
+            },
+            {
+                id: 'agent-course-pack',
+                title: '用智能体创建一套课包',
+                summary: '为教师把「识别 → 计算 → 开发者工具 → 教学案例」整合成课件流水线。',
+                prompt: '帮我从板书照片开始，生成一套关于微积分入门的课包，并整理到「我的课件」。',
+                steps: [
+                    '引导你上传板书或讲义照片，并在「智能识别」中将内容转成可编辑 LaTeX。',
+                    '在「动态计算」和「开发者工具」中生成对应的推演/可视化动画脚本并渲染成视频。',
+                    '将生成的视频加入教学案例，并通过课件包功能整理到「我的课件」，形成一键复用的课包。'
+                ]
+            },
+            {
+                id: 'agent-templates',
+                title: '把这次操作存成模板',
+                summary: '将当前对话步骤保存为可复用的「智能体模板」，下次一键运行。',
+                prompt: '把刚才帮我做的这套流程保存成智能体模板，起名「极限练习流水线」。',
+                steps: [
+                    '读取本轮对话中自动执行过的步骤树（识别 → 动态计算 → 保存脚本 / 错题本）。',
+                    '写入「我的算式」里的模板库中，生成一条名为「极限练习流水线」的模板记录。',
+                    '下次你在智能体侧边栏选择「从模板运行」时，可以一键复用这条流程。'
+                ]
+            },
+            {
+                id: 'agent-settings',
+                title: '帮我调好整站偏好设置',
+                summary: '用一句话修改外观、演示模式、弹幕开关等常用偏好。',
+                prompt: '帮我把整站改成深色主题，动态计算默认用完整解题模式，教学案例默认关闭弹幕。',
+                steps: [
+                    '打开系统设置，通过知识图谱定位到外观、动态计算和教学案例设置分区。',
+                    '将主题切换为深色模式，并将动态计算默认模式改为「完整解题演示」。',
+                    '在教学案例设置中关闭弹幕或调低弹幕透明度，保存这些偏好并在下次访问时自动应用。'
+                ]
+            }
+        ]
+    }
+];
+
+let _agentExamplesGraphInited = false;
+let _agentDemoTimers = [];
+
+function initAgentExamplesGraph() {
+    if (_agentExamplesGraphInited) return;
+    const left = document.getElementById('agent-examples-graph-left');
+    const descEl = document.getElementById('agent-graph-node-desc');
+    const examplesWrap = document.getElementById('agent-graph-examples');
+    const demoTitle = document.getElementById('agent-graph-demo-title');
+    const demoSub = document.getElementById('agent-graph-demo-sub');
+    const demoInput = document.getElementById('agent-graph-demo-input');
+    const demoSteps = document.getElementById('agent-graph-demo-steps');
+    if (!left || !descEl || !examplesWrap || !demoTitle || !demoSub || !demoInput || !demoSteps) return;
+
+    function clearDemo() {
+        // 取消上一次 demo 的所有定时器，避免频繁切换造成堆积
+        _agentDemoTimers.forEach((id) => clearTimeout(id));
+        _agentDemoTimers = [];
+        demoInput.innerHTML = '';
+        demoSteps.innerHTML = '';
+    }
+
+    function playDemo(example) {
+        clearDemo();
+        const fullText = '「' + (example.prompt || example.title || '') + '」';
+        const span = document.createElement('span');
+        span.className = 'agent-graph-demo-input-text';
+        demoInput.appendChild(span);
+        let idx = 0;
+        const typingInterval = 28;
+        function tick() {
+            if (idx > fullText.length) return;
+            span.textContent = fullText.slice(0, idx);
+            idx += 1;
+            if (idx <= fullText.length) {
+                const id = setTimeout(tick, typingInterval);
+                _agentDemoTimers.push(id);
+            }
+        }
+        tick();
+
+        const steps = Array.isArray(example.steps) ? example.steps.slice(0, 4) : [];
+        steps.forEach((text, i) => {
+            const p = document.createElement('p');
+            p.className = 'agent-graph-demo-step';
+            p.textContent = '• ' + text;
+            demoSteps.appendChild(p);
+            const id = setTimeout(() => {
+                p.classList.add('agent-graph-demo-step-show');
+            }, 160 + i * 180);
+            _agentDemoTimers.push(id);
+        });
+    }
+
+    function renderExamples(node) {
+        examplesWrap.innerHTML = '';
+        const list = Array.isArray(node.examples) ? node.examples : [];
+        list.forEach((ex) => {
+            const card = document.createElement('div');
+            card.className = 'agent-graph-example-card';
+            card.dataset.nodeId = node.id;
+            card.dataset.exampleId = ex.id;
+            const inner = document.createElement('div');
+            inner.className = 'agent-graph-example-inner';
+            const title = document.createElement('div');
+            title.className = 'agent-graph-example-title';
+            title.textContent = ex.title;
+            const desc = document.createElement('div');
+            desc.className = 'agent-graph-example-desc';
+            desc.textContent = ex.summary || ex.prompt || '';
+            inner.appendChild(title);
+            inner.appendChild(desc);
+
+            const footer = document.createElement('div');
+            footer.className = 'agent-graph-example-footer';
+            const meta = document.createElement('div');
+            meta.className = 'agent-graph-example-meta';
+            const metaIcon = document.createElement('i');
+            metaIcon.className = 'fa-solid fa-circle-nodes';
+            const metaText = document.createElement('span');
+            metaText.textContent = node.title;
+            meta.appendChild(metaIcon);
+            meta.appendChild(metaText);
+
+            const tryBtn = document.createElement('button');
+            tryBtn.type = 'button';
+            tryBtn.className = 'agent-graph-example-try agent-example-chip';
+            tryBtn.dataset.prompt = ex.prompt || ex.title || '';
+            tryBtn.innerHTML = '<i class="fa-solid fa-bolt"></i><span>一键试试</span>';
+
+            footer.appendChild(meta);
+            footer.appendChild(tryBtn);
+
+            card.appendChild(inner);
+            card.appendChild(footer);
+
+            // 有趣交互：鼠标移入卡片时，轻微高亮对应左侧节点
+            card.addEventListener('mouseenter', () => {
+                left.querySelectorAll('.agent-graph-node').forEach((btn) => {
+                    if (btn.dataset.nodeId === node.id) {
+                        btn.classList.add('hover-link');
+                    }
+                });
+            });
+            card.addEventListener('mouseleave', () => {
+                left.querySelectorAll('.agent-graph-node.hover-link').forEach((btn) => {
+                    btn.classList.remove('hover-link');
+                });
+            });
+
+            card.addEventListener('click', (e) => {
+                // 避免点击内部「一键试试」按钮时重复触发 demo 以外行为
+                if (e.target.closest('.agent-example-chip')) return;
+                demoTitle.textContent = ex.title;
+                demoSub.textContent = node.subtitle || node.desc || '';
+                playDemo(ex);
+            });
+
+            examplesWrap.appendChild(card);
+        });
+    }
+
+    function setActiveNode(nodeId) {
+        const node = AGENT_EXAMPLE_GRAPH_DATA.find((n) => n.id === nodeId) || AGENT_EXAMPLE_GRAPH_DATA[0];
+        if (!node) return;
+        left.querySelectorAll('.agent-graph-node').forEach((btn) => {
+            btn.classList.toggle('active', btn.dataset.nodeId === node.id);
+        });
+        descEl.textContent = node.desc || '';
+        demoTitle.textContent = node.title;
+        demoSub.textContent = node.subtitle || '';
+        playDemo(node.examples && node.examples[0] ? node.examples[0] : { title: node.title, prompt: node.title, steps: [] });
+        renderExamples(node);
+    }
+
+    left.innerHTML = '';
+    AGENT_EXAMPLE_GRAPH_DATA.forEach((node) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'agent-graph-node';
+        btn.dataset.nodeId = node.id;
+        const main = document.createElement('div');
+        main.className = 'agent-graph-node-main';
+        const t = document.createElement('div');
+        t.className = 'agent-graph-node-title';
+        t.textContent = node.title;
+        const s = document.createElement('div');
+        s.className = 'agent-graph-node-sub';
+        s.textContent = node.subtitle || '';
+        main.appendChild(t);
+        main.appendChild(s);
+        const icon = document.createElement('div');
+        icon.className = 'agent-graph-node-icon';
+        const i = document.createElement('i');
+        i.className = 'fa-solid ' + (node.icon || 'fa-circle');
+        icon.appendChild(i);
+        btn.appendChild(main);
+        btn.appendChild(icon);
+        btn.addEventListener('click', () => setActiveNode(node.id));
+        left.appendChild(btn);
+    });
+
+    if (AGENT_EXAMPLE_GRAPH_DATA.length > 0) {
+        setActiveNode(AGENT_EXAMPLE_GRAPH_DATA[0].id);
+    }
+
+    _agentExamplesGraphInited = true;
+}
+
 /** 消息出现动画 */
 function animateMessageAppear(element) {
     if (!element) return;
@@ -503,6 +897,10 @@ export function toggleFeaturesExamples() {
     if (!modal) return;
     const isHidden = modal.classList.contains('show') === false;
     if (isHidden) {
+        // 首次打开时再初始化知识图谱面板，避免页面加载就做大量 DOM 操作
+        if (!_agentExamplesGraphInited) {
+            initAgentExamplesGraph();
+        }
         modal.style.display = 'flex';
         requestAnimationFrame(() => modal.classList.add('show'));
     } else {

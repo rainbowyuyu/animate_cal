@@ -1,0 +1,32 @@
+{
+  "name": "wiscomper-intro-video",
+  "version": "1.0.0",
+  "description": "智算视界网站介绍视频 - Remotion",
+  "scripts": {
+    "start": "remotion studio src/index.ts",
+    "build": "remotion render src/index.ts Intro out/intro.mp4",
+    "render": "remotion render"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/three": "^4.0.0",
+    "@remotion/transitions": "^4.0.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.11.0",
+    "lucide-react": "^0.460.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.0",
+    "tailwind-merge": "^2.5.4",
+    "three": "^0.160.0",
+    "@react-three/fiber": "^8.15.0"
+  },
+  "devDependencies": {
+    "@remotion/tailwind-v4": "^4.0.0",
+    "@types/react": "^18.2.0",
+    "@types/three": "^0.160.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

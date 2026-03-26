@@ -1,0 +1,5 @@
+User-agent: *
+Disallow:
+
+Sitemap: https://wiscomper.com/sitemap.xml
+

@@ -3,8 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="智算视界 (Wisdom Computing Perspective) - 基于 AI 视觉识别与 Manim 动态引擎的下一代数学可视化计算平台。">
-    <title>智算视界 · Wisdom Computing Perspective</title>
+    <meta name="description" content="智算视界（Wisdom Computing Perspective）是面向学生、老师和开发者的下一代数学可视化平台，融合数学公式识别（OCR）、手写公式识别、Manim 数学动画、线性代数与矩阵计算器、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta name="keywords" content="智算视界,wiscomper,Wisdom Computing Perspective,数学公式识别,手写公式识别,数学OCR,公式OCR,Manim,Manim 数学动画,数学可视化,线性代数计算器,矩阵计算器,AI 数学助手,数学智能体,数学教学可视化">
+    <title>智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手</title>
+
+    <!-- Canonical & Open Graph / Twitter cards for SEO & sharing -->
+    <link rel="canonical" href="https://wiscomper.com/">
+    <meta property="og:title" content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手">
+    <meta property="og:description" content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://wiscomper.com/">
+    <meta property="og:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="智算视界 · Wisdom Computing Perspective | 数学公式识别 · Manim 数学动画 · AI 数学助手">
+    <meta name="twitter:description" content="面向学生、老师和开发者的数学可视化平台，集成数学公式识别（OCR）、Manim 数学动画、线性代数与矩阵计算、AI 数学助手与智能体，一站式完成识别、计算与可视化演示。">
+    <meta name="twitter:image" content="https://wiscomper.com/static/assets/智算视界_avatar.png">
 
     <link rel="icon" href="assets/智算视界_avatar.svg" type="image/png">
 
@@ -55,6 +68,21 @@
 
     <!-- 核心样式 -->
     <link rel="stylesheet" href="css/main.css">
+
+    <!-- 结构化数据：WebSite + SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "智算视界 · Wisdom Computing Perspective",
+      "url": "https://wiscomper.com/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://wiscomper.com/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
 </head>
 <body>
     <!-- 占位：main.js 为 type=module 异步加载，此前点击导航不报错。全局能力挂到 window 供 onclick 使用，尽量通过 ES Modules 管理。 -->
@@ -152,8 +180,8 @@
                 </h1>
 
                 <p class="subtitle">
-                    融合 <b>OCR</b> 手写识别 <b>Manim</b> 动态引擎。<br>
-                    将枯燥的公式转化为直观的视觉语言，专为新一代学习者打造。
+                    融合 <b>数学公式识别（OCR）</b>、手写公式识别与 <b>Manim</b> 动态引擎。<br>
+                    将枯燥的公式转化为直观的数学动画与可视化过程，服务学生、老师与开发者。
                 </p>
 
                 <div class="hero-btns">
@@ -221,22 +249,22 @@
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-robot"></i>
                     </div>
-                    <h3>智能体</h3>
-                    <p>用一句话调用全站功能。例如："把 sin(x) = 1/2 做成动画" 或 "识别这张图并去计算"，自动跳转并完成任务。</p>
+                    <h3>智能体 · AI 数学助手</h3>
+                    <p>用一句话调用全站功能：从数学公式识别、Manim 数学动画到矩阵与线性代数计算，一位 AI 数学助手帮你完成整套流程。</p>
                 </div>
                 <div class="feature-card" onclick="showSection('detect')">
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-eye"></i>
                     </div>
-                    <h3>视觉识别</h3>
-                    <p>支持手写公式与图片上传，毫秒级精准转换 LaTeX 代码，复杂矩阵也能一键提取。</p>
+                    <h3>视觉识别 · 数学 OCR</h3>
+                    <p>支持手写公式与图片上传，毫秒级精准完成数学公式识别与 LaTeX 转换，复杂矩阵和推导过程也能一键提取。</p>
                 </div>
                 <div class="feature-card" onclick="showSection('calculate')">
                     <div class="feature-icon-box">
                         <i class="fa-solid fa-wand-magic-sparkles"></i>
                     </div>
-                    <h3>动态推演</h3>
-                    <p>拒绝死板的答案。基于 Python Manim 引擎，实时渲染矩阵变换、行列式展开过程。</p>
+                    <h3>动态推演 · 数学可视化</h3>
+                    <p>拒绝死板的答案。基于 Python Manim 引擎，像线性代数计算器一样实时演示矩阵变换、行列式展开与几何推导全过程。</p>
                 </div>
                 <!-- <div class="feature-card" onclick="showSection('examples')">
                     <div class="feature-icon-box">
@@ -1628,7 +1656,7 @@
         </div>
     </div>
 
-    <!-- 智能体：功能与示例 独立扩展窗体 -->
+    <!-- 智能体：功能与示例 独立扩展窗体（知识图谱式示例面板） -->
     <div id="agent-examples-modal" class="modal agent-examples-modal">
         <div class="modal-content glass-panel agent-examples-modal-content">
             <div class="agent-examples-modal-header">
@@ -1636,43 +1664,36 @@
                 <span class="close-modal" onclick="Agent.toggleFeaturesExamples()">&times;</span>
             </div>
             <div class="agent-examples-modal-body">
-                <p class="agent-examples-hint">点击示例将自动填入并执行（上传图片后可用「识别」相关示例）</p>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">识别与公式</span>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图">识别这张图</button>
-                    <button type="button" class="agent-example-chip" data-prompt="只识别这张图里的公式，不用保存">仅识别（不保存）</button>
-                    <button type="button" class="agent-example-chip" data-prompt="帮我识别公式并保存到我的算式">识别并保存到我的算式</button>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图里的公式并告诉我结果">识别并告诉我结果</button>
+                <p class="agent-examples-hint">
+                    点击左侧功能节点查看对应示例，右侧会展示简单动效演示；点击示例卡片中的「一键试试」将自动填入并执行。
+                </p>
+                <!-- 顶部动画演示区：整体浮动在功能与示例标题下方 -->
+                <div class="agent-graph-demo" id="agent-graph-demo">
+                    <div class="agent-graph-demo-header">
+                        <span class="agent-graph-demo-title" id="agent-graph-demo-title">选择左侧一个功能节点</span>
+                        <span class="agent-graph-demo-sub" id="agent-graph-demo-sub">这里会以小动画演示智能体将如何帮你操作页面</span>
+                    </div>
+                    <div class="agent-graph-demo-body">
+                        <div class="agent-graph-demo-row">
+                            <span class="agent-graph-demo-label">你说：</span>
+                            <div class="agent-graph-demo-input" id="agent-graph-demo-input"></div>
+                        </div>
+                        <div class="agent-graph-demo-row">
+                            <span class="agent-graph-demo-label">智能体将会：</span>
+                            <div class="agent-graph-demo-steps" id="agent-graph-demo-steps"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">LaTeX / 编辑器</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
-                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 编辑器填入 sin(x)=1/2">填入 sin(x)=1/2</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 并填入质能方程">填入质能方程</button>
-                    <button type="button" class="agent-example-chip" data-prompt="在 LaTeX 里填入勾股定理 a^2+b^2=c^2">填入勾股定理 a²+b²=c²</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">动画与计算</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开动态计算页">打开动态计算页</button>
-                    <button type="button" class="agent-example-chip" data-prompt="把 sin(x)=1/2 做成动画">把 sin(x)=1/2 做成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用公式推演模式做二次方程求根公式">公式推演：二次方程求根</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用可视化模式画 y=x^2">可视化：画 y=x²</button>
-                    <button type="button" class="agent-example-chip" data-prompt="用完整解题演示做这道题">完整解题演示（需先上传题目图）</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">组合示例</span>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并去计算页生成动画">识别图片 → 去计算页生成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="识别这张图并保存到我的算式再去计算">识别 → 保存到算式库 → 去计算</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入勾股定理 a^2+b^2=c^2 并去动态计算页做可视化">填入勾股定理并做可视化</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 填入 \int_0^1 x^2 dx 再去动态计算生成动画">LaTeX 填积分公式 → 动态计算生成动画</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入，然后告诉我完成了">打开工作台并填入 Manim 示例</button>
-                </div>
-                <div class="agent-examples-group">
-                    <span class="agent-examples-group-title">开发者工具</span>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 LaTeX 编辑器">打开 LaTeX 编辑器</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开 Manim 工作台">打开 Manim 工作台</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开拓展库">打开拓展库</button>
-                    <button type="button" class="agent-example-chip" data-prompt="打开云端渲染工作台并帮我写一段 Manim 示例代码填入">打开工作台并填入 Manim 示例</button>
+                <div class="agent-examples-graph">
+                    <div class="agent-examples-graph-left" id="agent-examples-graph-left">
+                        <!-- 由 JS 根据 AGENT_EXAMPLE_GRAPH_DATA 渲染功能节点 -->
+                    </div>
+                    <div class="agent-examples-graph-right">
+                        <div class="agent-graph-node-desc" id="agent-graph-node-desc"></div>
+                        <div class="agent-graph-examples" id="agent-graph-examples">
+                            <!-- 由 JS 渲染当前节点下的示例卡片 -->
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
